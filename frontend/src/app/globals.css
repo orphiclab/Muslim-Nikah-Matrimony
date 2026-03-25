@@ -135,18 +135,24 @@
 .font-andada-pro {
   font-family: var(--font-andada-pro), sans-serif;
 }
+.font-aref-ruqaa-ink {
+  font-family: var(--font-aref-ruqaa-ink), sans-serif;
+}
 .title {
   @apply text-[30px] sm:text-[36px] md:text-[42px] lg:text-[52px] xl:text-[60px] 2xl:text-[64px];
 }
 .subtitle {
-  @apply text-[18px] sm:text-[18px] md:text-[20px] lg:text-[20px] xl:text-[22px] 2xl:text-[26px];
+  @apply text-[18px] sm:text-[18px] md:text-[20px] lg:text-[20px] xl:text-[22px] 2xl:text-[25px];
+}
+.title-sub-top {
+  @apply text-[16px] sm:text-[17px] md:text-[18px] lg:text-[19px] xl:text-[20px] 2xl:text-[20px];
 }
 .paragraph {
   @apply text-[15px] sm:text-[15px] md:text-[16px] lg:text-[18px] xl:text-[20px] 2xl:text-[22px];
 }
 .containerpadding {
-  @apply px-4 sm:px-6 lg:px-10 xl:px-15 2xl:px-15;
+  @apply px-4 sm:px-6 lg:px-10 xl:px-20 2xl:px-20;
 }
 .margin-y {
-  @apply my-[20px] sm:my-[30px] md:my-[40px] lg:my-[50px] xl:my-[60px] 2xl:my-[70px] ;
+  @apply my-[20px] sm:my-[30px] md:my-[40px] lg:my-[50px] xl:my-[55px] 2xl:my-[60px] ;
 }

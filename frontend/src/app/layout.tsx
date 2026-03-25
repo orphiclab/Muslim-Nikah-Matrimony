@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono,Poppins,Andada_Pro } from "next/font/google";
+import { Geist, Geist_Mono,Poppins,Andada_Pro,Aref_Ruqaa_Ink } from "next/font/google";
 import "./globals.css";
 import Nav from "@/components/ui/navbar/Nav";
 
@@ -24,6 +24,11 @@ const andadaPro = Andada_Pro({
   subsets: ["latin"],
   weight: ["400", "500", "600", "700"],
 });
+const arefRuqaaInk = Aref_Ruqaa_Ink({
+  variable: "--font-aref-ruqaa-ink",
+  subsets: ["latin"],
+  weight: ["400", "700"],
+});
 
 export const metadata: Metadata = {
   title: "Muslim Nikah Matrimony",
@@ -38,7 +43,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} ${poppins.variable} ${andadaPro.variable} h-full antialiased`}
+      className={`${geistSans.variable} ${geistMono.variable} ${poppins.variable} ${andadaPro.variable} ${arefRuqaaInk.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
         <Nav />
