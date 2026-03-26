@@ -7,6 +7,7 @@ import SafetyCards from '@/components/home/safety/cards'
 import GenuineSection from '@/components/home/genuine/genie'
 import EverythingSection from '@/components/home/everthing/everthig'
 import ReadySection from '@/components/home/ready/ready'
+import Footer from '@/components/ui/footer/footer'
 
 function page() {
   return (
@@ -19,7 +20,7 @@ function page() {
       <SafetyCards />
       <EverythingSection />
       <ReadySection />
-      
+      <Footer />
     </main>
   )
 }

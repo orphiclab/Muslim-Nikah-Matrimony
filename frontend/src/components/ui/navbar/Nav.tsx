@@ -34,7 +34,7 @@ const Nav = () => {
      'text-[#DB9D30]  hover:text-[#DB9D30]/80'
 
   return (
-    <div className="fixed top-5 left-0 right-0 z-100 flex justify-center containerpadding container mx-auto ">
+    <div className="fixed top-5 left-0 right-0 z-500 isolate flex touch-manipulation justify-center containerpadding container mx-auto">
       <div className="w-full flex flex-col gap-2">
         <nav className="w-full backdrop-blur-md bg-[#4B7F73]/50 border border-white/15 rounded-full shadow-2xl shadow-black/30">
           <div className="px-4 sm:px-6 lg:px-10">
@@ -86,7 +86,7 @@ const Nav = () => {
 
               <button
                 type="button"
-                className="md:hidden inline-flex items-center justify-center rounded-full p-2 text-white hover:bg-white/10 transition-colors"
+                className="md:hidden inline-flex min-h-11 min-w-11 shrink-0 items-center justify-center rounded-full p-2 text-white [-webkit-tap-highlight-color:transparent] touch-manipulation hover:bg-white/10 transition-colors"
                 aria-expanded={menuOpen}
                 aria-controls="mobile-nav"
                 aria-label={menuOpen ? 'Close menu' : 'Open menu'}
@@ -123,7 +123,7 @@ const Nav = () => {
         {menuOpen ? (
           <div
             id="mobile-nav"
-            className="md:hidden rounded-2xl border border-white/15 bg-[#4B7F73]/90 backdrop-blur-md shadow-xl shadow-black/20 px-4 py-4"
+            className="md:hidden touch-manipulation rounded-2xl border border-white/15 bg-[#4B7F73]/90 backdrop-blur-md shadow-xl shadow-black/20 px-4 py-4"
           >
             <ul className="flex flex-col gap-1">
               {navItems.map((item) => {

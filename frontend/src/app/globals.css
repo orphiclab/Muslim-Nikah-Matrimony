@@ -147,6 +147,9 @@
 .title-sub-top {
   @apply text-[16px] sm:text-[17px] md:text-[18px] lg:text-[19px] xl:text-[20px] 2xl:text-[20px];
 }
+.footer-sub {
+  @apply text-[16px] sm:text-[16px] md:text-[17px] lg:text-[18px] xl:text-[19px] 2xl:text-[19px];
+}
 .paragraph {
   @apply text-[15px] sm:text-[15px] md:text-[16px] lg:text-[18px] xl:text-[20px] 2xl:text-[22px];
 }

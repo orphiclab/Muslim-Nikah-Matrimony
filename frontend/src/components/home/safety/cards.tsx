@@ -1,29 +1,34 @@
 import React from "react";
 import SafetyCard from "@/components/home/safety/card";
-import { ShieldCheck } from "lucide-react";
+import {
+  CircleCheckBig ,
+  Eye,
+  MessageSquareText,
+  ShieldCheck,
+} from "lucide-react";
 
 const SAFETY_CARDS = [
   {
-    iconSrc: "/images/safety/secure.png",
+    Icon: ShieldCheck,
     title: "Secure Data",
     description: "Bank-level encryption protects all your information",
   },
   {
-    iconSrc: "/images/safety/admin.png",
+    Icon: CircleCheckBig,
     title: "Admin Verification",
     description: "Every profile is manually reviewed for authenticity",
   },
   {
-    iconSrc: "/images/safety/visibility.png",
+    Icon: Eye,
     title: "Controlled Visibility",
     description: "You decide what others can see at every step",
   },
   {
-    iconSrc: "/images/safety/message.png",
+    Icon: MessageSquareText,
     title: "Safe Messaging",
     description: "In-app messaging keeps your contact info private",
   },
-] as const;
+];
 
 const SafetyCards = () => {
   return (
@@ -48,4 +53,3 @@ const SafetyCards = () => {
 };
 
 export default SafetyCards;
-

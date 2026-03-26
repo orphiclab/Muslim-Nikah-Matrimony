@@ -1,12 +1,16 @@
 import React from "react";
-import Image from "next/image";
+import type { LucideIcon } from "lucide-react";
 
 type SafetyCardProps = {
-  iconSrc: string;
+  Icon: LucideIcon;
   title: string;
   description: string;
 };
-const SafetyCard = ({ iconSrc, title, description }: SafetyCardProps) => {
+
+const ICON_CLASS =
+  "h-[22px] w-[22px] shrink-0 text-[#DB9D30] lg:h-[28px] lg:w-[28px]";
+
+const SafetyCard = ({ Icon, title, description }: SafetyCardProps) => {
   return (
     <div className="relative mx-auto w-full max-w-[315px]  ">
       <div className="relative">
@@ -22,14 +26,7 @@ const SafetyCard = ({ iconSrc, title, description }: SafetyCardProps) => {
         <div className="relative z-10 flex h-full flex-col px-7 pb-10 pt-7">
           <div className="h-11 w-11 lg:h-14 lg:w-14">
             <div className="flex h-full w-full items-center justify-center rounded-xl bg-white">
-              <Image
-                src={iconSrc}
-                alt=""
-                width={22}
-                height={22}
-                className="h-[22px] w-[22px] lg:h-[28px] lg:w-[28px] object-contain"
-                aria-hidden
-              />
+              <Icon className={ICON_CLASS} aria-hidden />
             </div>
           </div>
 
@@ -46,4 +43,3 @@ const SafetyCard = ({ iconSrc, title, description }: SafetyCardProps) => {
 };
 
 export default SafetyCard;
-
