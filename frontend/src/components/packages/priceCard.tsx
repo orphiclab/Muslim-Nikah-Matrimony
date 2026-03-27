@@ -84,10 +84,10 @@ export default function PricingCards() {
                 key={plan.id}
                 onClick={() => setSelectedId(plan.id)}
                 className={[
-                  "relative flex cursor-pointer flex-col gap-5 rounded-2xl border-2 bg-white p-7 shadow-md transition-all duration-300 sm:w-[300px] xl:w-[400px]",
+                  "relative flex flex-1 cursor-pointer flex-col gap-5 rounded-2xl border-2 bg-white p-7 shadow-md transition-all duration-300",
                   isSelected
-                    ? "scale-[1.04] border-[#DB9D30] shadow-xl"
-                    : "border-transparent hover:scale-[1.02] hover:border-[#DB9D30]/50 hover:shadow-lg",
+                    ? "z-10 scale-[1.05] border-[#DB9D30] shadow-2xl"
+                    : " border-[#E5E7EB]/50 shadow-md hover:border-[#DB9D30]/40 hover:shadow-lg",
                 ].join(" ")}
               >
                 {/* Badge */}
@@ -123,7 +123,7 @@ export default function PricingCards() {
                 <hr className="border-dashed border-[#D1D5DB]" />
 
                 {/* Features */}
-                <ul className="flex flex-col gap-3">
+                <ul className="flex flex-col gap-3 h-[200px]">
                   {plan.features.map((f) => (
                     <li key={f} className="flex items-center gap-3">
                       <CheckCircle2
