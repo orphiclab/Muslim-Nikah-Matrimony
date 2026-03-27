@@ -42,9 +42,9 @@ export default function AdminDashboard() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {[
-          { href: '/admin/payments', label: 'Review Pending Payments', desc: `${stats?.pendingPayments} payments need approval`, icon: '💳', urgent: (stats?.pendingPayments ?? 0) > 0 },
-          { href: '/admin/users', label: 'Manage Users', desc: `${stats?.totalUsers} registered users`, icon: '👥', urgent: false },
-          { href: '/admin/profiles', label: 'View Profiles', desc: `${stats?.activeProfiles} active profiles`, icon: '👤', urgent: false },
+          { href: '/admin/payments', label: 'Review Pending Payments', desc: `${stats?.pendingPayments ?? 0} payments need approval`, icon: '💳', urgent: (stats?.pendingPayments ?? 0) > 0 },
+          { href: '/admin/users', label: 'Manage Users', desc: `${stats?.totalUsers ?? 0} registered users`, icon: '👥', urgent: false },
+          { href: '/admin/profiles', label: 'View Profiles', desc: `${stats?.activeProfiles ?? 0} active profiles`, icon: '👤', urgent: false },
         ].map((a) => (
           <a key={a.href} href={a.href}
             className={`block bg-white rounded-2xl border p-5 hover:shadow-md transition ${a.urgent ? 'border-amber-200' : 'border-gray-100'}`}>

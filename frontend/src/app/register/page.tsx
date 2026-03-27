@@ -1,6 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import { authApi } from "@/services/api";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Check, ChevronDown, Calendar } from "lucide-react";
 
@@ -300,6 +302,9 @@ export default function RegisterPage() {
   const [formData, setFormData] = useState<Record<string, string>>({});
   const [lookingFor, setLookingFor] = useState("Male");
   const [agreedTerms, setAgreedTerms] = useState(false);
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+  const router = useRouter();
 
   const handleChange = (
     e: React.ChangeEvent<HTMLSelectElement | HTMLInputElement | HTMLTextAreaElement>
@@ -316,9 +321,27 @@ export default function RegisterPage() {
     if (currentStep > 1) setCurrentStep((s) => s - 1);
   };
 
-  const handleSubmit = () => {
-    console.log("Registration submitted:", formData);
-    // TODO: integrate with backend
+  const handleSubmit = async () => {
+    if (!formData.email || !formData.password) {
+      setError("Email and password are required (Step 2).");
+      return;
+    }
+    setError("");
+    setLoading(true);
+    try {
+      const res = await authApi.register({
+        email: formData.email,
+        password: formData.password,
+        phone: formData.phone || undefined,
+      });
+      localStorage.setItem("mn_token", res.token);
+      localStorage.setItem("mn_user", JSON.stringify(res.user));
+      router.push("/dashboard/parent");
+    } catch (e: any) {
+      setError(e.message ?? "Registration failed. Please try again.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -446,12 +469,18 @@ export default function RegisterPage() {
                   Next
                 </button>
               ) : (
-                <button
-                  onClick={handleSubmit}
-                  className="px-7 py-2.5 rounded-xl bg-[#1B6B4A] text-white text-sm font-semibold hover:bg-[#155a3d] active:scale-95 transition-all duration-200 shadow-md"
-                >
-                  Create Account
-                </button>
+                <div className="flex flex-col items-end gap-2">
+                  {error && (
+                    <p className="text-xs text-red-600 bg-red-50 border border-red-100 rounded-lg px-3 py-2 w-full">{error}</p>
+                  )}
+                  <button
+                    onClick={handleSubmit}
+                    disabled={loading || !agreedTerms}
+                    className="px-7 py-2.5 rounded-xl bg-[#1B6B4A] text-white text-sm font-semibold hover:bg-[#155a3d] active:scale-95 transition-all duration-200 shadow-md disabled:opacity-60"
+                  >
+                    {loading ? "Creating account..." : "Create Account"}
+                  </button>
+                </div>
               )}
             </div>
           </div>

@@ -1,12 +1,14 @@
 'use client'
 
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 
 const Nav = () => {
   const pathname = usePathname()
+  const router = useRouter()
   const [menuOpen, setMenuOpen] = useState(false)
+  const [user, setUser] = useState<{ email: string; role: string } | null>(null)
 
   const navItems = [
     { name: 'Home', href: '/' },
@@ -16,22 +18,34 @@ const Nav = () => {
     { name: 'Contact us', href: '/contact' },
   ]
 
+  // Read auth from localStorage on client
   useEffect(() => {
-    setMenuOpen(false)
+    const stored = localStorage.getItem('mn_user')
+    if (stored) setUser(JSON.parse(stored))
   }, [pathname])
+
+  useEffect(() => { setMenuOpen(false) }, [pathname])
+
+  // Hide the global nav on dashboard / admin — they have their own sidebar layout
+  const isDashboard = pathname.startsWith('/dashboard') || pathname.startsWith('/admin')
+  if (isDashboard) return null
+
+  const logout = () => {
+    localStorage.removeItem('mn_token')
+    localStorage.removeItem('mn_user')
+    setUser(null)
+    router.push('/')
+  }
 
   const isActive = (href: string) => {
     if (href === '/') return pathname === '/'
     return pathname === href || pathname.startsWith(`${href}/`)
   }
 
-  const linkBase =
-    'font-poppins font-normal text-[18px] transition-colors duration-200'
+  const linkBase = 'font-poppins font-normal text-[18px] transition-colors duration-200'
   const linkInactive = 'text-white hover:text-[#DB9D30]'
-  const linkActiveDesktop =
-    'text-[#DB9D30]  hover:text-[#DB9D30]/80'
-  const linkActiveMobile =
-     'text-[#DB9D30]  hover:text-[#DB9D30]/80'
+  const linkActiveDesktop = 'text-[#DB9D30] hover:text-[#DB9D30]/80'
+  const linkActiveMobile = 'text-[#DB9D30] hover:text-[#DB9D30]/80'
 
   return (
     <div className="fixed top-3 sm:top-5 left-0 right-0 z-[500] isolate flex touch-manipulation justify-center px-3 sm:px-5 lg:px-8">
@@ -49,70 +63,64 @@ const Nav = () => {
                 {navItems.map((item) => {
                   const active = isActive(item.href)
                   return (
-                    <Link
-                      key={item.name}
-                      href={item.href}
-                      className={`${linkBase} ${
-                        active ? linkActiveDesktop : linkInactive
-                      }`}
-                      style={{ fontSize: '18px' }}
-                    >
+                    <Link key={item.name} href={item.href}
+                      className={`${linkBase} ${active ? linkActiveDesktop : linkInactive}`}
+                      style={{ fontSize: '18px' }}>
                       {item.name}
                     </Link>
                   )
                 })}
               </div>
 
+              {/* Auth buttons — desktop */}
               <div className="hidden md:flex items-center justify-end space-x-3 shrink-0">
-                <Link href="/login">
-                  <button
-                    type="button"
-                    className="text-white font-poppins font-medium px-4 py-1.5 transition-colors duration-200 hover:text-[#DB9D30]"
-                    style={{ fontSize: '18px' }}
-                  >
-                    Login
-                  </button>
-                </Link>
-                <Link href="/register">
-                  <button
-                    type="button"
-                    className="bg-white text-[#010806] font-poppins font-medium px-6 py-1.5 rounded-full hover:bg-white/90 transition-colors duration-200"
-                    style={{ fontSize: '18px' }}
-                  >
-                    Register
-                  </button>
-                </Link>
+                {user ? (
+                  <>
+                    <Link href={user.role === 'ADMIN' ? '/admin' : '/dashboard/parent'}>
+                      <button type="button"
+                        className="text-white font-poppins font-medium px-4 py-1.5 transition-colors duration-200 hover:text-[#DB9D30]"
+                        style={{ fontSize: '16px' }}>
+                        My Dashboard
+                      </button>
+                    </Link>
+                    <button type="button" onClick={logout}
+                      className="bg-white text-[#010806] font-poppins font-medium px-6 py-1.5 rounded-full hover:bg-white/90 transition-colors duration-200"
+                      style={{ fontSize: '16px' }}>
+                      Logout
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <Link href="/login">
+                      <button type="button"
+                        className="text-white font-poppins font-medium px-4 py-1.5 transition-colors duration-200 hover:text-[#DB9D30]"
+                        style={{ fontSize: '18px' }}>
+                        Login
+                      </button>
+                    </Link>
+                    <Link href="/register">
+                      <button type="button"
+                        className="bg-white text-[#010806] font-poppins font-medium px-6 py-1.5 rounded-full hover:bg-white/90 transition-colors duration-200"
+                        style={{ fontSize: '18px' }}>
+                        Register
+                      </button>
+                    </Link>
+                  </>
+                )}
               </div>
 
-              <button
-                type="button"
+              {/* Hamburger */}
+              <button type="button"
                 className="md:hidden inline-flex min-h-10 min-w-10 shrink-0 items-center justify-center rounded-full p-2 text-white [-webkit-tap-highlight-color:transparent] touch-manipulation hover:bg-white/10 active:bg-white/20 transition-colors"
-                aria-expanded={menuOpen}
-                aria-controls="mobile-nav"
+                aria-expanded={menuOpen} aria-controls="mobile-nav"
                 aria-label={menuOpen ? 'Close menu' : 'Open menu'}
-                onClick={() => setMenuOpen((open) => !open)}
-              >
+                onClick={() => setMenuOpen((open) => !open)}>
                 <span className="sr-only">Menu</span>
-                <svg
-                  className="h-6 w-6"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                  strokeWidth={2}
-                  aria-hidden
-                >
+                <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden>
                   {menuOpen ? (
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      d="M6 18L18 6M6 6l12 12"
-                    />
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
                   ) : (
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      d="M4 6h16M4 12h16M4 18h16"
-                    />
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
                   )}
                 </svg>
               </button>
@@ -120,23 +128,17 @@ const Nav = () => {
           </div>
         </nav>
 
-        {menuOpen ? (
-          <div
-            id="mobile-nav"
-            className="md:hidden touch-manipulation rounded-2xl border border-white/15 bg-[#2d5c4f]/95 backdrop-blur-md shadow-2xl shadow-black/30 overflow-hidden"
-          >
+        {menuOpen && (
+          <div id="mobile-nav"
+            className="md:hidden touch-manipulation rounded-2xl border border-white/15 bg-[#2d5c4f]/95 backdrop-blur-md shadow-2xl shadow-black/30 overflow-hidden">
             <ul className="flex flex-col">
               {navItems.map((item) => {
                 const active = isActive(item.href)
                 return (
                   <li key={item.name} className="border-b border-white/10 last:border-0">
-                    <Link
-                      href={item.href}
-                      className={`flex items-center w-full px-5 py-3.5 ${linkBase} ${
-                        active ? linkActiveMobile : linkInactive
-                      }`}
-                      style={{ fontSize: '16px' }}
-                    >
+                    <Link href={item.href}
+                      className={`flex items-center w-full px-5 py-3.5 ${linkBase} ${active ? linkActiveMobile : linkInactive}`}
+                      style={{ fontSize: '16px' }}>
                       {item.name}
                     </Link>
                   </li>
@@ -144,21 +146,32 @@ const Nav = () => {
               })}
             </ul>
             <div className="flex flex-col gap-2 px-4 py-4 border-t border-white/15 bg-white/5">
-              <Link
-                href="/login"
-                className="flex items-center justify-center w-full rounded-xl px-4 py-3 text-white font-poppins font-medium text-[15px] border border-white/20 hover:bg-white/10 active:bg-white/20 transition-colors"
-              >
-                Login
-              </Link>
-              <Link
-                href="/register"
-                className="flex items-center justify-center w-full bg-white text-[#1B6B4A] font-poppins font-semibold text-[15px] px-4 py-3 rounded-xl hover:bg-white/90 active:bg-white/80 transition-colors"
-              >
-                Register
-              </Link>
+              {user ? (
+                <>
+                  <Link href={user.role === 'ADMIN' ? '/admin' : '/dashboard/parent'}
+                    className="flex items-center justify-center w-full rounded-xl px-4 py-3 text-white font-poppins font-medium text-[15px] border border-white/20 hover:bg-white/10 transition-colors">
+                    My Dashboard
+                  </Link>
+                  <button type="button" onClick={logout}
+                    className="flex items-center justify-center w-full bg-white text-[#1B6B4A] font-poppins font-semibold text-[15px] px-4 py-3 rounded-xl hover:bg-white/90 transition-colors">
+                    Logout
+                  </button>
+                </>
+              ) : (
+                <>
+                  <Link href="/login"
+                    className="flex items-center justify-center w-full rounded-xl px-4 py-3 text-white font-poppins font-medium text-[15px] border border-white/20 hover:bg-white/10 transition-colors">
+                    Login
+                  </Link>
+                  <Link href="/register"
+                    className="flex items-center justify-center w-full bg-white text-[#1B6B4A] font-poppins font-semibold text-[15px] px-4 py-3 rounded-xl hover:bg-white/90 transition-colors">
+                    Register
+                  </Link>
+                </>
+              )}
             </div>
           </div>
-        ) : null}
+        )}
       </div>
     </div>
   )

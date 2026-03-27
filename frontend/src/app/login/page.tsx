@@ -3,19 +3,34 @@
 import { useState } from "react";
 import Link from "next/link";
 import { Eye, EyeOff, Lock, Mail } from "lucide-react";
+import { authApi } from "@/services/api";
+import { useRouter } from "next/navigation";
 
 export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [formData, setFormData] = useState({ email: "", password: "" });
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+  const router = useRouter();
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData((prev) => ({ ...prev, [e.target.name]: e.target.value }));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log("Login submitted:", formData);
-    // TODO: integrate with backend
+    setError("");
+    setLoading(true);
+    try {
+      const res = await authApi.login(formData);
+      localStorage.setItem("mn_token", res.token);
+      localStorage.setItem("mn_user", JSON.stringify(res.user));
+      router.push(res.user.role === "ADMIN" ? "/admin" : "/dashboard/parent");
+    } catch (e: any) {
+      setError(e.message ?? "Login failed. Check your credentials.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -124,12 +139,18 @@ export default function LoginPage() {
                 </div>
               </div>
 
+              {/* Error */}
+              {error && (
+                <p className="text-sm text-red-600 bg-red-50 border border-red-100 rounded-xl px-4 py-2.5">{error}</p>
+              )}
+
               {/* Submit */}
               <button
                 type="submit"
-                className="mt-1 w-full rounded-xl bg-[#1B6B4A] py-3.5 text-sm font-semibold text-white hover:bg-[#155a3d] active:scale-[0.98] transition-all duration-200 shadow-md"
+                disabled={loading}
+                className="mt-1 w-full rounded-xl bg-[#1B6B4A] py-3.5 text-sm font-semibold text-white hover:bg-[#155a3d] active:scale-[0.98] transition-all duration-200 shadow-md disabled:opacity-60"
               >
-                Sign In
+                {loading ? "Signing in..." : "Sign In"}
               </button>
             </form>
 
