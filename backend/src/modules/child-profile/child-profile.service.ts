@@ -24,11 +24,16 @@ export class ChildProfileService {
       city: dto.city,
     });
 
+    // Generate unique memberId: MN-XXXXXX (6-digit zero-padded counter)
+    const count = await this.prisma.childProfile.count();
+    const memberId = `MN-${String(count + 1).padStart(6, '0')}`;
+
     const profile = await this.prisma.childProfile.create({
       data: {
         ...dto,
         dateOfBirth: new Date(dto.dateOfBirth),
         userId,
+        memberId,
         aboutUs: dto.aboutUs ?? generated.aboutUs,
         expectations: dto.expectations ?? generated.expectations,
         status: 'DRAFT',
@@ -37,7 +42,7 @@ export class ChildProfileService {
     });
 
     this.events.emit('PROFILE_CREATED', { profileId: profile.id, userId });
-    this.logger.log(`Profile CREATED: ${profile.id} by user ${userId}`);
+    this.logger.log(`Profile CREATED: ${profile.id} (${memberId}) by user ${userId}`);
 
     return { success: true, data: profile };
   }

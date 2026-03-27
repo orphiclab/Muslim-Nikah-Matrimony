@@ -98,7 +98,7 @@ export class AdminService {
   async getPublicProfiles(filters: {
     minAge?: number; maxAge?: number; gender?: string;
     city?: string; ethnicity?: string; civilStatus?: string;
-    education?: string; occupation?: string;
+    education?: string; occupation?: string; memberId?: string;
   }) {
     const where: any = { status: 'ACTIVE' };
     if (filters.gender) where.gender = filters.gender;
@@ -107,11 +107,12 @@ export class AdminService {
     if (filters.civilStatus) where.civilStatus = { contains: filters.civilStatus, mode: 'insensitive' };
     if (filters.education) where.education = { contains: filters.education, mode: 'insensitive' };
     if (filters.occupation) where.occupation = { contains: filters.occupation, mode: 'insensitive' };
+    if (filters.memberId) where.memberId = { contains: filters.memberId.toUpperCase(), mode: 'insensitive' };
 
     const allProfiles = await this.prisma.childProfile.findMany({
       where,
       select: {
-        id: true, name: true, gender: true, dateOfBirth: true,
+        id: true, memberId: true, name: true, gender: true, dateOfBirth: true,
         city: true, country: true, height: true, education: true,
         occupation: true, ethnicity: true, civilStatus: true,
         createdAt: true, status: true,

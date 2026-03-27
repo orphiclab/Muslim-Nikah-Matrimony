@@ -65,6 +65,7 @@ model User {
 
 model ChildProfile {
   id                  String         @id @default(uuid())
+  memberId            String         @unique  // e.g. MN-001234
   userId              String
   user                User           @relation(fields: [userId], references: [id], onDelete: Cascade)
 

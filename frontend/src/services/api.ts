@@ -123,7 +123,7 @@ export const publicProfilesApi = {
   list: (filters?: {
     minAge?: number; maxAge?: number; gender?: string;
     city?: string; ethnicity?: string; civilStatus?: string;
-    education?: string; occupation?: string;
+    education?: string; occupation?: string; memberId?: string;
   }) => {
     const params = new URLSearchParams();
     if (filters?.minAge) params.set('minAge', String(filters.minAge));
@@ -134,6 +134,7 @@ export const publicProfilesApi = {
     if (filters?.civilStatus) params.set('civilStatus', filters.civilStatus);
     if (filters?.education) params.set('education', filters.education);
     if (filters?.occupation) params.set('occupation', filters.occupation);
+    if (filters?.memberId) params.set('memberId', filters.memberId);
     const qs = params.toString();
     return request<any>(`/profiles/public${qs ? `?${qs}` : ''}`);
   },
