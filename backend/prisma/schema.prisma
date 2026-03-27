@@ -181,3 +181,17 @@ model ChatMessage {
 
   createdAt        DateTime     @default(now())
 }
+
+model Package {
+  id               String   @id @default(uuid())
+  name             String
+  description      String?
+  price            Float
+  currency         String   @default("USD")
+  durationDays     Int      @default(30)
+  features         String[] // list of feature strings
+  isActive         Boolean  @default(true)
+  sortOrder        Int      @default(0)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+}

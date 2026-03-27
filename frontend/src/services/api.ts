@@ -99,4 +99,17 @@ export const adminApi = {
   payments: (status?: string) => request<any>(`/admin/payments${status ? `?status=${status}` : ''}`),
   users: () => request<any>('/admin/users'),
   profiles: (status?: string) => request<any>(`/admin/profiles${status ? `?status=${status}` : ''}`),
+
+  // Packages
+  getPackages: () => request<any>('/admin/packages'),
+  createPackage: (body: {
+    name: string; description?: string; price: number; currency?: string;
+    durationDays: number; features?: string[]; isActive?: boolean; sortOrder?: number;
+  }) => request<any>('/admin/packages', { method: 'POST', body: JSON.stringify(body) }),
+  updatePackage: (id: string, body: Partial<{
+    name: string; description: string; price: number; currency: string;
+    durationDays: number; features: string[]; isActive: boolean; sortOrder: number;
+  }>) => request<any>(`/admin/packages/${id}`, { method: 'PUT', body: JSON.stringify(body) }),
+  deletePackage: (id: string) => request<any>(`/admin/packages/${id}`, { method: 'DELETE' }),
 };
+

@@ -2,14 +2,22 @@ import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { PaymentService } from '../payment/payment.service';
-import { IsString, IsOptional } from 'class-validator';
+import { IsString, IsOptional, IsNumber, IsArray, IsBoolean, Min } from 'class-validator';
 
 export class ApprovePaymentDto {
-  @IsString()
-  paymentId: string;
+  @IsString() paymentId: string;
+  @IsOptional() @IsString() adminNote?: string;
+}
 
-  @IsOptional() @IsString()
-  adminNote?: string;
+export class CreatePackageDto {
+  @IsString() name: string;
+  @IsOptional() @IsString() description?: string;
+  @IsNumber() @Min(0) price: number;
+  @IsOptional() @IsString() currency?: string;
+  @IsNumber() @Min(1) durationDays: number;
+  @IsOptional() @IsArray() features?: string[];
+  @IsOptional() @IsBoolean() isActive?: boolean;
+  @IsOptional() @IsNumber() sortOrder?: number;
 }
 
 @Injectable()
@@ -30,19 +38,13 @@ export class AdminService {
     await this.prisma.$transaction(async (tx) => {
       await tx.payment.update({
         where: { id: payment.id },
-        data: {
-          status: 'SUCCESS',
-          approvedBy: adminId,
-          approvedAt: new Date(),
-          adminNote: dto.adminNote,
-        },
+        data: { status: 'SUCCESS', approvedBy: adminId, approvedAt: new Date(), adminNote: dto.adminNote },
       });
       await this.paymentService.activateSubscription(tx, payment.childProfileId);
     });
 
     this.events.emit('PAYMENT_SUCCESS', { paymentId: payment.id, profileId: payment.childProfileId, approvedBy: adminId });
     this.logger.log(`Admin APPROVED payment: ${payment.id} by admin ${adminId}`);
-
     return { success: true, message: 'Payment approved and profile activated' };
   }
 
@@ -71,10 +73,7 @@ export class AdminService {
   async getAllProfiles(status?: string) {
     const profiles = await this.prisma.childProfile.findMany({
       where: status ? { status: status as any } : undefined,
-      include: {
-        user: { select: { id: true, email: true } },
-        subscription: true,
-      },
+      include: { user: { select: { id: true, email: true } }, subscription: true },
       orderBy: { createdAt: 'desc' },
     });
     return { success: true, data: profiles };
@@ -89,10 +88,47 @@ export class AdminService {
       this.prisma.payment.count({ where: { status: 'PENDING' } }),
       this.prisma.payment.aggregate({ where: { status: 'SUCCESS' }, _sum: { amount: true } }),
     ]);
-
     return {
       success: true,
       data: { totalUsers, totalProfiles, activeProfiles, pendingPayments, totalRevenue: totalRevenue._sum.amount ?? 0 },
     };
+  }
+
+  // ─── Packages ─────────────────────────────────────────────────────────────
+  async getPackages() {
+    const packages = await this.prisma.package.findMany({
+      orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }],
+    });
+    return { success: true, data: packages };
+  }
+
+  async createPackage(dto: CreatePackageDto) {
+    const pkg = await this.prisma.package.create({
+      data: {
+        name: dto.name,
+        description: dto.description,
+        price: dto.price,
+        currency: dto.currency ?? 'USD',
+        durationDays: dto.durationDays,
+        features: dto.features ?? [],
+        isActive: dto.isActive ?? true,
+        sortOrder: dto.sortOrder ?? 0,
+      },
+    });
+    return { success: true, data: pkg };
+  }
+
+  async updatePackage(id: string, dto: Partial<CreatePackageDto>) {
+    const existing = await this.prisma.package.findUnique({ where: { id } });
+    if (!existing) throw new NotFoundException('Package not found');
+    const pkg = await this.prisma.package.update({ where: { id }, data: dto as any });
+    return { success: true, data: pkg };
+  }
+
+  async deletePackage(id: string) {
+    const existing = await this.prisma.package.findUnique({ where: { id } });
+    if (!existing) throw new NotFoundException('Package not found');
+    await this.prisma.package.delete({ where: { id } });
+    return { success: true, message: 'Package deleted' };
   }
 }
