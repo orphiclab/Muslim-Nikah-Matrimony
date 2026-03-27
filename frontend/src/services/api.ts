@@ -117,3 +117,24 @@ export const adminApi = {
 export const packagesApi = {
   getActive: () => request<any>('/packages'),
 };
+
+// ─── Public Profiles (no auth) ────────────────────────────────────────────
+export const publicProfilesApi = {
+  list: (filters?: {
+    minAge?: number; maxAge?: number; gender?: string;
+    city?: string; ethnicity?: string; civilStatus?: string;
+    education?: string; occupation?: string;
+  }) => {
+    const params = new URLSearchParams();
+    if (filters?.minAge) params.set('minAge', String(filters.minAge));
+    if (filters?.maxAge) params.set('maxAge', String(filters.maxAge));
+    if (filters?.gender) params.set('gender', filters.gender);
+    if (filters?.city) params.set('city', filters.city);
+    if (filters?.ethnicity) params.set('ethnicity', filters.ethnicity);
+    if (filters?.civilStatus) params.set('civilStatus', filters.civilStatus);
+    if (filters?.education) params.set('education', filters.education);
+    if (filters?.occupation) params.set('occupation', filters.occupation);
+    const qs = params.toString();
+    return request<any>(`/profiles/public${qs ? `?${qs}` : ''}`);
+  },
+};

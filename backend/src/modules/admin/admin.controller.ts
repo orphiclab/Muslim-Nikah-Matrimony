@@ -4,16 +4,35 @@ import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard, Roles } from '../../common/guards/roles.guard';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 
-/** Public endpoint — no auth required */
-@Controller('packages')
+/** Public endpoints — no auth required */
+@Controller()
 export class PublicPackagesController {
   constructor(private readonly service: AdminService) {}
 
-  @Get()
+  @Get('packages')
   getActivePackages() {
     return this.service.getActivePackages();
   }
+
+  @Get('profiles/public')
+  getPublicProfiles(
+    @Query('minAge') minAge?: string,
+    @Query('maxAge') maxAge?: string,
+    @Query('gender') gender?: string,
+    @Query('city') city?: string,
+    @Query('ethnicity') ethnicity?: string,
+    @Query('civilStatus') civilStatus?: string,
+    @Query('education') education?: string,
+    @Query('occupation') occupation?: string,
+  ) {
+    return this.service.getPublicProfiles({
+      minAge: minAge ? parseInt(minAge) : undefined,
+      maxAge: maxAge ? parseInt(maxAge) : undefined,
+      gender, city, ethnicity, civilStatus, education, occupation,
+    });
+  }
 }
+
 
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Roles('ADMIN')

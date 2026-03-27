@@ -94,6 +94,47 @@ export class AdminService {
     };
   }
 
+  // ─── Public Profiles (safe fields only, no auth) ──────────────────────────
+  async getPublicProfiles(filters: {
+    minAge?: number; maxAge?: number; gender?: string;
+    city?: string; ethnicity?: string; civilStatus?: string;
+    education?: string; occupation?: string;
+  }) {
+    const where: any = { status: 'ACTIVE' };
+    if (filters.gender) where.gender = filters.gender;
+    if (filters.city) where.city = { contains: filters.city, mode: 'insensitive' };
+    if (filters.ethnicity) where.ethnicity = { contains: filters.ethnicity, mode: 'insensitive' };
+    if (filters.civilStatus) where.civilStatus = { contains: filters.civilStatus, mode: 'insensitive' };
+    if (filters.education) where.education = { contains: filters.education, mode: 'insensitive' };
+    if (filters.occupation) where.occupation = { contains: filters.occupation, mode: 'insensitive' };
+
+    const allProfiles = await this.prisma.childProfile.findMany({
+      where,
+      select: {
+        id: true, name: true, gender: true, dateOfBirth: true,
+        city: true, country: true, height: true, education: true,
+        occupation: true, ethnicity: true, civilStatus: true,
+        createdAt: true, status: true,
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    const now = new Date();
+    const filtered = allProfiles
+      .map(p => {
+        const dob = new Date(p.dateOfBirth);
+        const age = Math.floor((now.getTime() - dob.getTime()) / (365.25 * 24 * 60 * 60 * 1000));
+        return { ...p, age };
+      })
+      .filter(p => {
+        if (filters.minAge && p.age < filters.minAge) return false;
+        if (filters.maxAge && p.age > filters.maxAge) return false;
+        return true;
+      });
+
+    return { success: true, data: filtered, total: filtered.length };
+  }
+
   // ─── Packages ─────────────────────────────────────────────────────────────
   async getActivePackages() {
     const packages = await this.prisma.package.findMany({
