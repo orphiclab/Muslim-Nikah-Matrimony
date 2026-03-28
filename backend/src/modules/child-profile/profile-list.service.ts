@@ -35,13 +35,24 @@ export class ProfileListService {
       allActiveProfiles as any[],
     );
 
-    // Sanitize each result — strip private fields
+    // Sanitize each result — strip private fields, apply nickname privacy
     const sanitized = allowed.map(({ profile, contactVisible }) => {
       const safeProfile = this.ruleEngine.sanitizeProfile(profile as any, {
         viewer: viewerProfile as any,
         target: profile as any,
       });
-      return { ...safeProfile, _meta: { contactVisible } };
+
+      // Privacy: if member hides real name, show nickname instead
+      const displayName =
+        !profile.showRealName && profile.nickname
+          ? profile.nickname
+          : profile.name;
+
+      return {
+        ...safeProfile,
+        name: displayName,
+        _meta: { contactVisible, nameIsNickname: !profile.showRealName },
+      };
     });
 
     this.logger.log(`getVisibleProfiles: ${sanitized.length} profiles for viewer=${viewerProfileId}`);

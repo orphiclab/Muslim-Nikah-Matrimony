@@ -95,6 +95,12 @@ export class CreateChildProfileDto {
 
   @IsOptional() @IsEmail()
   contactEmail?: string;
+
+  @IsOptional() @IsString()
+  nickname?: string;
+
+  @IsOptional() @IsBoolean()
+  showRealName?: boolean;
 }
 
 export class UpdateChildProfileDto extends CreateChildProfileDto {}

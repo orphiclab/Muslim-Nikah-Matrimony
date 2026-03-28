@@ -80,6 +80,8 @@ export default function ProfilesPage() {
   const [toast, setToast] = useState<{ text: string; ok: boolean } | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<any | null>(null);
   const [initiating, setInitiating] = useState<string | null>(null);
+  // Privacy per-profile: { [profileId]: { showRealName, nickname, saving } }
+  const [privacy, setPrivacy] = useState<Record<string, { showRealName: boolean; nickname: string; saving: boolean }>>({});
 
   const showToast = (text: string, ok = true) => {
     setToast({ text, ok });
@@ -91,7 +93,39 @@ export default function ProfilesPage() {
     profileApi.getMyProfiles().then((r) => setProfiles(r.data ?? [])).finally(() => setLoading(false));
   };
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => {
+    load();
+  }, []);
+
+  // Initialise privacy state from loaded profiles
+  useEffect(() => {
+    const init: Record<string, { showRealName: boolean; nickname: string; saving: boolean }> = {};
+    profiles.forEach(p => {
+      init[p.id] = { showRealName: p.showRealName ?? true, nickname: p.nickname ?? '', saving: false };
+    });
+    setPrivacy(init);
+  }, [profiles]);
+
+  const savePrivacy = async (profileId: string) => {
+    const ps = privacy[profileId];
+    if (!ps) return;
+    setPrivacy(prev => ({ ...prev, [profileId]: { ...prev[profileId], saving: true } }));
+    try {
+      const BASE = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3002/api';
+      const token = localStorage.getItem('mn_token');
+      await fetch(`${BASE}/profile/update/${profileId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ showRealName: ps.showRealName, nickname: ps.nickname }),
+      });
+      showToast('Privacy settings saved!');
+      load();
+    } catch {
+      showToast('Failed to save privacy settings', false);
+    } finally {
+      setPrivacy(prev => ({ ...prev, [profileId]: { ...prev[profileId], saving: false } }));
+    }
+  };
 
   const handleField = (e: any) => setForm((f: any) => ({ ...f, [e.target.name]: e.target.value }));
 
@@ -412,6 +446,68 @@ export default function ProfilesPage() {
                       {p.subscription.endDate && (
                         <span className="text-[10px] opacity-70">Expires {new Date(p.subscription.endDate).toLocaleDateString()}</span>
                       )}
+                    </div>
+                  )}
+
+                  {/* ── Privacy Settings ─────────────────────────────── */}
+                  {privacy[p.id] && (
+                    <div className="mt-3 border border-gray-100 rounded-xl bg-gray-50 px-4 py-3 space-y-3">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-xs font-semibold text-gray-700">Show Real Name Publicly</p>
+                          <p className="text-[10px] text-gray-400 mt-0.5">When OFF, your nickname is shown instead</p>
+                        </div>
+                        {/* iOS-style toggle */}
+                        <button
+                          onClick={() => setPrivacy(prev => ({
+                            ...prev,
+                            [p.id]: { ...prev[p.id], showRealName: !prev[p.id].showRealName }
+                          }))}
+                          className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors flex-shrink-0 ${
+                            privacy[p.id].showRealName ? 'bg-[#1C3B35]' : 'bg-gray-300'
+                          }`}>
+                          <span className={`inline-block h-4.5 w-4.5 transform rounded-full bg-white shadow transition-transform ${
+                            privacy[p.id].showRealName ? 'translate-x-6' : 'translate-x-1'
+                          }`} style={{ width: 18, height: 18 }} />
+                        </button>
+                      </div>
+
+                      {/* Nickname input — shown when real name is hidden */}
+                      {!privacy[p.id].showRealName && (
+                        <div>
+                          <label className="block text-[10px] font-semibold text-gray-500 mb-1">Nickname (shown publicly)</label>
+                          <input
+                            type="text"
+                            value={privacy[p.id].nickname}
+                            onChange={e => setPrivacy(prev => ({
+                              ...prev,
+                              [p.id]: { ...prev[p.id], nickname: e.target.value }
+                            }))}
+                            placeholder="e.g. Sister Mariam, Brother Ali"
+                            className="w-full border border-gray-200 rounded-lg px-3 py-2 text-xs text-gray-700 outline-none focus:border-[#1C3B35] transition bg-white"
+                          />
+                          {!privacy[p.id].nickname.trim() && (
+                            <p className="text-[10px] text-amber-500 mt-1">⚠ Enter a nickname or your name will be hidden completely</p>
+                          )}
+                        </div>
+                      )}
+
+                      <button
+                        onClick={() => savePrivacy(p.id)}
+                        disabled={privacy[p.id].saving}
+                        className="w-full text-xs font-semibold bg-[#1C3B35] text-white py-2 rounded-lg hover:bg-[#15302a] transition disabled:opacity-50 flex items-center justify-center gap-1.5">
+                        {privacy[p.id].saving ? (
+                          <svg className="w-3 h-3 animate-spin" fill="none" viewBox="0 0 24 24">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
+                          </svg>
+                        ) : (
+                          <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
+                            <polyline points="20 6 9 17 4 12" />
+                          </svg>
+                        )}
+                        {privacy[p.id].saving ? 'Saving…' : 'Save Privacy Settings'}
+                      </button>
                     </div>
                   )}
                 </div>
