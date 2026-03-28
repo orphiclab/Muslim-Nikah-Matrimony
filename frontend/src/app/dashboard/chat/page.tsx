@@ -6,9 +6,26 @@ import { getSocket, disconnectSocket } from '@/services/socket';
 
 type Message = {
   id: string; senderProfileId: string; receiverProfileId: string;
-  content: string; createdAt: string; readAt?: string;
+  content: string; createdAt: string; readAt?: string | null;
 };
 type Conversation = { id: string; name: string; lastMsg?: string; unread?: number };
+
+/* ── Tick components ──────────────────────────────────────────────── */
+const SingleTick = () => (
+  <svg viewBox="0 0 16 11" fill="none" className="w-4 h-3 inline-block ml-1 align-middle" aria-label="Sent">
+    <path d="M1 5.5l3.5 3.5L13 1.5" stroke="#ffffff99" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+  </svg>
+);
+
+const DoubleTick = ({ blue }: { blue: boolean }) => {
+  const color = blue ? '#60a5fa' : '#ffffff99';
+  return (
+    <svg viewBox="0 0 20 11" fill="none" className="w-5 h-3 inline-block ml-1 align-middle" aria-label={blue ? 'Read' : 'Delivered'}>
+      <path d="M1 5.5l3.5 3.5L12 1.5" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+      <path d="M7 5.5l3.5 3.5L18 1.5" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+    </svg>
+  );
+};
 
 export default function ChatPage() {
   const [myProfiles, setMyProfiles] = useState<any[]>([]);
@@ -25,11 +42,14 @@ export default function ChatPage() {
   const socketRef = useRef<any>(null);
   const typingTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
+  const selectedChatRef = useRef('');
 
-  // URL params (start chat from profile page)
+  // Keep ref in sync so socket handlers always have the latest selected chat
+  useEffect(() => { selectedChatRef.current = selectedChat; }, [selectedChat]);
+
+  // URL params
   const [startId, setStartId] = useState<string | null>(null);
   const [startName, setStartName] = useState<string | null>(null);
-
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const p = new URLSearchParams(window.location.search);
@@ -47,18 +67,12 @@ export default function ChatPage() {
     }).finally(() => setLoading(false));
   }, []);
 
-  // Load conversations when my profile changes
+  // Load conversations
   const loadConversations = useCallback((profileId: string) => {
     chatApi.conversations(profileId).then((r) => {
       const all: Conversation[] = [
-        ...(r.data?.sent ?? []).map((m: any) => ({
-          id: m.receiverProfileId,
-          name: m.receiverProfile?.name ?? 'Unknown',
-        })),
-        ...(r.data?.received ?? []).map((m: any) => ({
-          id: m.senderProfileId,
-          name: m.senderProfile?.name ?? 'Unknown',
-        })),
+        ...(r.data?.sent ?? []).map((m: any) => ({ id: m.receiverProfileId, name: m.receiverProfile?.name ?? 'Unknown' })),
+        ...(r.data?.received ?? []).map((m: any) => ({ id: m.senderProfileId, name: m.senderProfile?.name ?? 'Unknown' })),
       ];
       if (startId && startName) all.unshift({ id: startId, name: startName });
       const seen = new Set();
@@ -73,7 +87,7 @@ export default function ChatPage() {
     loadConversations(selectedMyProfile);
   }, [selectedMyProfile, loadConversations]);
 
-  // Load message history
+  // Load history
   const loadHistory = useCallback((myId: string, otherId: string) => {
     chatApi.history(myId, otherId).then(r => {
       setMessages(r.data ?? []);
@@ -85,39 +99,61 @@ export default function ChatPage() {
     if (selectedMyProfile && selectedChat) loadHistory(selectedMyProfile, selectedChat);
   }, [selectedMyProfile, selectedChat, loadHistory]);
 
-  // ── Socket.IO connection ──────────────────────────────────────────
+  // Mark messages as read when conversation opens
+  useEffect(() => {
+    if (!selectedChat || !selectedMyProfile || !socketRef.current?.connected) return;
+    socketRef.current.emit('mark_read', {
+      myProfileId: selectedMyProfile,
+      otherProfileId: selectedChat,
+    });
+  }, [selectedChat, selectedMyProfile]);
+
+  // ── Socket.IO ──────────────────────────────────────────────────────
   useEffect(() => {
     if (!selectedMyProfile) return;
-
     const socket = getSocket(selectedMyProfile);
     socketRef.current = socket;
 
-    socket.on('connect', () => setConnected(true));
+    socket.on('connect', () => {
+      setConnected(true);
+      // Re-mark as read after reconnect if a chat is selected
+      if (selectedChatRef.current) {
+        socket.emit('mark_read', { myProfileId: selectedMyProfile, otherProfileId: selectedChatRef.current });
+      }
+    });
     socket.on('disconnect', () => setConnected(false));
 
     socket.on('new_message', (msg: Message) => {
-      // Only add if it's relevant to current conversation
       setMessages(prev => {
-        const alreadyHas = prev.some(m => m.id === msg.id);
-        if (alreadyHas) return prev;
-        // Add to conversation list if new thread
+        if (prev.some(m => m.id === msg.id)) return prev;
+        // New conversation thread
         if (msg.senderProfileId !== selectedMyProfile) {
           setConversations(list => {
             const exists = list.some(c => c.id === msg.senderProfileId);
-            if (!exists) {
-              return [{ id: msg.senderProfileId, name: 'New Message' }, ...list];
-            }
-            return list;
+            return exists ? list : [{ id: msg.senderProfileId, name: 'New Message' }, ...list];
           });
+          // Auto mark read if this conversation is active
+          if (msg.senderProfileId === selectedChatRef.current && socket.connected) {
+            socket.emit('mark_read', { myProfileId: selectedMyProfile, otherProfileId: msg.senderProfileId });
+          }
         }
-        const newList = [...prev, msg];
+        const updated = [...prev, msg];
         setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: 'smooth' }), 50);
-        return newList;
+        return updated;
       });
     });
 
     socket.on('user_typing', ({ profileId, isTyping: t }: any) => {
-      if (profileId === selectedChat) setIsTyping(t);
+      if (profileId === selectedChatRef.current) setIsTyping(t);
+    });
+
+    // ── Read receipts: update ticks to blue ────────────────────────
+    socket.on('messages_read', ({ messageIds, readAt }: { byProfileId: string; messageIds: string[]; readAt: string }) => {
+      if (!messageIds?.length) return;
+      const idSet = new Set(messageIds);
+      setMessages(prev => prev.map(m =>
+        idSet.has(m.id) ? { ...m, readAt: readAt ?? new Date().toISOString() } : m
+      ));
     });
 
     return () => {
@@ -125,10 +161,10 @@ export default function ChatPage() {
       socket.off('user_typing');
       socket.off('connect');
       socket.off('disconnect');
+      socket.off('messages_read');
     };
-  }, [selectedMyProfile, selectedChat]);
+  }, [selectedMyProfile]);
 
-  // Disconnect on unmount
   useEffect(() => () => disconnectSocket(), []);
 
   // ── Send message ──────────────────────────────────────────────────
@@ -137,27 +173,17 @@ export default function ChatPage() {
     const content = newMsg.trim();
     setNewMsg('');
     setSending(true);
-
     const socket = socketRef.current;
-
     if (socket?.connected) {
-      // Real-time via Socket
-      socket.emit('send_message', {
-        senderProfileId: selectedMyProfile,
-        receiverProfileId: selectedChat,
-        content,
-      });
+      socket.emit('send_message', { senderProfileId: selectedMyProfile, receiverProfileId: selectedChat, content });
       setSending(false);
     } else {
-      // Fallback: HTTP
       try {
         await chatApi.send({ senderProfileId: selectedMyProfile, receiverProfileId: selectedChat, content });
         loadHistory(selectedMyProfile, selectedChat);
       } catch (e: any) { alert(e.message); }
       finally { setSending(false); }
     }
-
-    // Reload conversations to show latest
     loadConversations(selectedMyProfile);
   };
 
@@ -248,7 +274,15 @@ export default function ChatPage() {
                 const active = selectedChat === c.id;
                 return (
                   <button key={c.id}
-                    onClick={() => { setSelectedChat(c.id); setIsTyping(false); setMobileShowChat(true); }}
+                    onClick={() => {
+                      setSelectedChat(c.id);
+                      setIsTyping(false);
+                      setMobileShowChat(true);
+                      // Emit mark_read immediately on click
+                      if (socketRef.current?.connected) {
+                        socketRef.current.emit('mark_read', { myProfileId: selectedMyProfile, otherProfileId: c.id });
+                      }
+                    }}
                     className={`w-full text-left px-4 py-3.5 flex items-center gap-3 hover:bg-gray-50 transition border-b border-gray-50 ${active ? 'bg-[#EAF2EE] border-l-4 border-l-[#1C3B35]' : ''}`}>
                     <div className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0 ${active ? 'bg-[#1C3B35] text-white' : 'bg-[#1C3B35]/10 text-[#1C3B35]'}`}>
                       {c.name?.[0]?.toUpperCase() ?? '?'}
@@ -283,7 +317,6 @@ export default function ChatPage() {
             <>
               {/* Chat header */}
               <div className="px-4 py-3.5 border-b border-gray-100 bg-white flex items-center gap-3">
-                {/* Mobile back */}
                 <button onClick={() => setMobileShowChat(false)} className="md:hidden text-gray-400 p-1">
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6" /></svg>
                 </button>
@@ -319,6 +352,8 @@ export default function ChatPage() {
                     const isMine = m.senderProfileId === selectedMyProfile;
                     const prevMsg = messages[i - 1];
                     const showAvatar = !isMine && (!prevMsg || prevMsg.senderProfileId !== m.senderProfileId);
+                    const isRead = !!m.readAt;
+
                     return (
                       <div key={m.id} className={`flex ${isMine ? 'justify-end' : 'justify-start'} items-end gap-2`}>
                         {!isMine && (
@@ -328,16 +363,23 @@ export default function ChatPage() {
                         )}
                         <div className={`max-w-[72%] px-4 py-2.5 rounded-2xl text-sm shadow-sm ${isMine ? 'bg-[#1C3B35] text-white rounded-br-md' : 'bg-white text-gray-800 rounded-bl-md border border-gray-100'}`}>
                           <p className="leading-relaxed break-words">{m.content}</p>
-                          <p className={`text-xs mt-1 ${isMine ? 'text-white/60' : 'text-gray-400'} text-right`}>
-                            {new Date(m.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                            {isMine && m.readAt && <span className="ml-1 text-blue-300">✓✓</span>}
-                          </p>
+                          <div className={`flex items-center justify-end gap-0.5 mt-1 ${isMine ? 'text-white/60' : 'text-gray-400'}`}>
+                            <span className="text-xs">
+                              {new Date(m.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                            </span>
+                            {/* WhatsApp-style ticks — only for my messages */}
+                            {isMine && (
+                              isRead
+                                ? <DoubleTick blue={true} />   /* ✓✓ blue = read */
+                                : <DoubleTick blue={false} />  /* ✓✓ grey = delivered */
+                            )}
+                          </div>
                         </div>
                       </div>
                     );
                   })
                 )}
-                {/* Typing indicator bubble */}
+                {/* Typing bubble */}
                 {isTyping && (
                   <div className="flex items-end gap-2 justify-start">
                     <div className="w-7 h-7 rounded-full bg-[#1C3B35]/10 flex items-center justify-center text-[#1C3B35] text-xs font-bold flex-shrink-0">

@@ -109,10 +109,22 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     @ConnectedSocket() client: Socket,
     @MessageBody() data: { myProfileId: string; otherProfileId: string },
   ) {
-    // Notify sender that messages were read
-    this.server.to(`profile:${data.otherProfileId}`).emit('messages_read', {
-      byProfileId: data.myProfileId,
-    });
+    try {
+      // Persist readAt in DB for all unread messages from otherProfileId
+      const readIds = await this.chatService.markRead(data.myProfileId, data.otherProfileId);
+
+      if (readIds.length > 0) {
+        // Notify the SENDER (otherProfileId) so their ticks turn blue
+        this.server.to(`profile:${data.otherProfileId}`).emit('messages_read', {
+          byProfileId: data.myProfileId,
+          messageIds: readIds,
+          readAt: new Date().toISOString(),
+        });
+        this.logger.log(`messages_read emitted to profile:${data.otherProfileId} — ${readIds.length} messages`);
+      }
+    } catch (err: any) {
+      this.logger.error('mark_read error', err.message);
+    }
   }
 
   /* ── Helper to push message from anywhere ───────────────────────── */

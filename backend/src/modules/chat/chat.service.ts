@@ -102,4 +102,29 @@ export class ChatService {
 
     return { success: true, data: { sent, received } };
   }
+
+  /** Mark all messages FROM otherProfileId TO myProfileId as read */
+  async markRead(myProfileId: string, otherProfileId: string): Promise<string[]> {
+    const now = new Date();
+    // Find all unread messages sent by otherProfileId to myProfileId
+    const unread = await this.prisma.chatMessage.findMany({
+      where: {
+        senderProfileId: otherProfileId,
+        receiverProfileId: myProfileId,
+        readAt: null,
+      },
+      select: { id: true },
+    });
+
+    if (unread.length === 0) return [];
+
+    const ids = unread.map(m => m.id);
+    await this.prisma.chatMessage.updateMany({
+      where: { id: { in: ids } },
+      data: { readAt: now },
+    });
+
+    this.logger.log(`Marked ${ids.length} messages as read: ${myProfileId} ← ${otherProfileId}`);
+    return ids;
+  }
 }
