@@ -110,7 +110,7 @@ export default function PackagesPage() {
     : 0;
 
   return (
-    <div className="min-h-screen bg-gray-50 font-poppins">
+    <div className="min-h-screen bg-gray-50 font-poppins pt-24">
       {/* Breadcrumb */}
       <div className="bg-white border-b border-gray-200 px-6 py-3 flex items-center gap-2 text-sm text-gray-500">
         <Link href="/" className="hover:text-[#1B6B4A] transition">🏠 Home</Link>
