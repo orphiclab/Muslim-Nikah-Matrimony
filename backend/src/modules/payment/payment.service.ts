@@ -1,45 +1,9 @@
 import { Injectable, Logger, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { EventEmitter2 } from '@nestjs/event-emitter';
-import { PaymentMethod, PaymentPurpose } from '@prisma/client';
-import { IsEnum, IsNumber, IsOptional, IsString } from 'class-validator';
+import { InitiatePaymentDto, VerifyPaymentDto } from './dto/payment.dto';
 
-export class InitiatePaymentDto {
-  @IsString()
-  childProfileId: string;
-
-  @IsNumber()
-  amount: number;
-
-  @IsEnum(PaymentMethod)
-  method: PaymentMethod;
-
-  @IsOptional() @IsEnum(PaymentPurpose)
-  purpose?: PaymentPurpose;
-
-  @IsOptional() @IsString()
-  bankRef?: string;
-
-  @IsOptional() @IsString()
-  bankSlipUrl?: string;
-
-  @IsOptional() @IsNumber()
-  days?: number;
-
-  @IsOptional() @IsString()
-  packageId?: string;
-
-  @IsOptional() @IsNumber()
-  packageDurationDays?: number;
-}
-
-export class VerifyPaymentDto {
-  @IsString()
-  paymentId: string;
-
-  @IsString()
-  gatewayRef: string;
-}
+export { InitiatePaymentDto, VerifyPaymentDto };
 
 @Injectable()
 export class PaymentService {
@@ -104,7 +68,7 @@ export class PaymentService {
       });
 
       if (payment.purpose === 'BOOST') {
-        const days = (payment.gatewayPayload as any)?.days || 7;
+        const days = (payment.gatewayPayload as { days?: number })?.days || 7;
         await this.activateBoost(tx, payment.childProfileId, days);
       } else {
         await this.activateSubscription(tx, payment.childProfileId);

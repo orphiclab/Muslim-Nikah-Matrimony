@@ -2,32 +2,10 @@ import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { PaymentService } from '../payment/payment.service';
-import { IsString, IsOptional, IsNumber, IsArray, IsBoolean, Min } from 'class-validator';
+import { ApprovePaymentDto, CreatePackageDto, UpdateSiteSettingsDto } from './dto/admin.dto';
+import { PaymentStatus, ProfileStatus } from '@prisma/client';
 
-export class ApprovePaymentDto {
-  @IsString() paymentId: string;
-  @IsOptional() @IsString() adminNote?: string;
-}
-
-export class CreatePackageDto {
-  @IsString() name: string;
-  @IsOptional() @IsString() description?: string;
-  @IsNumber() @Min(0) price: number;
-  @IsOptional() @IsString() currency?: string;
-  @IsNumber() @Min(1) durationDays: number;
-  @IsOptional() @IsArray() features?: string[];
-  @IsOptional() @IsBoolean() isActive?: boolean;
-  @IsOptional() @IsNumber() sortOrder?: number;
-  @IsOptional() @IsString() type?: string;
-  @IsOptional() @IsNumber() @Min(0) discountPct?: number;
-  @IsOptional() @IsNumber() @Min(0) originalPrice?: number;
-}
-
-export class UpdateSiteSettingsDto {
-  @IsOptional() @IsNumber() @Min(0) siteDiscountPct?: number;
-  @IsOptional() @IsString() siteDiscountLabel?: string;
-  @IsOptional() @IsBoolean() siteDiscountActive?: boolean;
-}
+export { ApprovePaymentDto, CreatePackageDto, UpdateSiteSettingsDto };
 
 @Injectable()
 export class AdminService {
@@ -61,7 +39,7 @@ export class AdminService {
         data: { status: 'SUCCESS', approvedBy: adminId, approvedAt: new Date(), adminNote: dto.adminNote },
       });
       if (payment.purpose === 'BOOST') {
-        const days = (payment.gatewayPayload as any)?.days || 7;
+      const days = (payment.gatewayPayload as { days?: number })?.days || 7;
         await this.paymentService.activateBoost(tx, payment.childProfileId, days);
       } else {
         await this.paymentService.activateSubscription(tx, payment.childProfileId, durationDays, planName);
@@ -75,7 +53,7 @@ export class AdminService {
 
   async getAllPayments(status?: string) {
     const payments = await this.prisma.payment.findMany({
-      where: status ? { status: status as any } : undefined,
+      where: status ? { status: status as PaymentStatus } : undefined,
       include: { user: { select: { id: true, email: true } }, childProfile: { select: { id: true, name: true } } },
       orderBy: { createdAt: 'desc' },
     });
@@ -97,7 +75,7 @@ export class AdminService {
   // ─── Profiles ─────────────────────────────────────────────────
   async getAllProfiles(status?: string) {
     const profiles = await this.prisma.childProfile.findMany({
-      where: status ? { status: status as any } : undefined,
+      where: status ? { status: status as ProfileStatus } : undefined,
       include: { user: { select: { id: true, email: true } }, subscription: true },
       orderBy: { createdAt: 'desc' },
     });
