@@ -31,12 +31,12 @@ const Hero = () => {
         <div className="containerpadding container mx-auto  w-full">
           <div className="max-w-3xl flex flex-col gap-4">
             {/* Badge */}
-            <div className="inline-flex w-fit items-center gap-2 bg-white/15 backdrop-blur-sm border title-sub-top border-white/30 text-white font-poppins text-sm font-normal px-6 py-2 rounded-full">
+            <div data-aos="fade-left" data-aos-delay="100" data-aos-duration="1500" className="inline-flex w-fit items-center gap-2 bg-white/15 backdrop-blur-sm border title-sub-top border-white/30 text-white font-poppins text-sm font-normal px-6 py-2 rounded-full">
               Privacy-First Platform
             </div>
 
             {/* Heading */}
-            <h1 className="text-4xl lg:text-6xl xl:text-[75px] font-semibold text-white font-poppins ">
+            <h1 data-aos="fade-right" data-aos-delay="100" data-aos-duration="1500" data-aos-easing="ease-in-out" className="text-4xl lg:text-6xl xl:text-[75px] font-semibold text-white font-poppins ">
               Find a Meaningful <br />
               Match with{" "}
               <span className="text-[#DB9D30] font-aref-ruqaa-ink font-bold">
@@ -50,7 +50,7 @@ const Hero = () => {
             </h1>
 
             {/* Description */}
-            <p className="text-white/80 text-base lg:text-[20px] font-poppins leading-relaxed max-w-sm sm:max-w-md lg:max-w-xl xl:max-w-2xl  ">
+            <p data-aos="fade-right" data-aos-delay="100" data-aos-duration="1500" data-aos-easing="ease-in-out" className="text-white/80 text-base lg:text-[20px] font-poppins leading-relaxed max-w-sm sm:max-w-md lg:max-w-xl xl:max-w-2xl  ">
               Built on trust, privacy, and values, our system helps families
               connect with the right matches through a refined and secure
               digital experience.
