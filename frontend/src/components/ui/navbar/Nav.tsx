@@ -19,22 +19,9 @@ const Nav = () => {
   ]
 
   // Read auth from localStorage on client
-  const syncUser = () => {
-    const stored = localStorage.getItem('mn_user')
-    setUser(stored ? JSON.parse(stored) : null)
-  }
-
   useEffect(() => {
-    syncUser()
-    // Listen for cross-tab storage changes
-    window.addEventListener('storage', syncUser)
-    // Listen for same-tab auth changes (login / logout)
-    window.addEventListener('mn_auth_change', syncUser)
-    return () => {
-      window.removeEventListener('storage', syncUser)
-      window.removeEventListener('mn_auth_change', syncUser)
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    const stored = localStorage.getItem('mn_user')
+    if (stored) setUser(JSON.parse(stored))
   }, [pathname])
 
   useEffect(() => { setMenuOpen(false) }, [pathname])
@@ -47,7 +34,6 @@ const Nav = () => {
     localStorage.removeItem('mn_token')
     localStorage.removeItem('mn_user')
     setUser(null)
-    window.dispatchEvent(new Event('mn_auth_change'))
     router.push('/')
   }
 
@@ -63,23 +49,25 @@ const Nav = () => {
 
   return (
     <div className="fixed top-3 sm:top-5 left-0 right-0 z-[500] isolate flex touch-manipulation justify-center px-3 sm:px-5 lg:px-8">
-      <div className="w-full flex flex-col gap-2">
-        <nav className="w-full backdrop-blur-md bg-[#4B7F73]/50 border border-white/15 rounded-full shadow-2xl shadow-black/30">
-          <div className="px-4 sm:px-6 lg:px-10">
+      <div className=" container mx-auto containerpadding flex flex-col gap-2">
+        <nav className=" backdrop-blur-md bg-[#4B7F73]/50 border border-white/15 rounded-full shadow-2xl shadow-black/30">
+          <div className=" px-4 sm:px-6 lg:px-10">
             <div className="flex items-center justify-between h-16">
               <Link href="/" className="flex items-center shrink-0">
-                <span className="text-white font-poppins text-[15px] sm:text-[18px] font-semibold uppercase tracking-wide">
+                <span className="text-white font-poppins text-[15px] sm:text-[16px] lg:text-[18px] font-semibold uppercase tracking-wide">
                   Muslim Nikah
                 </span>
               </Link>
 
-              <div className="hidden md:flex flex-1 items-center justify-center gap-2 md:gap-4 lg:gap-8">
+              <div className="hidden xl:flex min-w-0 flex-1 items-center justify-center gap-3 xl:gap-5 2xl:gap-8">
                 {navItems.map((item) => {
                   const active = isActive(item.href)
                   return (
-                    <Link key={item.name} href={item.href}
-                      className={`${linkBase} ${active ? linkActiveDesktop : linkInactive}`}
-                      style={{ fontSize: '18px' }}>
+                    <Link
+                      key={item.name}
+                      href={item.href}
+                      className={`${linkBase} whitespace-nowrap text-[15px] xl:text-[16px] 2xl:text-[18px] ${active ? linkActiveDesktop : linkInactive}`}
+                    >
                       {item.name}
                     </Link>
                   )
@@ -87,7 +75,7 @@ const Nav = () => {
               </div>
 
               {/* Auth buttons — desktop */}
-              <div className="hidden md:flex items-center justify-end space-x-3 shrink-0">
+              <div className="hidden xl:flex shrink-0 items-center justify-end space-x-3">
                 {user ? (
                   <>
                     <Link href={user.role === 'ADMIN' ? '/admin' : '/dashboard/parent'}>
@@ -123,28 +111,30 @@ const Nav = () => {
                 )}
               </div>
 
-              {/* Hamburger */}
-              <button type="button"
-                className="md:hidden inline-flex min-h-10 min-w-10 shrink-0 items-center justify-center rounded-full p-2 text-white [-webkit-tap-highlight-color:transparent] touch-manipulation hover:bg-white/10 active:bg-white/20 transition-colors"
-                aria-expanded={menuOpen} aria-controls="mobile-nav"
-                aria-label={menuOpen ? 'Close menu' : 'Open menu'}
-                onClick={() => setMenuOpen((open) => !open)}>
-                <span className="sr-only">Menu</span>
-                <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden>
-                  {menuOpen ? (
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                  ) : (
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
-                  )}
-                </svg>
-              </button>
+              {/* Hamburger — hidden from xl up (desktop); wrapper avoids display conflicts with inline-flex */}
+              <div className="shrink-0 xl:hidden">
+                <button type="button"
+                  className="inline-flex min-h-10 min-w-10 items-center justify-center rounded-full p-2 text-white [-webkit-tap-highlight-color:transparent] touch-manipulation hover:bg-white/10 active:bg-white/20 transition-colors"
+                  aria-expanded={menuOpen} aria-controls="mobile-nav"
+                  aria-label={menuOpen ? 'Close menu' : 'Open menu'}
+                  onClick={() => setMenuOpen((open) => !open)}>
+                  <span className="sr-only">Menu</span>
+                  <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden>
+                    {menuOpen ? (
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                    ) : (
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
+                    )}
+                  </svg>
+                </button>
+              </div>
             </div>
           </div>
         </nav>
 
         {menuOpen && (
           <div id="mobile-nav"
-            className="md:hidden touch-manipulation rounded-2xl border border-white/15 bg-[#2d5c4f]/95 backdrop-blur-md shadow-2xl shadow-black/30 overflow-hidden">
+            className="xl:hidden touch-manipulation rounded-2xl border border-white/15 bg-[#2d5c4f]/95 backdrop-blur-md shadow-2xl shadow-black/30 overflow-hidden">
             <ul className="flex flex-col">
               {navItems.map((item) => {
                 const active = isActive(item.href)

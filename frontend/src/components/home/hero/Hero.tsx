@@ -50,7 +50,7 @@ const Hero = () => {
             </h1>
 
             {/* Description */}
-            <p className="text-white/80 text-base lg:text-[20px] font-poppins leading-relaxed max-w-2xl ">
+            <p className="text-white/80 text-base lg:text-[20px] font-poppins leading-relaxed max-w-sm sm:max-w-md lg:max-w-xl xl:max-w-2xl  ">
               Built on trust, privacy, and values, our system helps families
               connect with the right matches through a refined and secure
               digital experience.
