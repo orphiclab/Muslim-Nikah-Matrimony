@@ -13,6 +13,7 @@ const Hero = () => {
           alt="Muslim Nikah Matrimony Hero"
           fill
           priority
+          sizes="100vw"
           className="object-cover md:hidden"
           quality={100}
         />
@@ -21,6 +22,7 @@ const Hero = () => {
           alt="Muslim Nikah Matrimony Hero"
           fill
           priority
+          sizes="100vw"
           className="object-cover hidden md:block"
           quality={100}
         />

@@ -11,6 +11,7 @@ const PlanSection = () => {
           alt=""
           width={70}
           height={70}
+          style={{ height: "auto" }}
           className="object-contain"
         />
         <h2 className="title font-poppins font-medium text-[#010806] leading-tight max-w-md lg:max-w-2xl xl:max-w-2xl 2xl:max-w-4xl">

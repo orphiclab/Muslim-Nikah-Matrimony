@@ -13,6 +13,7 @@ const WhyChooseSection = () => {
             alt=""
             width={70}
             height={70}
+            style={{ height: "auto" }}
             className="object-contain"
           />
 

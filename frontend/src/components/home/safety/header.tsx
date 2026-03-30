@@ -12,6 +12,7 @@ const SafetyHeader = () => {
             alt="Ornament"
             width={80}
             height={80}
+            style={{ height: "auto" }}
             className="object-contain"
           />
         </div>

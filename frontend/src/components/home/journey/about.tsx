@@ -36,7 +36,8 @@ const About = () => {
               alt="Decorative ornament"
               width={80}
               height={80}
-              className="object-cover"
+              style={{ height: "auto" }}
+              className="object-contain"
             />
           </div>
 
