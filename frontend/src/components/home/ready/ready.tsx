@@ -1,5 +1,6 @@
 import React from "react";
 import Image from "next/image";
+import Link from "next/link";
 import MainButton from "@/components/ui/mainbtn";
 
 const ReadySection = () => {
@@ -51,21 +52,23 @@ const ReadySection = () => {
         </p>
 
         <div className="flex items-center justify-center gap-4 flex-wrap pt-2">
-          <MainButton
-            px="px-7"
-            py="py-2.5"
-            className="text-[14px] sm:text-base font-poppins"
-            type="button"
-          >
-            Create Profile
-          </MainButton>
+          <Link href="/register">
+            <MainButton
+              px="px-7"
+              py="py-2.5"
+              className="text-[14px] sm:text-base font-poppins"
+              type="button"
+            >
+              Create Profile
+            </MainButton>
+          </Link>
 
-          <button
-            type="button"
+          <Link
+            href="/packages"
             className="border border-[#397466] text-[#397466] font-semibold px-7 py-2.5 rounded-full text-[14px] sm:text-base font-poppins hover:bg-[#397466]/10 transition-all duration-200"
           >
             View All Plans
-          </button>
+          </Link>
         </div>
       </div>
     </section>

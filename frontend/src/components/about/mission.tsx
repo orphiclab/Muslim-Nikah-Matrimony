@@ -1,5 +1,6 @@
 import React from "react";
 import Image from "next/image";
+import Link from "next/link";
 import MainButton from "@/components/ui/mainbtn";
 
 const MissionSection = () => {
@@ -22,21 +23,23 @@ const MissionSection = () => {
             </p>
 
             <div className="flex flex-wrap items-center gap-4">
-              <MainButton
-                px="px-8"
-                py="py-3"
-                className="text-base font-medium font-poppins"
-                type="button"
-              >
-                Create Profile
-              </MainButton>
+              <Link href="/register">
+                <MainButton
+                  px="px-8"
+                  py="py-3"
+                  className="text-base font-medium font-poppins"
+                  type="button"
+                >
+                  Create Profile
+                </MainButton>
+              </Link>
 
-              <button
-                type="button"
+              <Link
+                href="/packages"
                 className="border border-[#397466] text-[#DB9D30] font-semibold px-8 py-3 rounded-full text-base font-poppins hover:bg-[#397466]/10 transition-all duration-200"
               >
                 View All Plans
-              </button>
+              </Link>
             </div>
           </div>
 

@@ -1,5 +1,8 @@
+"use client";
+
 import React from "react";
 import Image from "next/image";
+import Link from "next/link";
 import { ShieldCheck, Users } from "lucide-react";
 import MainButton from "@/components/ui/mainbtn";
 
@@ -60,16 +63,20 @@ const Hero = () => {
 
             {/* Buttons */}
             <div className="flex items-center gap-4 flex-wrap">
-              <MainButton
-                px="px-8"
-                py="py-3"
-                className="text-base font-medium font-poppins"
+              <Link href="/register">
+                <MainButton
+                 
+                  className="text-base px-4 py-2 sm:px-6 sm:py-3 md:px-8 md:py-3  font-medium font-poppins"
+                >
+                  Create Profile
+                </MainButton>
+              </Link>
+              <Link
+                href="/profiles"
+                className="text-[#DB9D30] border font-medium px-4 py-2 sm:px-6 sm:py-3 md:px-8 md:py-3 rounded-full text-base bg-white font-poppins hover:bg-[#FFFFFF]/80 transition-all duration-200"
               >
-                Create Profile
-              </MainButton>
-              <button className="text-[#DB9D30] border font-semibold px-8 py-3 rounded-full text-base bg-white font-poppins hover:bg-[#FFFFFF]/80 transition-all duration-200">
                 Match Now
-              </button>
+              </Link>
             </div>
 
             {/* Trust Badges */}

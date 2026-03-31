@@ -1,5 +1,6 @@
 import React from "react";
 import Image from "next/image";
+import Link from "next/link";
 import GenuineProfileCards from "@/components/home/genuine/card";
 import MainButton from "@/components/ui/mainbtn";
 
@@ -70,12 +71,14 @@ const GenuineSection = () => {
         </div>
 
         <div className="mt-10 flex justify-center">
-          <MainButton
-            type="button"
-            className="text-base font-medium px-8 py-3  lg:px-15 lg:py-3 font-poppins"
-          >
-            More Profiles
-          </MainButton>
+          <Link href="/profiles">
+            <MainButton
+              type="button"
+              className="text-base font-medium px-8 py-3  lg:px-15 lg:py-3 font-poppins"
+            >
+              More Profiles
+            </MainButton>
+          </Link>
         </div>
       </div>
     </section>
