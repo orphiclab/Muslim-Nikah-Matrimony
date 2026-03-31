@@ -188,6 +188,18 @@ jobs:
             EOF
 
             echo "$DOCKERHUB_TOKEN" | docker login -u "$DOCKERHUB_USERNAME" --password-stdin
-            docker compose -f docker-compose.prod.yml --env-file .env pull
-            docker compose -f docker-compose.prod.yml --env-file .env up -d
+
+            docker_compose() {
+              if docker compose version >/dev/null 2>&1; then
+                docker compose "$@"
+              elif command -v docker-compose >/dev/null 2>&1; then
+                docker-compose "$@"
+              else
+                echo "Docker Compose not found (install docker-compose-plugin or docker-compose)" >&2
+                exit 1
+              fi
+            }
+
+            docker_compose -f docker-compose.prod.yml --env-file .env pull
+            docker_compose -f docker-compose.prod.yml --env-file .env up -d
             docker image prune -f
