@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono,Poppins,Andada_Pro,Aref_Ruqaa_Ink } from "next/font/google";
 import "./globals.css";
+import "aos/dist/aos.css";
 import Nav from "@/components/ui/navbar/Nav";
 import Footer from "@/components/ui/footer/FooterWrapper";
 import TrafficBeacon from "@/components/ui/TrafficBeacon";

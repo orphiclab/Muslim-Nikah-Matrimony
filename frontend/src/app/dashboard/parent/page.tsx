@@ -227,34 +227,69 @@ export default function ParentDashboard() {
             <table className="w-full text-sm">
               <thead className="bg-gray-50 border-b border-gray-100">
                 <tr>
-                  {['Member ID', 'Name', 'Gender', 'Status', 'Created', 'Action'].map((h) => (
+                  {['Member ID', 'Name', 'Gender', 'Status', 'Plan', 'Created', 'Action'].map((h) => (
                     <th key={h} className="px-6 py-3.5 text-left text-xs font-semibold text-gray-500 tracking-wide">{h}</th>
                   ))}
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-50">
-                {profiles.map((p, i) => (
-                  <tr key={p.id} className={`hover:bg-gray-50 transition ${i % 2 === 1 ? 'bg-[#FAFAFA]' : ''}`}>
-                    <td className="px-6 py-4 font-mono text-xs text-gray-400">{p.memberId ?? '—'}</td>
-                    <td className="px-6 py-4 font-medium text-gray-800">{p.name}</td>
-                    <td className="px-6 py-4 text-gray-500 capitalize">{p.gender?.toLowerCase() ?? '—'}</td>
-                    <td className="px-6 py-4">
-                      <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${statusBadge(p.status)}`}>
-                        {p.status.replace('_', ' ')}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 text-xs text-gray-400">{new Date(p.createdAt).toLocaleDateString()}</td>
-                    <td className="px-6 py-4">
-                      <Link href={`/dashboard/profiles`}
-                        className="text-xs text-[#1C3B35] font-semibold hover:underline flex items-center gap-1">
-                        Manage
-                        <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
-                          <polyline points="9 18 15 12 9 6" />
-                        </svg>
-                      </Link>
-                    </td>
-                  </tr>
-                ))}
+                {profiles.map((p, i) => {
+                  // Find this profile's latest subscription payment
+                  const profilePayment = payments
+                    .filter(pay => pay.childProfileId === p.id && (pay.purpose === 'SUBSCRIPTION' || !pay.purpose))
+                    .sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0];
+
+                  const planDot =
+                    !profilePayment ? '#9CA3AF' :
+                    profilePayment.status === 'SUCCESS' ? '#10B981' :
+                    profilePayment.status === 'PENDING' ? '#F59E0B' : '#EF4444';
+
+                  const planLabel =
+                    !profilePayment ? 'No Plan' :
+                    profilePayment.status === 'SUCCESS' ? 'Active' :
+                    profilePayment.status === 'PENDING' ? 'Pending' : 'Failed';
+
+                  const planLabelColor =
+                    !profilePayment ? 'bg-gray-100 text-gray-400' :
+                    profilePayment.status === 'SUCCESS' ? 'bg-green-100 text-green-700' :
+                    profilePayment.status === 'PENDING' ? 'bg-amber-100 text-amber-700' : 'bg-red-100 text-red-600';
+
+                  return (
+                    <tr key={p.id} className={`hover:bg-gray-50 transition ${i % 2 === 1 ? 'bg-[#FAFAFA]' : ''}`}>
+                      <td className="px-6 py-4 font-mono text-xs text-gray-400">{p.memberId ?? '—'}</td>
+                      <td className="px-6 py-4 font-medium text-gray-800">{p.name}</td>
+                      <td className="px-6 py-4 text-gray-500 capitalize">{p.gender?.toLowerCase() ?? '—'}</td>
+                      <td className="px-6 py-4">
+                        <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${statusBadge(p.status)}`}>
+                          {p.status.replace('_', ' ')}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-2">
+                          <span className="h-2 w-2 rounded-full flex-shrink-0" style={{ background: planDot }} />
+                          <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${planLabelColor}`}>
+                            {planLabel}
+                          </span>
+                        </div>
+                        {!profilePayment && (
+                          <Link href="/select-plan" className="mt-1 text-[10px] text-[#1B6B4A] font-semibold hover:underline block">
+                            + Get Plan
+                          </Link>
+                        )}
+                      </td>
+                      <td className="px-6 py-4 text-xs text-gray-400">{new Date(p.createdAt).toLocaleDateString()}</td>
+                      <td className="px-6 py-4">
+                        <Link href={`/dashboard/profiles`}
+                          className="text-xs text-[#1C3B35] font-semibold hover:underline flex items-center gap-1">
+                          Manage
+                          <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
+                            <polyline points="9 18 15 12 9 6" />
+                          </svg>
+                        </Link>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           )}

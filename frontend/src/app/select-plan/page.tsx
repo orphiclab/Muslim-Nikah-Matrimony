@@ -234,12 +234,12 @@ export default function SelectPlanPage() {
         packageId: (selected as any).id,
         packageDurationDays: selected.durationDays,
       });
-      setMessage('✅ Payment submitted! Your profile will be activated once the admin approves your bank transfer (usually within 24 hours). You can check the status in your dashboard.');
-      setBankRef('');
-      reloadProfiles();
+      // ✅ Redirect to parent dashboard after successful submission
+      router.push('/dashboard/parent');
     } catch (e: any) {
-      setMessage(e.message ?? 'Payment submission failed.');
-    } finally {
+      const errMsg = e.message ?? 'Payment submission failed.';
+      // Surface backend one-plan-per-profile error clearly
+      setMessage(errMsg);
       setSubmitting(false);
     }
   };

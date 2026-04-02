@@ -22,6 +22,28 @@ export class PaymentService {
       throw new BadRequestException({ success: false, message: 'Profile not found or not owned', error_code: 'FORBIDDEN' });
     }
 
+    // ── One profile, one membership plan ──────────────────────────────────
+    const isSubscription = !dto.purpose || dto.purpose === 'SUBSCRIPTION';
+    if (isSubscription) {
+      const existing = await this.prisma.payment.findFirst({
+        where: {
+          childProfileId: dto.childProfileId,
+          purpose: 'SUBSCRIPTION',
+          status: { in: ['PENDING', 'SUCCESS'] },
+        },
+      });
+      if (existing) {
+        throw new BadRequestException({
+          success: false,
+          message:
+            existing.status === 'PENDING'
+              ? 'This profile already has a pending membership payment awaiting admin approval.'
+              : 'This profile already has an active membership plan.',
+          error_code: 'PLAN_ALREADY_EXISTS',
+        });
+      }
+    }
+
     const payment = await this.prisma.payment.create({
       data: {
         userId,

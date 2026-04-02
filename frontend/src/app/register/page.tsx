@@ -7,8 +7,8 @@ import Link from "next/link";
 import { Check, ChevronDown, Calendar } from "lucide-react";
 
 const STEPS = [
-  { id: 1, label: "Personal Details" },
-  { id: 2, label: "Account Details" },
+  { id: 1, label: "Account Details" },
+  { id: 2, label: "Personal Details" },
   { id: 3, label: "Location & Education" },
   { id: 4, label: "Family Details" },
   { id: 5, label: "Additional Details" },
@@ -329,7 +329,7 @@ export default function RegisterPage() {
 
   const handleSubmit = async () => {
     if (!formData.email || !formData.password) {
-      setError("Email and password are required (Step 2).");
+      setError("Email and password are required (Step 1).");
       return;
     }
     setError("");
@@ -447,8 +447,8 @@ export default function RegisterPage() {
           {/* Form Content */}
           <div className="flex-1 px-5 py-6 md:px-8 md:py-8">
             <div className="flex-1">
-              {currentStep === 1 && <Step1 data={formData} onChange={handleChange} />}
-              {currentStep === 2 && <Step2 data={formData} onChange={handleChange} />}
+              {currentStep === 1 && <Step2 data={formData} onChange={handleChange} />}
+              {currentStep === 2 && <Step1 data={formData} onChange={handleChange} />}
               {currentStep === 3 && <Step3 data={formData} onChange={handleChange} />}
               {currentStep === 4 && <Step4 data={formData} onChange={handleChange} />}
               {currentStep === 5 && <Step5 data={formData} onChange={handleChange} lookingFor={lookingFor} setLookingFor={setLookingFor} agreedTerms={agreedTerms} setAgreedTerms={setAgreedTerms} />}
