@@ -83,8 +83,8 @@ export default function AdminBoostsPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold text-gray-800">Profile Boosts</h1>
-          <p className="text-gray-400 text-sm mt-0.5">Manage boosted profiles — extend or remove VIP status</p>
+          <h1 className="text-[22px] sm:text-[26px] md:text-[30px] lg:text-[34px] xl:text-[37px] 2xl:text-[40px] font-poppins font-medium text-[#121514]">Profile Boosts</h1>
+          <p className="text-[#121514AD]/68 title-sub-top mt-0.5">Manage boosted profiles — extend or remove VIP status</p>
         </div>
         <button onClick={load} className="self-start sm:self-auto flex items-center gap-2 text-sm border border-gray-200 text-gray-600 px-4 py-2.5 rounded-xl hover:bg-gray-50 transition font-semibold">
           <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">

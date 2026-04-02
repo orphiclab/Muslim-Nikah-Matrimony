@@ -3,7 +3,6 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { adminApi } from '@/services/api';
-import type { LucideIcon } from 'lucide-react';
 import {
   CircleDollarSign,
   ClipboardCheck,
@@ -15,6 +14,7 @@ import {
   Users,
 } from 'lucide-react';
 import dynamic from 'next/dynamic';
+import { AdminStatCard, type AdminStatCardItem } from '@/components/admin/AdminStatCard';
 
 const LiveTrafficWidget = dynamic(() => import('@/components/admin/LiveTrafficWidget'), { ssr: false });
 
@@ -116,60 +116,6 @@ function LineChart({ data }: { data: ChartPoint[] }) {
   );
 }
 
-const HIGHLIGHT_GRAIN =
-  "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E\")";
-
-type StatCardItem = {
-  label: string;
-  value: string | number;
-  sub?: string;
-  icon: LucideIcon;
-};
-
-/* ── Stat card ── */
-function StatCard({ item, selected, onSelect }: { item: StatCardItem; selected: boolean; onSelect: () => void }) {
-  const { label, value, sub, icon: Icon } = item;
-
-  return (
-    <button
-      type="button"
-      onClick={onSelect}
-      aria-pressed={selected}
-      className={`relative w-full cursor-pointer overflow-hidden rounded-2xl p-5 text-left shadow-sm transition focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 ${
-        selected
-          ? 'text-white ring-1 ring-black/5 hover:ring-black/10 focus-visible:ring-[#3d6b5d]'
-          : 'border border-gray-100 bg-white text-gray-800 hover:border-gray-200 focus-visible:ring-[#1C3B35]/30'
-      }`}
-    >
-      {selected && (
-        <>
-          <div
-            className="absolute inset-0 bg-linear-to-br from-[#3d6b5d] via-[#5c8678] to-[#9fb1ac]"
-            aria-hidden
-          />
-          <div
-            className="pointer-events-none absolute inset-0 opacity-[0.22] mix-blend-overlay"
-            style={{ backgroundImage: HIGHLIGHT_GRAIN }}
-            aria-hidden
-          />
-        </>
-      )}
-      <div className="relative flex items-start justify-between gap-4">
-        <div className="min-w-0 flex-1">
-          <p className={`mb-1 truncate text-xs md:text-sm lg:text-base  font-medium ${selected ? 'text-white/90' : 'text-gray-500'}`}>{label}</p>
-          <p className={`text-2xl md:text-3xl lg:text-4xl font-semibold leading-none tracking-tight ${selected ? 'text-white' : 'text-gray-800'}`}>{value}</p>
-          {sub && (
-            <p className={`mt-2 text-[10px] md:text-[12px] ${selected ? 'text-white/75' : 'text-gray-400'}`}>{sub}</p>
-          )}
-        </div>
-        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-white shadow-md">
-          <Icon className={`h-5 w-5 ${selected ? 'text-[#3d6b5d]' : 'text-[#1C3B35]'}`} strokeWidth={2} aria-hidden />
-        </div>
-      </div>
-    </button>
-  );
-}
-
 type PendingPayment = {
   id: string; amount: number; currency: string; method: string;
   bankRef?: string; createdAt: string;
@@ -255,13 +201,13 @@ export default function AdminDashboard() {
   const pendingCount = stats?.pendingPayments ?? 0;
   const activeProfiles = stats?.activeProfiles ?? 0;
 
-  const row1: StatCardItem[] = [
+  const row1: AdminStatCardItem[] = [
     { label: 'Total Revenue', icon: CircleDollarSign, value: `$${totalRevenue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, sub: 'Successful payments only' },
     { label: 'Total Users', icon: Users, value: totalUsers.toLocaleString(), sub: 'Registered accounts' },
     { label: 'Total Profiles', icon: UserCircle, value: totalProfiles.toLocaleString(), sub: `${totalProfiles > 0 ? Math.round((activeProfiles / totalProfiles) * 100) : 0}% activation rate` },
     { label: 'Pending Approvals', icon: ClipboardCheck, value: pendingCount, sub: pendingCount > 0 ? 'Needs your attention' : 'All clear!' },
   ];
-  const row2: StatCardItem[] = [
+  const row2: AdminStatCardItem[] = [
     { label: 'Active Subscriptions', icon: CreditCard, value: activeProfiles.toLocaleString(), sub: 'With active subscription' },
     { label: 'Active Profiles', icon: UserCheck, value: activeProfiles.toLocaleString(), sub: 'Visible to members' },
     { label: 'Pending Payments', icon: HandCoins, value: pendingCount, sub: 'Awaiting approval' },
@@ -322,7 +268,7 @@ export default function AdminDashboard() {
       {/* ── Row 1 stat cards ── */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {row1.map((c) => (
-          <StatCard
+          <AdminStatCard
             key={c.label}
             item={c}
             selected={selectedStatKey === c.label}
@@ -334,7 +280,7 @@ export default function AdminDashboard() {
       {/* ── Row 2 stat cards ── */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {row2.map((c) => (
-          <StatCard
+          <AdminStatCard
             key={c.label}
             item={c}
             selected={selectedStatKey === c.label}

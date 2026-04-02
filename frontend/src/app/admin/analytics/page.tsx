@@ -2,6 +2,16 @@
 
 import { useEffect, useState } from 'react';
 import { adminApi } from '@/services/api';
+import { AdminStatCard, type AdminStatCardItem } from '@/components/admin/AdminStatCard';
+import {
+  CircleDollarSign,
+  HandCoins,
+  MessageSquare,
+  UserCheck,
+  UserCircle,
+  Users,
+  Zap,
+} from 'lucide-react';
 import dynamic from 'next/dynamic';
 
 // Dynamically import to avoid SSR issues with socket.io
@@ -17,32 +27,6 @@ function SparkBar({ value, max, color = '#1C3B35' }: { value: number; max: numbe
         <div className="h-full rounded-full transition-all duration-700" style={{ width: `${pct}%`, background: color }} />
       </div>
       <span className="text-[11px] text-gray-400 w-7 text-right">{pct}%</span>
-    </div>
-  );
-}
-
-/* ── Stat Card ────────────────────────────────────────────── */
-function KpiCard({
-  label, value, sub, icon, accent = false,
-}: {
-  label: string; value: string | number; sub?: string; icon: string; accent?: boolean;
-}) {
-  return (
-    <div className={`rounded-2xl p-5 flex gap-4 items-start ${
-      accent
-        ? 'bg-gradient-to-br from-[#1C3B35] to-[#2a5247] text-white'
-        : 'bg-white border border-gray-100 text-gray-800'
-    }`}>
-      <div className={`h-10 w-10 rounded-xl flex items-center justify-center text-xl flex-shrink-0 ${
-        accent ? 'bg-white/15' : 'bg-[#EAF2EE]'
-      }`}>
-        {icon}
-      </div>
-      <div>
-        <p className={`text-xs font-medium mb-1 ${accent ? 'text-white/70' : 'text-gray-500'}`}>{label}</p>
-        <p className={`text-2xl font-bold leading-none ${accent ? 'text-white' : 'text-gray-800'}`}>{value}</p>
-        {sub && <p className={`text-[11px] mt-1 ${accent ? 'text-white/50' : 'text-gray-400'}`}>{sub}</p>}
-      </div>
     </div>
   );
 }
@@ -84,6 +68,7 @@ export default function AdminAnalyticsPage() {
   const [data, setData]     = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError]   = useState<string | null>(null);
+  const [selectedStatKey, setSelectedStatKey] = useState('Total Revenue');
 
   const load = () => {
     setLoading(true);
@@ -126,14 +111,39 @@ export default function AdminAnalyticsPage() {
     ? Math.round((d.activeProfiles / d.totalProfiles) * 100)
     : 0;
 
-  const kpis = [
-    { label: 'Total Revenue',        value: `$${totalRev.toLocaleString()}`,     sub: 'Successful payments only', icon: '💵', accent: true  },
-    { label: 'Total Users',          value: d.totalUsers ?? 0,                   sub: 'Registered accounts',      icon: '👤'                },
-    { label: 'Total Profiles',       value: d.totalProfiles ?? 0,                sub: `${activationRate}% activation rate`, icon: '📋'   },
-    { label: 'Active Profiles',      value: d.activeProfiles ?? 0,               sub: 'With active subscription', icon: '✅'                },
-    { label: 'Pending Payments',     value: d.pendingPayments ?? 0,             sub: 'Awaiting approval',        icon: '⏳'                },
-    { label: 'Active Boosts',        value: d.activeBoosts ?? 0,                sub: 'VIP profiles live now',    icon: '⚡'                },
-    { label: 'Total Messages',       value: d.totalMessages ?? 0,               sub: 'Chat messages sent',       icon: '💬'                },
+  const kpis: AdminStatCardItem[] = [
+    {
+      label: 'Total Revenue',
+      icon: CircleDollarSign,
+      value: `$${totalRev.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+      sub: 'Successful payments only',
+    },
+    { label: 'Total Users', icon: Users, value: d.totalUsers ?? 0, sub: 'Registered accounts' },
+    {
+      label: 'Total Profiles',
+      icon: UserCircle,
+      value: d.totalProfiles ?? 0,
+      sub: `${activationRate}% activation rate`,
+    },
+    {
+      label: 'Active Profiles',
+      icon: UserCheck,
+      value: d.activeProfiles ?? 0,
+      sub: 'With active subscription',
+    },
+    {
+      label: 'Pending Payments',
+      icon: HandCoins,
+      value: d.pendingPayments ?? 0,
+      sub: 'Awaiting approval',
+    },
+    { label: 'Active Boosts', icon: Zap, value: d.activeBoosts ?? 0, sub: 'VIP profiles live now' },
+    {
+      label: 'Total Messages',
+      icon: MessageSquare,
+      value: d.totalMessages ?? 0,
+      sub: 'Chat messages sent',
+    },
   ];
 
   return (
@@ -141,8 +151,8 @@ export default function AdminAnalyticsPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold text-gray-800">Analytics</h1>
-          <p className="text-gray-400 text-sm mt-0.5">Platform-wide performance metrics</p>
+          <h1 className="text-[22px] sm:text-[26px] md:text-[30px] lg:text-[34px] xl:text-[37px] 2xl:text-[40px] font-poppins font-medium text-[#121514]">Analytics</h1>
+          <p className="text-[#121514AD]/68 title-sub-top mt-0.5">Platform-wide performance metrics</p>
         </div>
         <button
           onClick={load}
@@ -156,12 +166,26 @@ export default function AdminAnalyticsPage() {
         </button>
       </div>
 
-      {/* KPI Grid */}
+      {/* KPI Grid — same stat cards as admin dashboard */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        {kpis.slice(0, 4).map(k => <KpiCard key={k.label} {...k} />)}
+        {kpis.slice(0, 4).map((k) => (
+          <AdminStatCard
+            key={k.label}
+            item={k}
+            selected={selectedStatKey === k.label}
+            onSelect={() => setSelectedStatKey(k.label)}
+          />
+        ))}
       </div>
       <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
-        {kpis.slice(4).map(k => <KpiCard key={k.label} {...k} />)}
+        {kpis.slice(4).map((k) => (
+          <AdminStatCard
+            key={k.label}
+            item={k}
+            selected={selectedStatKey === k.label}
+            onSelect={() => setSelectedStatKey(k.label)}
+          />
+        ))}
       </div>
 
       {/* ── Live Traffic ── */}
@@ -174,8 +198,8 @@ export default function AdminAnalyticsPage() {
         <div className="bg-white rounded-2xl border border-gray-100 p-6">
           <div className="flex items-center justify-between mb-5">
             <div>
-              <h2 className="font-bold text-gray-800">Top Viewed Profiles</h2>
-              <p className="text-xs text-gray-400 mt-0.5">Most visited active profiles</p>
+              <h2 className="font-medium font-poppins text-[#121514] subtitle">Top Viewed Profiles</h2>
+              <p className="text-xs md:text-sm lg:text-base   text-gray-400 mt-0.5">Most visited active profiles</p>
             </div>
             <span className="text-xs font-semibold bg-[#EAF2EE] text-[#1C3B35] px-2.5 py-1 rounded-lg">
               Top {topViewed.length}
@@ -198,8 +222,8 @@ export default function AdminAnalyticsPage() {
         {/* Platform Health */}
         <div className="bg-white rounded-2xl border border-gray-100 p-6">
           <div className="mb-5">
-            <h2 className="font-bold text-gray-800">Platform Health</h2>
-            <p className="text-xs text-gray-400 mt-0.5">Key ratios and conversion indicators</p>
+            <h2 className="font-medium font-poppins text-[#121514] subtitle">Platform Health</h2>
+            <p className="text-xs md:text-sm lg:text-base text-gray-400 mt-0.5">Key ratios and conversion indicators</p>
           </div>
 
           <div className="space-y-5">

@@ -169,7 +169,7 @@ export default function AdminPackagesPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold text-gray-800">Packages & Discounts</h1>
+          <h1 className="text-[22px] sm:text-[26px] md:text-[30px] lg:text-[34px] xl:text-[37px] 2xl:text-[40px] font-poppins font-medium text-[#121514]">Packages & Discounts</h1>
           <p className="text-gray-400 text-sm mt-0.5">Manage subscription plans, per-package and site-wide discounts</p>
         </div>
         <button onClick={openCreate}
