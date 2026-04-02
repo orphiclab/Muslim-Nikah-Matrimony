@@ -54,8 +54,8 @@ export default function AdminProfilesPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold text-gray-800">Master File</h1>
-          <p className="text-gray-400 text-sm mt-0.5">All candidate profiles across the system</p>
+          <h1 className="text-[22px] sm:text-[26px] md:text-[30px] lg:text-[34px] xl:text-[37px] 2xl:text-[40px] font-poppins font-medium text-[#121514]">Master File</h1>
+          <p className="text-[#121514AD]/68 title-sub-top mt-0.5">All candidate profiles across the system</p>
         </div>
         <div className="flex gap-2 flex-wrap">
           {['ACTIVE', 'DRAFT', 'PAYMENT_PENDING'].map(s => {
