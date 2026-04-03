@@ -121,7 +121,7 @@ export default function ParentDashboard() {
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
         {/* Recent Activity */}
         <div className="bg-white rounded-2xl border border-gray-100 p-5">
-          <h2 className="font-semibold text-gray-800 text-sm mb-4">Recent Activity</h2>
+          <h2 className="font-medium font-poppins text-[#121514] subtitle mb-4">Recent Activity</h2>
           {recentActivity.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-10 text-gray-300">
               <svg className="w-10 h-10 mb-2" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24">
@@ -152,7 +152,7 @@ export default function ParentDashboard() {
 
         {/* Quick Actions */}
         <div className="bg-white rounded-2xl border border-gray-100 p-5">
-          <h2 className="font-semibold text-gray-800 text-sm mb-4">Quick Actions</h2>
+          <h2 className="font-medium font-poppins text-[#121514] subtitle mb-4">Quick Actions</h2>
           <div className="flex flex-col gap-3">
             {quickActions.map((qa) => (
               <a key={qa.label} href={qa.href}
@@ -174,7 +174,7 @@ export default function ParentDashboard() {
       <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
         <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
           <div>
-            <h2 className="font-semibold text-gray-800">Family Profiles</h2>
+            <h2 className="font-medium font-poppins text-[#121514] subtitle">Family Profiles</h2>
             <p className="text-xs text-gray-400 mt-0.5">Manage your registered profiles</p>
           </div>
           <Link href="/dashboard/profiles"
@@ -270,7 +270,7 @@ export default function ParentDashboard() {
         <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
           <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
             <div>
-              <h2 className="font-semibold text-gray-800">Recent Payments</h2>
+              <h2 className="font-medium font-poppins text-[#121514] subtitle">Recent Payments</h2>
               <p className="text-xs text-gray-400 mt-0.5">Your latest payment history</p>
             </div>
             <Link href="/dashboard/subscription"

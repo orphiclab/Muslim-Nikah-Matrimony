@@ -106,7 +106,7 @@ export default function SubscriptionPage() {
 
       {/* Profile subscriptions */}
       <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
-        <h2 className="font-semibold text-gray-800 mb-4">Profile Subscriptions</h2>
+        <h2 className="font-medium font-poppins text-[#121514] subtitle mb-4">Profile Subscriptions</h2>
 
         {profiles.length === 0 ? (
           <p className="text-gray-400 text-sm">No profiles found. Create a profile first.</p>
@@ -282,7 +282,7 @@ export default function SubscriptionPage() {
 
       {/* Payment history */}
       <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
-        <h2 className="font-semibold text-gray-800 mb-4">Payment History</h2>
+        <h2 className="font-medium font-poppins text-[#121514] subtitle mb-4">Payment History</h2>
         {payments.length === 0 ? (
           <p className="text-gray-400 text-sm">No payments yet</p>
         ) : (
