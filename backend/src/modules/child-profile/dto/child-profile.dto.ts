@@ -43,10 +43,22 @@ export class CreateChildProfileDto {
   city?: string;
 
   @IsOptional() @IsString()
+  state?: string;
+
+  @IsOptional() @IsString()
+  residencyStatus?: string;
+
+  @IsOptional() @IsString()
   education?: string;
 
   @IsOptional() @IsString()
   occupation?: string;
+
+  @IsOptional() @IsString()
+  fieldOfStudy?: string;
+
+  @IsOptional() @IsString()
+  profession?: string;
 
   @IsOptional() @IsString()
   annualIncome?: string;
@@ -55,13 +67,34 @@ export class CreateChildProfileDto {
   familyStatus?: string;
 
   @IsOptional() @IsString()
+  fatherEthnicity?: string;
+
+  @IsOptional() @IsString()
+  fatherCountry?: string;
+
+  @IsOptional() @IsString()
   fatherOccupation?: string;
+
+  @IsOptional() @IsString()
+  fatherCity?: string;
+
+  @IsOptional() @IsString()
+  motherEthnicity?: string;
+
+  @IsOptional() @IsString()
+  motherCountry?: string;
 
   @IsOptional() @IsString()
   motherOccupation?: string;
 
+  @IsOptional() @IsString()
+  motherCity?: string;
+
   @IsOptional() @IsInt() @Min(0)
   siblings?: number;
+
+  @IsOptional() @IsString()
+  createdBy?: string;
 
   @IsOptional() @IsInt()
   minAgePreference?: number;

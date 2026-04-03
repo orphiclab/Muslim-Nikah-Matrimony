@@ -105,9 +105,37 @@ export class ChildProfileService {
 
   async delete(userId: string, profileId: string) {
     await this.findOwnedProfile(userId, profileId);
+
+    // Delete related records manually (belt-and-suspenders alongside DB cascade)
+    await this.prisma.chatMessage.deleteMany({
+      where: { OR: [{ senderProfileId: profileId }, { receiverProfileId: profileId }] },
+    });
+    await this.prisma.payment.deleteMany({ where: { childProfileId: profileId } });
+    await this.prisma.subscription.deleteMany({ where: { childProfileId: profileId } });
     await this.prisma.childProfile.delete({ where: { id: profileId } });
+
     this.logger.log(`Profile DELETED: ${profileId}`);
     return { success: true, message: 'Profile deleted' };
+  }
+
+  async updateStatus(userId: string, profileId: string, status: string) {
+    // Only allow user-controllable statuses
+    const allowed = ['ACTIVE', 'PAUSED', 'INACTIVE'];
+    if (!allowed.includes(status)) {
+      throw new ForbiddenException({ success: false, message: 'Invalid status transition' });
+    }
+    const profile = await this.findOwnedProfile(userId, profileId);
+    // Can only change status if profile has been activated at least once
+    if (profile.status === 'DRAFT' || profile.status === 'PAYMENT_PENDING' || profile.status === 'EXPIRED') {
+      throw new ForbiddenException({ success: false, message: 'Profile must be active before changing status' });
+    }
+    const updated = await this.prisma.childProfile.update({
+      where: { id: profileId },
+      data: { status: status as any },
+      include: { subscription: true },
+    });
+    this.logger.log(`Profile STATUS changed to ${status}: ${profileId}`);
+    return { success: true, data: updated };
   }
 
   private async findOwnedProfile(userId: string, profileId: string) {

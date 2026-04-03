@@ -25,7 +25,7 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
 
 // ─── Auth ──────────────────────────────────────────────────────────────────
 export const authApi = {
-  register: (body: { email: string; password: string; phone?: string }) =>
+  register: (body: { email: string; password: string; phone?: string; whatsappNumber?: string }) =>
     request<{ success: boolean; token: string; user: any }>('/auth/register', {
       method: 'POST',
       body: JSON.stringify(body),
@@ -33,6 +33,12 @@ export const authApi = {
 
   login: (body: { email: string; password: string }) =>
     request<{ success: boolean; token: string; user: any }>('/auth/login', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
+
+  checkAvailability: (body: { email?: string; phone?: string; whatsappNumber?: string }) =>
+    request<{ success: boolean; taken: Record<string, string> }>('/auth/check-availability', {
       method: 'POST',
       body: JSON.stringify(body),
     }),

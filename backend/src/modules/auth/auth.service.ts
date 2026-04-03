@@ -19,7 +19,7 @@ export class AuthService {
 
     const hashed = await bcrypt.hash(dto.password, 12);
     const user = await this.prisma.user.create({
-      data: { email: dto.email, password: hashed, phone: dto.phone },
+      data: { email: dto.email, password: hashed, phone: dto.phone, whatsappNumber: dto.whatsappNumber },
     });
 
     this.logger.log(`New user registered: ${user.email}`);
@@ -43,5 +43,24 @@ export class AuthService {
 
   private signToken(userId: string, email: string, role: string) {
     return this.jwt.sign({ sub: userId, email, role });
+  }
+
+  async checkAvailability(dto: { email?: string; phone?: string; whatsappNumber?: string }) {
+    const taken: Record<string, string> = {};
+
+    if (dto.email) {
+      const u = await this.prisma.user.findUnique({ where: { email: dto.email } });
+      if (u) taken.email = 'This email address is already registered.';
+    }
+    if (dto.phone) {
+      const u = await this.prisma.user.findFirst({ where: { phone: dto.phone } });
+      if (u) taken.phone = 'This phone number is already registered.';
+    }
+    if (dto.whatsappNumber) {
+      const u = await this.prisma.user.findFirst({ where: { whatsappNumber: dto.whatsappNumber } });
+      if (u) taken.whatsappNumber = 'This WhatsApp number is already registered.';
+    }
+
+    return { success: true, taken };
   }
 }

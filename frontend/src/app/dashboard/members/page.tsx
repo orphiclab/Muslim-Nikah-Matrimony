@@ -26,7 +26,7 @@ const EMPTY: Filters = {
 };
 
 const GENDERS = ['', 'MALE', 'FEMALE'];
-const CIVIL_STATUSES = ['', 'Single', 'Divorced', 'Widowed', 'Never Married'];
+const CIVIL_STATUSES = ['', 'Never Married', 'Widowed', 'Divorced', 'Separated', 'Other'];
 const EDUCATIONS = ['', 'School', 'Diploma', 'Degree', 'Bachelor of Arts', 'Bachelor of Engineering', 'Masters', 'PhD'];
 
 function calcAge(dob?: string): number {

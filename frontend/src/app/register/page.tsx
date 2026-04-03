@@ -1,10 +1,10 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { authApi } from "@/services/api";
+import { useState, useEffect, useRef } from "react";
+import { authApi, profileApi } from "@/services/api";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Check, ChevronDown, Calendar } from "lucide-react";
+import { Check, ChevronDown, Calendar, Eye, EyeOff } from "lucide-react";
 
 const STEPS = [
   { id: 1, label: "Account Details" },
@@ -21,22 +21,28 @@ function SelectField({
   options,
   value,
   onChange,
+  error,
 }: {
   label: string;
   name: string;
   options: string[];
   value: string;
   onChange: (e: React.ChangeEvent<HTMLSelectElement>) => void;
+  error?: string;
 }) {
   return (
     <div className="flex flex-col gap-1">
-      <label className="text-sm font-medium text-gray-600">{label}</label>
+      <label className="text-sm font-medium text-gray-600">
+        {label} <span className="text-red-400">*</span>
+      </label>
       <div className="relative">
         <select
           name={name}
           value={value}
           onChange={onChange}
-          className="w-full appearance-none rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-700 shadow-sm outline-none focus:border-[#1B6B4A] focus:ring-2 focus:ring-[#1B6B4A]/20 transition"
+          className={`w-full appearance-none rounded-lg border bg-white px-4 py-2.5 text-sm text-gray-700 shadow-sm outline-none focus:border-[#1B6B4A] focus:ring-2 focus:ring-[#1B6B4A]/20 transition ${
+            error ? 'border-red-400 bg-red-50/30' : 'border-gray-200'
+          }`}
         >
           <option value="">{`Select ${label}`}</option>
           {options.map((o) => (
@@ -47,6 +53,7 @@ function SelectField({
         </select>
         <ChevronDown className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
       </div>
+      {error && <p className="text-xs text-red-500 flex items-center gap-1"><span>⚠</span>{error}</p>}
     </div>
   );
 }
@@ -58,6 +65,8 @@ function TextField({
   placeholder,
   value,
   onChange,
+  error,
+  optional,
 }: {
   label: string;
   name: string;
@@ -65,18 +74,70 @@ function TextField({
   placeholder?: string;
   value: string;
   onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  error?: string;
+  optional?: boolean;
 }) {
   return (
     <div className="flex flex-col gap-1">
-      <label className="text-sm font-medium text-gray-600">{label}</label>
+      <label className="text-sm font-medium text-gray-600">
+        {label}{!optional && <span className="text-red-400"> *</span>}{optional && <span className="text-gray-400 text-xs ml-1">(optional)</span>}
+      </label>
       <input
         type={type}
         name={name}
         value={value}
         placeholder={placeholder}
         onChange={onChange}
-        className="w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-700 shadow-sm outline-none focus:border-[#1B6B4A] focus:ring-2 focus:ring-[#1B6B4A]/20 transition"
+        className={`w-full rounded-lg border bg-white px-4 py-2.5 text-sm text-gray-700 shadow-sm outline-none focus:border-[#1B6B4A] focus:ring-2 focus:ring-[#1B6B4A]/20 transition ${
+          error ? 'border-red-400 bg-red-50/30' : 'border-gray-200'
+        }`}
       />
+      {error && <p className="text-xs text-red-500 flex items-center gap-1"><span>⚠</span>{error}</p>}
+    </div>
+  );
+}
+
+function PasswordField({
+  label,
+  name,
+  placeholder,
+  value,
+  onChange,
+  error,
+}: {
+  label: string;
+  name: string;
+  placeholder?: string;
+  value: string;
+  onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  error?: string;
+}) {
+  const [show, setShow] = useState(false);
+  return (
+    <div className="flex flex-col gap-1">
+      <label className="text-sm font-medium text-gray-600">{label} <span className="text-red-400">*</span></label>
+      <div className="relative">
+        <input
+          type={show ? "text" : "password"}
+          name={name}
+          value={value}
+          placeholder={placeholder}
+          onChange={onChange}
+          className={`w-full rounded-lg border bg-white px-4 py-2.5 pr-11 text-sm text-gray-700 shadow-sm outline-none focus:border-[#1B6B4A] focus:ring-2 focus:ring-[#1B6B4A]/20 transition ${
+            error ? 'border-red-400 bg-red-50/30' : 'border-gray-200'
+          }`}
+        />
+        <button
+          type="button"
+          onClick={() => setShow((v) => !v)}
+          className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-[#1B6B4A] transition p-1"
+          tabIndex={-1}
+          aria-label={show ? "Hide password" : "Show password"}
+        >
+          {show ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+        </button>
+      </div>
+      {error && <p className="text-xs text-red-500 flex items-center gap-1"><span>⚠</span>{error}</p>}
     </div>
   );
 }
@@ -86,22 +147,33 @@ function DateField({
   name,
   value,
   onChange,
+  max,
+  min,
 }: {
   label: string;
   name: string;
   value: string;
   onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  max?: string;
+  min?: string;
 }) {
+  const inputRef = useRef<HTMLInputElement>(null);
   return (
     <div className="flex flex-col gap-1">
       <label className="text-sm font-medium text-gray-600">{label}</label>
-      <div className="relative">
+      <div
+        className="relative cursor-pointer"
+        onClick={() => { try { inputRef.current?.showPicker(); } catch { inputRef.current?.click(); } }}
+      >
         <input
+          ref={inputRef}
           type="date"
           name={name}
           value={value}
           onChange={onChange}
-          className="w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-700 shadow-sm outline-none focus:border-[#1B6B4A] focus:ring-2 focus:ring-[#1B6B4A]/20 transition"
+          max={max}
+          min={min}
+          className="w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 pr-10 text-sm text-gray-700 shadow-sm outline-none focus:border-[#1B6B4A] focus:ring-2 focus:ring-[#1B6B4A]/20 transition cursor-pointer [&::-webkit-calendar-picker-indicator]:hidden"
         />
         <Calendar className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
       </div>
@@ -110,65 +182,117 @@ function DateField({
 }
 
 /* ─── Step Forms ─── */
-function Step1({ data, onChange }: { data: Record<string, string>; onChange: (e: React.ChangeEvent<HTMLSelectElement | HTMLInputElement>) => void }) {
+/* ── Age helpers ── */
+function getMaxBirthDate(): string {
+  const d = new Date();
+  d.setFullYear(d.getFullYear() - 16);
+  return d.toISOString().split("T")[0];
+}
+function getMinBirthDate(): string {
+  const d = new Date();
+  d.setFullYear(d.getFullYear() - 100);
+  return d.toISOString().split("T")[0];
+}
+function isAtLeast16(dateStr: string): boolean {
+  if (!dateStr) return false;
+  const birth = new Date(dateStr);
+  const cutoff = new Date();
+  cutoff.setFullYear(cutoff.getFullYear() - 16);
+  return birth <= cutoff;
+}
+
+function Step1({
+  data, onChange, fieldErrors,
+}: {
+  data: Record<string, string>;
+  onChange: (e: React.ChangeEvent<HTMLSelectElement | HTMLInputElement>) => void;
+  fieldErrors?: Record<string, string>;
+}) {
+  const maxBirth = getMaxBirthDate();
+  const minBirth = getMinBirthDate();
   return (
     <div>
       <h2 className="text-xl font-semibold text-gray-800">Your Personal Details</h2>
       <p className="mt-1 text-sm text-gray-500">Please provide your basic information</p>
       <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <SelectField label="Created By" name="createdBy" options={["Self", "Parent", "Guardian", "Sibling"]} value={data.createdBy || ""} onChange={onChange} />
-        <SelectField label="Gender" name="gender" options={["Male", "Female"]} value={data.gender || ""} onChange={onChange} />
-        <DateField label="Birth Date" name="birthDate" value={data.birthDate || ""} onChange={onChange} />
-        <SelectField label="Height" name="height" options={["4'0\"","4'5\"","4'10\"","5'0\"","5'2\"","5'4\"","5'6\"","5'8\"","5'10\"","6'0\"","6'2\"","6'4\"","6'6\""]} value={data.height || ""} onChange={onChange} />
-        <SelectField label="Appearance" name="appearance" options={["Very Fair", "Fair", "Wheatish", "Wheatish Brown", "Dark"]} value={data.appearance || ""} onChange={onChange} />
-        <SelectField label="Complexion" name="complexion" options={["Very Fair", "Fair", "Medium", "Olive", "Dark"]} value={data.complexion || ""} onChange={onChange} />
-        <SelectField label="Ethnicity" name="ethnicity" options={["Arab", "South Asian", "African", "South East Asian", "European", "Other"]} value={data.ethnicity || ""} onChange={onChange} />
-        <SelectField label="Dress Code" name="dressCode" options={["Hijab", "Niqab", "Casual Modest", "Islamic Formal", "Traditional"]} value={data.dressCode || ""} onChange={onChange} />
-        <SelectField label="Family Status" name="familyStatus" options={["Upper Class", "Upper Middle Class", "Middle Class", "Lower Middle Class"]} value={data.familyStatus || ""} onChange={onChange} />
-        <SelectField label="Civil Status" name="civilStatus" options={["Single", "Divorced", "Widowed"]} value={data.civilStatus || ""} onChange={onChange} />
-        <SelectField label="Children" name="children" options={["No", "Yes - 1", "Yes - 2", "Yes - 3", "Yes - 3+"]} value={data.children || ""} onChange={onChange} />
+        <TextField label="First Name" name="firstName" placeholder="Enter your first name" value={data.firstName || ""} onChange={onChange} error={fieldErrors?.firstName} />
+        <TextField label="Last Name" name="lastName" placeholder="Enter your last name" value={data.lastName || ""} onChange={onChange} error={fieldErrors?.lastName} />
+        <SelectField label="Created By" name="createdBy" options={["Self", "Parent", "Guardian", "Sibling"]} value={data.createdBy || ""} onChange={onChange} error={fieldErrors?.createdBy} />
+        <SelectField label="Gender" name="gender" options={["Male", "Female"]} value={data.gender || ""} onChange={onChange} error={fieldErrors?.gender} />
+        <div className="flex flex-col gap-1">
+          <DateField label="Birth Date" name="birthDate" value={data.birthDate || ""} onChange={onChange} max={maxBirth} min={minBirth} />
+          {fieldErrors?.birthDate && <p className="text-xs text-red-500 flex items-center gap-1"><span>⚠</span>{fieldErrors.birthDate}</p>}
+          {data.birthDate && !isAtLeast16(data.birthDate) && (
+            <p className="text-xs text-red-500 mt-1">⚠ You must be at least 16 years old to register.</p>
+          )}
+        </div>
+        <SelectField label="Height" name="height" options={["4'0\"","4'5\"","4'10\"","5'0\"","5'2\"","5'4\"","5'6\"","5'8\"","5'10\"","6'0\"","6'2\"","6'4\"","6'6\""]} value={data.height || ""} onChange={onChange} error={fieldErrors?.height} />
+        <SelectField label="Appearance" name="appearance" options={["Very Fair", "Fair", "Wheatish", "Wheatish Brown", "Dark"]} value={data.appearance || ""} onChange={onChange} error={fieldErrors?.appearance} />
+        <SelectField label="Complexion" name="complexion" options={["Very Fair", "Fair", "Medium", "Olive", "Dark"]} value={data.complexion || ""} onChange={onChange} error={fieldErrors?.complexion} />
+        <SelectField label="Ethnicity" name="ethnicity" options={["Arab", "South Asian", "African", "South East Asian", "European", "Other"]} value={data.ethnicity || ""} onChange={onChange} error={fieldErrors?.ethnicity} />
+        <SelectField label="Dress Code" name="dressCode" options={["Hijab", "Niqab", "Casual Modest", "Islamic Formal", "Traditional"]} value={data.dressCode || ""} onChange={onChange} error={fieldErrors?.dressCode} />
+        <SelectField label="Family Status" name="familyStatus" options={["Upper Class", "Upper Middle Class", "Middle Class", "Lower Middle Class"]} value={data.familyStatus || ""} onChange={onChange} error={fieldErrors?.familyStatus} />
+        <SelectField label="Civil Status" name="civilStatus" options={["Never Married", "Widowed", "Divorced", "Separated", "Other"]} value={data.civilStatus || ""} onChange={onChange} error={fieldErrors?.civilStatus} />
+        <SelectField label="Children" name="children" options={["No", "Yes - 1", "Yes - 2", "Yes - 3", "Yes - 3+"]} value={data.children || ""} onChange={onChange} error={fieldErrors?.children} />
       </div>
     </div>
   );
 }
 
-function Step2({ data, onChange }: { data: Record<string, string>; onChange: (e: React.ChangeEvent<HTMLSelectElement | HTMLInputElement>) => void }) {
+function Step2({
+  data, onChange, fieldErrors,
+}: {
+  data: Record<string, string>;
+  onChange: (e: React.ChangeEvent<HTMLSelectElement | HTMLInputElement>) => void;
+  fieldErrors?: Record<string, string>;
+}) {
   return (
     <div>
       <h2 className="text-xl font-semibold text-gray-800">Account Details</h2>
       <p className="mt-1 text-sm text-gray-500">Set up your login credentials</p>
       <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <TextField label="First Name" name="firstName" placeholder="Enter your first name" value={data.firstName || ""} onChange={onChange} />
-        <TextField label="Last Name" name="lastName" placeholder="Enter your last name" value={data.lastName || ""} onChange={onChange} />
-        <TextField label="Email Address" name="email" type="email" placeholder="Enter your email" value={data.email || ""} onChange={onChange} />
-        <TextField label="Phone Number" name="phone" type="tel" placeholder="+94 xxx xxx xxx" value={data.phone || ""} onChange={onChange} />
-        <TextField label="Password" name="password" type="password" placeholder="Create a password" value={data.password || ""} onChange={onChange} />
-        <TextField label="Confirm Password" name="confirmPassword" type="password" placeholder="Confirm your password" value={data.confirmPassword || ""} onChange={onChange} />
+        <TextField label="Email Address" name="email" type="email" placeholder="Enter your email" value={data.email || ""} onChange={onChange} error={fieldErrors?.email} />
+        <TextField label="Phone Number" name="phone" type="tel" placeholder="+94 xxx xxx xxx" value={data.phone || ""} onChange={onChange} error={fieldErrors?.phone} />
+        <TextField label="WhatsApp Number" name="whatsappNumber" type="tel" placeholder="+94 xxx xxx xxx" value={data.whatsappNumber || ""} onChange={onChange} error={fieldErrors?.whatsappNumber} />
+        <PasswordField label="Password" name="password" placeholder="Create a password" value={data.password || ""} onChange={onChange} error={fieldErrors?.password} />
+        <PasswordField label="Confirm Password" name="confirmPassword" placeholder="Confirm your password" value={data.confirmPassword || ""} onChange={onChange} error={fieldErrors?.confirmPassword} />
       </div>
     </div>
   );
 }
 
-function Step3({ data, onChange }: { data: Record<string, string>; onChange: (e: React.ChangeEvent<HTMLSelectElement | HTMLInputElement>) => void }) {
+function Step3({
+  data, onChange, fieldErrors,
+}: {
+  data: Record<string, string>;
+  onChange: (e: React.ChangeEvent<HTMLSelectElement | HTMLInputElement>) => void;
+  fieldErrors?: Record<string, string>;
+}) {
   return (
     <div>
-      <h2 className="text-xl font-semibold text-gray-800">Location & Education</h2>
+      <h2 className="text-xl font-semibold text-gray-800">Location &amp; Education</h2>
       <p className="mt-1 text-sm text-gray-500">Tell us where you are based and your qualifications</p>
       <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <SelectField label="Country" name="country" options={["Sri Lanka", "United Kingdom", "Australia", "Canada", "UAE", "Saudi Arabia", "Qatar", "USA", "Malaysia", "Other"]} value={data.country || ""} onChange={onChange} />
-        <SelectField label="State / Province" name="state" options={["Western Province", "Central Province", "Southern Province", "Northern Province", "Eastern Province", "Other"]} value={data.state || ""} onChange={onChange} />
-        <TextField label="City" name="city" placeholder="Enter your city" value={data.city || ""} onChange={onChange} />
-        <SelectField label="Residency Status" name="residencyStatus" options={["Citizen", "Permanent Resident", "Work Visa", "Student Visa", "Other"]} value={data.residencyStatus || ""} onChange={onChange} />
-        <SelectField label="Education" name="education" options={["High School","Diploma","Bachelor's Degree","Master's Degree","Doctorate (PhD)","Other"]} value={data.education || ""} onChange={onChange} />
-        <TextField label="Field of Study" name="fieldOfStudy" placeholder="e.g. Computer Science" value={data.fieldOfStudy || ""} onChange={onChange} />
-        <SelectField label="Occupation" name="occupation" options={["Employed","Self Employed","Business Owner","Student","Not Employed"]} value={data.occupation || ""} onChange={onChange} />
-        <TextField label="Profession / Job Title" name="profession" placeholder="e.g. Software Engineer" value={data.profession || ""} onChange={onChange} />
+        <SelectField label="Country" name="country" options={["Sri Lanka", "United Kingdom", "Australia", "Canada", "UAE", "Saudi Arabia", "Qatar", "USA", "Malaysia", "Other"]} value={data.country || ""} onChange={onChange} error={fieldErrors?.country} />
+        <SelectField label="State / Province" name="state" options={["Western Province", "Central Province", "Southern Province", "Northern Province", "Eastern Province", "Other"]} value={data.state || ""} onChange={onChange} error={fieldErrors?.state} />
+        <TextField label="City" name="city" placeholder="Enter your city" value={data.city || ""} onChange={onChange} error={fieldErrors?.city} />
+        <SelectField label="Residency Status" name="residencyStatus" options={["Citizen", "Permanent Resident", "Work Visa", "Student Visa", "Other"]} value={data.residencyStatus || ""} onChange={onChange} error={fieldErrors?.residencyStatus} />
+        <SelectField label="Education" name="education" options={["High School","Diploma","Bachelor's Degree","Master's Degree","Doctorate (PhD)","Other"]} value={data.education || ""} onChange={onChange} error={fieldErrors?.education} />
+        <TextField label="Field of Study" name="fieldOfStudy" placeholder="e.g. Computer Science" value={data.fieldOfStudy || ""} onChange={onChange} optional />
+        <SelectField label="Occupation" name="occupation" options={["Employed","Self Employed","Business Owner","Student","Not Employed"]} value={data.occupation || ""} onChange={onChange} error={fieldErrors?.occupation} />
+        <TextField label="Profession / Job Title" name="profession" placeholder="e.g. Software Engineer" value={data.profession || ""} onChange={onChange} optional />
       </div>
     </div>
   );
 }
 
-function Step4({ data, onChange }: { data: Record<string, string>; onChange: (e: React.ChangeEvent<HTMLSelectElement | HTMLInputElement>) => void }) {
+function Step4({
+  data, onChange, fieldErrors,
+}: {
+  data: Record<string, string>;
+  onChange: (e: React.ChangeEvent<HTMLSelectElement | HTMLInputElement>) => void;
+  fieldErrors?: Record<string, string>;
+}) {
   return (
     <div>
       <h2 className="text-xl font-semibold text-gray-800">Family Details</h2>
@@ -177,33 +301,35 @@ function Step4({ data, onChange }: { data: Record<string, string>; onChange: (e:
       <div className="mt-6">
         <h3 className="text-sm font-semibold text-gray-700 mb-3">Father's Details</h3>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <SelectField label="Ethnicity" name="fatherEthnicity" options={["Arab","South Asian","African","South East Asian","European","Other"]} value={data.fatherEthnicity || ""} onChange={onChange} />
-          <SelectField label="Country" name="fatherCountry" options={["Sri Lanka","United Kingdom","Australia","Canada","UAE","Saudi Arabia","Qatar","USA","Malaysia","Other"]} value={data.fatherCountry || ""} onChange={onChange} />
-          <SelectField label="Occupation" name="fatherOccupation" options={["Business","Government Employee","Private Sector","Retired","Not Employed","Deceased"]} value={data.fatherOccupation || ""} onChange={onChange} />
-          <TextField label="City" name="fatherCity" placeholder="Enter City" value={data.fatherCity || ""} onChange={onChange} />
+          <SelectField label="Ethnicity" name="fatherEthnicity" options={["Arab","South Asian","African","South East Asian","European","Other"]} value={data.fatherEthnicity || ""} onChange={onChange} error={fieldErrors?.fatherEthnicity} />
+          <SelectField label="Country" name="fatherCountry" options={["Sri Lanka","United Kingdom","Australia","Canada","UAE","Saudi Arabia","Qatar","USA","Malaysia","Other"]} value={data.fatherCountry || ""} onChange={onChange} error={fieldErrors?.fatherCountry} />
+          <SelectField label="Occupation" name="fatherOccupation" options={["Business","Government Employee","Private Sector","Retired","Not Employed","Deceased"]} value={data.fatherOccupation || ""} onChange={onChange} error={fieldErrors?.fatherOccupation} />
+          <TextField label="City" name="fatherCity" placeholder="Enter City" value={data.fatherCity || ""} onChange={onChange} error={fieldErrors?.fatherCity} />
         </div>
       </div>
 
       <div className="mt-6">
         <h3 className="text-sm font-semibold text-gray-700 mb-3">Mother's Details</h3>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <SelectField label="Ethnicity" name="motherEthnicity" options={["Arab","South Asian","African","South East Asian","European","Other"]} value={data.motherEthnicity || ""} onChange={onChange} />
-          <SelectField label="Country" name="motherCountry" options={["Sri Lanka","United Kingdom","Australia","Canada","UAE","Saudi Arabia","Qatar","USA","Malaysia","Other"]} value={data.motherCountry || ""} onChange={onChange} />
-          <SelectField label="Occupation" name="motherOccupation" options={["Business","Government Employee","Private Sector","Homemaker","Retired","Not Employed"]} value={data.motherOccupation || ""} onChange={onChange} />
-          <TextField label="City" name="motherCity" placeholder="Enter City" value={data.motherCity || ""} onChange={onChange} />
+          <SelectField label="Ethnicity" name="motherEthnicity" options={["Arab","South Asian","African","South East Asian","European","Other"]} value={data.motherEthnicity || ""} onChange={onChange} error={fieldErrors?.motherEthnicity} />
+          <SelectField label="Country" name="motherCountry" options={["Sri Lanka","United Kingdom","Australia","Canada","UAE","Saudi Arabia","Qatar","USA","Malaysia","Other"]} value={data.motherCountry || ""} onChange={onChange} error={fieldErrors?.motherCountry} />
+          <SelectField label="Occupation" name="motherOccupation" options={["Business","Government Employee","Private Sector","Homemaker","Retired","Not Employed"]} value={data.motherOccupation || ""} onChange={onChange} error={fieldErrors?.motherOccupation} />
+          <TextField label="City" name="motherCity" placeholder="Enter City" value={data.motherCity || ""} onChange={onChange} error={fieldErrors?.motherCity} />
         </div>
       </div>
 
       <div className="mt-6">
-        <h3 className="text-sm font-semibold text-gray-700 mb-3">Sibling's Details</h3>
+        <h3 className="text-sm font-semibold text-gray-700 mb-3">
+          Sibling's Details <span className="text-gray-400 text-xs font-normal">(optional)</span>
+        </h3>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div className="flex flex-col gap-1">
-            <label className="text-sm font-medium text-gray-600">Number of Brothers</label>
+            <label className="text-sm font-medium text-gray-600">Number of Brothers <span className="text-gray-400 text-xs">(optional)</span></label>
             <input type="number" name="brothers" min="0" max="20" value={data.brothers || "0"} onChange={onChange}
               className="w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-700 shadow-sm outline-none focus:border-[#1B6B4A] focus:ring-2 focus:ring-[#1B6B4A]/20 transition" />
           </div>
           <div className="flex flex-col gap-1">
-            <label className="text-sm font-medium text-gray-600">Number of Sisters</label>
+            <label className="text-sm font-medium text-gray-600">Number of Sisters <span className="text-gray-400 text-xs">(optional)</span></label>
             <input type="number" name="sisters" min="0" max="20" value={data.sisters || "0"} onChange={onChange}
               className="w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-700 shadow-sm outline-none focus:border-[#1B6B4A] focus:ring-2 focus:ring-[#1B6B4A]/20 transition" />
           </div>
@@ -303,6 +429,7 @@ export default function RegisterPage() {
   const [lookingFor, setLookingFor] = useState("Male");
   const [agreedTerms, setAgreedTerms] = useState(false);
   const [error, setError] = useState("");
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(false);
   const router = useRouter();
 
@@ -317,9 +444,121 @@ export default function RegisterPage() {
   ) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
+    // Clear the specific field error as the user corrects it
+    setFieldErrors((prev) => { const n = { ...prev }; delete n[name]; return n; });
   };
 
-  const handleNext = () => {
+  const [checking, setChecking] = useState(false);
+
+  const handleNext = async () => {
+    // Step 1 = Account Details — all fields required
+    if (currentStep === 1) {
+      const errs: Record<string, string> = {};
+      if (!formData.email?.trim()) {
+        errs.email = 'Email address is required.';
+      } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+        errs.email = 'Please enter a valid email address.';
+      }
+      if (!formData.phone?.trim()) errs.phone = 'Phone number is required.';
+      if (!formData.whatsappNumber?.trim()) errs.whatsappNumber = 'WhatsApp number is required.';
+      if (!formData.password) {
+        errs.password = 'Password is required.';
+      } else if (formData.password.length < 8) {
+        errs.password = 'Password must be at least 8 characters.';
+      }
+      if (!formData.confirmPassword) {
+        errs.confirmPassword = 'Please confirm your password.';
+      } else if (formData.password !== formData.confirmPassword) {
+        errs.confirmPassword = 'Passwords do not match.';
+      }
+      if (Object.keys(errs).length > 0) {
+        setFieldErrors(errs);
+        return;
+      }
+
+      // Check uniqueness against the database
+      setChecking(true);
+      try {
+        const res = await authApi.checkAvailability({
+          email: formData.email,
+          phone: formData.phone,
+          whatsappNumber: formData.whatsappNumber,
+        });
+        if (res.taken && Object.keys(res.taken).length > 0) {
+          setFieldErrors(res.taken);
+          return;
+        }
+      } catch {
+        // If network error, allow proceeding (server will catch it on submit)
+      } finally {
+        setChecking(false);
+      }
+
+      setFieldErrors({});
+    }
+    // Step 2 = Personal Details (Step1 component) — all fields required
+    if (currentStep === 2) {
+      const errs: Record<string, string> = {};
+      if (!formData.firstName?.trim()) errs.firstName = 'First name is required.';
+      if (!formData.lastName?.trim()) errs.lastName = 'Last name is required.';
+      if (!formData.createdBy) errs.createdBy = 'Please select who is creating this profile.';
+      if (!formData.gender) errs.gender = 'Please select a gender.';
+      if (!formData.birthDate) {
+        errs.birthDate = 'Birth date is required.';
+      } else if (!isAtLeast16(formData.birthDate)) {
+        errs.birthDate = 'You must be at least 16 years old to register.';
+      }
+      if (!formData.height) errs.height = 'Please select a height.';
+      if (!formData.appearance) errs.appearance = 'Please select an appearance.';
+      if (!formData.complexion) errs.complexion = 'Please select a complexion.';
+      if (!formData.ethnicity) errs.ethnicity = 'Please select an ethnicity.';
+      if (!formData.dressCode) errs.dressCode = 'Please select a dress code.';
+      if (!formData.familyStatus) errs.familyStatus = 'Please select a family status.';
+      if (!formData.civilStatus) errs.civilStatus = 'Please select a civil status.';
+      if (!formData.children) errs.children = 'Please select children status.';
+      if (Object.keys(errs).length > 0) {
+        setFieldErrors(errs);
+        return;
+      }
+      setFieldErrors({});
+    }
+    // Step 3 = Location & Education — 6 required, 2 optional
+    if (currentStep === 3) {
+      const errs: Record<string, string> = {};
+      if (!formData.country) errs.country = 'Please select a country.';
+      if (!formData.state) errs.state = 'Please select a state/province.';
+      if (!formData.city?.trim()) errs.city = 'City is required.';
+      if (!formData.residencyStatus) errs.residencyStatus = 'Please select a residency status.';
+      if (!formData.education) errs.education = 'Please select an education level.';
+      if (!formData.occupation) errs.occupation = 'Please select an occupation.';
+      // fieldOfStudy and profession are optional — not validated
+      if (Object.keys(errs).length > 0) {
+        setFieldErrors(errs);
+        return;
+      }
+      setFieldErrors({});
+    }
+    // Step 4 = Family Details — Father & Mother required, Siblings optional
+    if (currentStep === 4) {
+      const errs: Record<string, string> = {};
+      // Father's Details
+      if (!formData.fatherEthnicity) errs.fatherEthnicity = 'Please select father\'s ethnicity.';
+      if (!formData.fatherCountry) errs.fatherCountry = 'Please select father\'s country.';
+      if (!formData.fatherOccupation) errs.fatherOccupation = 'Please select father\'s occupation.';
+      if (!formData.fatherCity?.trim()) errs.fatherCity = 'Father\'s city is required.';
+      // Mother's Details
+      if (!formData.motherEthnicity) errs.motherEthnicity = 'Please select mother\'s ethnicity.';
+      if (!formData.motherCountry) errs.motherCountry = 'Please select mother\'s country.';
+      if (!formData.motherOccupation) errs.motherOccupation = 'Please select mother\'s occupation.';
+      if (!formData.motherCity?.trim()) errs.motherCity = 'Mother\'s city is required.';
+      // brothers / sisters are optional — not validated
+      if (Object.keys(errs).length > 0) {
+        setFieldErrors(errs);
+        return;
+      }
+      setFieldErrors({});
+    }
+    setError('');
     if (currentStep < 5) setCurrentStep((s) => s + 1);
   };
 
@@ -335,15 +574,83 @@ export default function RegisterPage() {
     setError("");
     setLoading(true);
     try {
+      // Step 1: Create the user account
       const res = await authApi.register({
         email: formData.email,
         password: formData.password,
         phone: formData.phone || undefined,
+        whatsappNumber: formData.whatsappNumber || undefined,
       });
       localStorage.setItem("mn_token", res.token);
       localStorage.setItem("mn_user", JSON.stringify(res.user));
-      // New users must select a package before accessing the dashboard
-      router.push('/select-plan');
+
+      // Step 2: Auto-create a profile using the details already filled in the form
+      // (so the user never sees the "Create Your Profile" popup on the next page)
+      try {
+        const fullName = [formData.firstName, formData.lastName].filter(Boolean).join(" ").trim();
+        const genderMap: Record<string, string> = { Male: "MALE", Female: "FEMALE" };
+
+        // Height: DTO expects an integer in cm (100–250). The form stores strings like "5'6\""
+        const heightStrToNum: Record<string, number> = {
+          "4'0\"": 122, "4'5\"": 135, "4'10\"": 147,
+          "5'0\"": 152, "5'2\"": 157, "5'4\"": 163,
+          "5'6\"": 168, "5'8\"": 173, "5'10\"": 178,
+          "6'0\"": 183, "6'2\"": 188, "6'4\"": 193, "6'6\"": 198,
+        };
+        const heightNum = formData.height ? (heightStrToNum[formData.height] ?? undefined) : undefined;
+
+        // Build profile payload — include every collected field
+        const profilePayload: Record<string, any> = {
+          // Required
+          name: fullName || formData.email.split('@')[0],
+          gender: genderMap[formData.gender] ?? 'MALE',
+          dateOfBirth: formData.birthDate || new Date(Date.now() - 20 * 365.25 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+
+          // Step 2 — Personal Details
+          ...(formData.createdBy && { createdBy: formData.createdBy }),
+          ...(heightNum !== undefined && { height: heightNum }),
+          ...(formData.appearance && { appearance: formData.appearance }),
+          ...(formData.complexion && { complexion: formData.complexion }),
+          ...(formData.ethnicity && { ethnicity: formData.ethnicity }),
+          ...(formData.dressCode && { dressCode: formData.dressCode }),
+          ...(formData.familyStatus && { familyStatus: formData.familyStatus }),
+          ...(formData.civilStatus && { civilStatus: formData.civilStatus }),
+          ...(formData.children && { children: formData.children }),
+
+          // Step 3 — Location & Education
+          ...(formData.country && { country: formData.country }),
+          ...(formData.state && { state: formData.state }),
+          ...(formData.city && { city: formData.city }),
+          ...(formData.residencyStatus && { residencyStatus: formData.residencyStatus }),
+          ...(formData.education && { education: formData.education }),
+          ...(formData.fieldOfStudy && { fieldOfStudy: formData.fieldOfStudy }),
+          ...(formData.occupation && { occupation: formData.occupation }),
+          ...(formData.profession && { profession: formData.profession }),
+
+          // Step 4 — Family Details
+          ...(formData.fatherOccupation && { fatherOccupation: formData.fatherOccupation }),
+          ...(formData.motherOccupation && { motherOccupation: formData.motherOccupation }),
+          ...((formData.brothers || formData.sisters) && {
+            siblings: (parseInt(formData.brothers || '0') + parseInt(formData.sisters || '0')),
+          }),
+
+          // Step 5 — Additional Details
+          ...(formData.about && { aboutUs: formData.about }),
+          ...(formData.expectations && { expectations: formData.expectations }),
+
+          // Contact from account details
+          ...(formData.phone && { phone: formData.phone }),
+        };
+
+        await profileApi.create(profilePayload);
+      } catch (profileErr: any) {
+        // Log so we can see exactly what went wrong (visible in browser console)
+        console.error("[Register] Auto-profile creation failed:", profileErr?.message ?? profileErr);
+        // Still continue to select-plan — the modal is the fallback
+      }
+
+      // Redirect to plan selection
+      router.push("/select-plan");
     } catch (e: any) {
       setError(e.message ?? "Registration failed. Please try again.");
     } finally {
@@ -447,10 +754,10 @@ export default function RegisterPage() {
           {/* Form Content */}
           <div className="flex-1 px-5 py-6 md:px-8 md:py-8">
             <div className="flex-1">
-              {currentStep === 1 && <Step2 data={formData} onChange={handleChange} />}
-              {currentStep === 2 && <Step1 data={formData} onChange={handleChange} />}
-              {currentStep === 3 && <Step3 data={formData} onChange={handleChange} />}
-              {currentStep === 4 && <Step4 data={formData} onChange={handleChange} />}
+              {currentStep === 1 && <Step2 data={formData} onChange={handleChange} fieldErrors={fieldErrors} />}
+              {currentStep === 2 && <Step1 data={formData} onChange={handleChange} fieldErrors={fieldErrors} />}
+              {currentStep === 3 && <Step3 data={formData} onChange={handleChange} fieldErrors={fieldErrors} />}
+              {currentStep === 4 && <Step4 data={formData} onChange={handleChange} fieldErrors={fieldErrors} />}
               {currentStep === 5 && <Step5 data={formData} onChange={handleChange} lookingFor={lookingFor} setLookingFor={setLookingFor} agreedTerms={agreedTerms} setAgreedTerms={setAgreedTerms} />}
             </div>
 
@@ -471,9 +778,16 @@ export default function RegisterPage() {
               {currentStep < 5 ? (
                 <button
                   onClick={handleNext}
-                  className="px-7 py-2.5 rounded-xl bg-[#1B6B4A] text-white text-sm font-semibold hover:bg-[#155a3d] active:scale-95 transition-all duration-200 shadow-md"
+                  disabled={checking}
+                  className="px-7 py-2.5 rounded-xl bg-[#1B6B4A] text-white text-sm font-semibold hover:bg-[#155a3d] active:scale-95 transition-all duration-200 shadow-md disabled:opacity-70 flex items-center gap-2"
                 >
-                  Next
+                  {checking && (
+                    <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
+                    </svg>
+                  )}
+                  {checking ? 'Checking…' : 'Next'}
                 </button>
               ) : (
                 <div className="flex flex-col items-end gap-2">

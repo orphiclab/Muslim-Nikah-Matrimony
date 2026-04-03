@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { packagesApi, paymentApi, profileApi } from '@/services/api';
 import Link from 'next/link';
 
@@ -165,6 +165,10 @@ function ProfileModal({
 
 export default function SelectPlanPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const preselectedProfileId = searchParams.get('profileId') ?? '';
+  const fromCreateProfile = !!preselectedProfileId;
+
   const [plans, setPlans] = useState<Package[]>([]);
   const [selected, setSelected] = useState<Package | null>(null);
   const [loading, setLoading] = useState(true);
@@ -204,7 +208,13 @@ export default function SelectPlanPage() {
       })
       .finally(() => setLoading(false));
 
-    reloadProfiles();
+    // If we arrived from create-profile, seed the profile list with that ID
+    if (preselectedProfileId) {
+      setProfiles([{ id: preselectedProfileId, name: 'Your new profile' }]);
+    } else {
+      reloadProfiles();
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const onProfileCreated = async (profileId: string) => {
@@ -245,12 +255,12 @@ export default function SelectPlanPage() {
   };
 
   const handleBankTransfer = async () => {
-    if (!bankRef.trim()) { setMessage('Please enter your bank reference number.'); return; }
+    if (!bankRef.trim()) { setMessage('Please enter your bank reference / slip number.'); return; }
     if (!selected) { setMessage('Please select a package.'); return; }
 
-    const profileId = profiles[0]?.id;
+    // Use preselected profile ID if came from create-profile, else use first profile
+    const profileId = preselectedProfileId || profiles[0]?.id;
     if (!profileId) {
-      // No profile yet — show modal to create one first
       setPendingAction('bank');
       setShowProfileModal(true);
       return;
@@ -281,10 +291,25 @@ export default function SelectPlanPage() {
 
       <div className="max-w-6xl mx-auto px-4 py-10">
 
+        {/* Profile created success banner (from create-profile flow) */}
+        {fromCreateProfile && (
+          <div className="mb-6 flex items-start gap-3 bg-green-50 border border-green-200 rounded-2xl px-5 py-4">
+            <span className="text-green-500 text-xl mt-0.5">✅</span>
+            <div>
+              <p className="font-bold text-green-800 text-sm">Profile created successfully!</p>
+              <p className="text-green-700 text-xs mt-0.5">Now select a membership plan and pay via bank transfer to activate your profile.</p>
+            </div>
+          </div>
+        )}
+
         {/* Welcome banner */}
         <div className="mb-8 p-5 rounded-2xl bg-gradient-to-r from-[#1B6B4A] to-[#2d9966] text-white">
-          <h1 className="text-xl font-bold">🎉 Welcome to Muslim Nikah!</h1>
-          <p className="text-white/80 text-sm mt-1">Your account is ready. Select a membership plan to get started and find your perfect match.</p>
+          <h1 className="text-xl font-bold">{fromCreateProfile ? '🎉 Almost there! Activate your profile' : '🎉 Welcome to Muslim Nikah!'}</h1>
+          <p className="text-white/80 text-sm mt-1">
+            {fromCreateProfile
+              ? 'Select a membership plan below, transfer payment to our bank account, enter the slip number and submit.'
+              : 'Your account is ready. Select a membership plan to get started and find your perfect match.'}
+          </p>
         </div>
 
         {/* Currency row */}
@@ -456,14 +481,19 @@ export default function SelectPlanPage() {
 
                   <input
                     type="text"
-                    placeholder="Enter bank reference / slip number"
+                    placeholder="Enter bank reference / slip number *"
                     value={bankRef}
                     onChange={(e) => setBankRef(e.target.value)}
                     className="w-full rounded-lg bg-white/15 border border-white/20 px-3 py-2.5 text-white placeholder-white/40 text-sm focus:outline-none focus:border-[#F5C518]"
                   />
+                  <textarea
+                    placeholder="Remark / note (optional) — e.g. your name or transaction note"
+                    rows={2}
+                    className="w-full rounded-lg bg-white/15 border border-white/20 px-3 py-2.5 text-white placeholder-white/40 text-sm focus:outline-none focus:border-[#F5C518] resize-none"
+                  />
                   <button
                     onClick={handleBankTransfer}
-                    disabled={submitting}
+                    disabled={submitting || !bankRef.trim()}
                     className="w-full rounded-lg bg-[#1B6EDD] hover:bg-[#1559b8] disabled:opacity-60 text-white font-semibold py-3 transition-all duration-200 flex items-center justify-center gap-2"
                   >
                     {submitting ? (

@@ -28,6 +28,15 @@ export class ChildProfileController {
     return this.service.updatePrivacy(user.userId, id, body);
   }
 
+  @Patch('status/:id')
+  updateStatus(
+    @CurrentUser() user: any,
+    @Param('id') id: string,
+    @Body() body: { status: string },
+  ) {
+    return this.service.updateStatus(user.userId, id, body.status);
+  }
+
   @Post('boost/:id')
   boostProfile(
     @CurrentUser() user: any,

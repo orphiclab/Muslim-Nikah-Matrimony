@@ -22,6 +22,8 @@ enum ProfileStatus {
   DRAFT
   PAYMENT_PENDING
   ACTIVE
+  PAUSED
+  INACTIVE
   EXPIRED
 }
 
@@ -60,6 +62,7 @@ model User {
   password      String
   role          Role           @default(PARENT)
   phone         String?
+  whatsappNumber String?
   createdAt     DateTime       @default(now())
   updatedAt     DateTime       @updatedAt
 
@@ -90,15 +93,26 @@ model ChildProfile {
   // Location & Education
   country             String?
   city                String?
+  state               String?
+  residencyStatus     String?
   education           String?
   occupation          String?
+  fieldOfStudy        String?
+  profession          String?
   annualIncome        String?
 
   // Family
   familyStatus        String?
+  fatherEthnicity     String?
+  fatherCountry       String?
   fatherOccupation    String?
+  fatherCity          String?
+  motherEthnicity     String?
+  motherCountry       String?
   motherOccupation    String?
+  motherCity          String?
   siblings            Int?
+  createdBy           String?
 
   // Preferences
   minAgePreference    Int?
@@ -155,7 +169,7 @@ model Payment {
   userId         String
   user           User          @relation(fields: [userId], references: [id])
   childProfileId String
-  childProfile   ChildProfile  @relation(fields: [childProfileId], references: [id])
+  childProfile   ChildProfile  @relation(fields: [childProfileId], references: [id], onDelete: Cascade)
 
   amount         Float
   currency       String        @default("USD")
@@ -188,9 +202,9 @@ model ChatMessage {
   senderId         String
   sender           User         @relation("SenderMessages", fields: [senderId], references: [id])
   senderProfileId  String
-  senderProfile    ChildProfile @relation("ProfileSentMessages", fields: [senderProfileId], references: [id])
+  senderProfile    ChildProfile @relation("ProfileSentMessages", fields: [senderProfileId], references: [id], onDelete: Cascade)
   receiverProfileId String
-  receiverProfile  ChildProfile @relation("ProfileReceivedMessages", fields: [receiverProfileId], references: [id])
+  receiverProfile  ChildProfile @relation("ProfileReceivedMessages", fields: [receiverProfileId], references: [id], onDelete: Cascade)
 
   content          String
   readAt           DateTime?
