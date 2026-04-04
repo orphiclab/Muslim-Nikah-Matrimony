@@ -3,8 +3,9 @@
 import { useEffect, useRef } from 'react';
 import { usePathname } from 'next/navigation';
 import { io, Socket } from 'socket.io-client';
+import { getApiOrigin } from '@/lib/apiOrigin';
 
-const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') ?? 'http://localhost:3002';
+const BACKEND_URL = getApiOrigin();
 
 /**
  * Silently connects every page to the /traffic Socket.IO namespace.
