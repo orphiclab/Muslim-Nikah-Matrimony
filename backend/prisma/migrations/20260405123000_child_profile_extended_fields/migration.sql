@@ -1,8 +1,7 @@
--- Align ProfileStatus enum with schema.prisma (PAUSED, INACTIVE)
-ALTER TYPE "ProfileStatus" ADD VALUE IF NOT EXISTS 'PAUSED';
-ALTER TYPE "ProfileStatus" ADD VALUE IF NOT EXISTS 'INACTIVE';
+-- Align ChildProfile with schema: fields that were never in prior migrations.
+-- (ProfileStatus enum values moved to a separate migration for PG 12–14 compatibility:
+--  "ADD VALUE IF NOT EXISTS" requires PostgreSQL 15+ and could roll back this whole migration.)
 
--- Align ChildProfile with schema: fields that were never in prior migrations
 ALTER TABLE "ChildProfile" ADD COLUMN "state" TEXT;
 ALTER TABLE "ChildProfile" ADD COLUMN "residencyStatus" TEXT;
 ALTER TABLE "ChildProfile" ADD COLUMN "fieldOfStudy" TEXT;
