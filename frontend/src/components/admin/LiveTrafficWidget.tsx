@@ -2,8 +2,9 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { io, Socket } from 'socket.io-client';
+import { getApiOrigin } from '@/lib/apiOrigin';
 
-const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') ?? 'http://localhost:3002';
+const BACKEND_URL = getApiOrigin();
 
 interface PageStat { page: string; count: number }
 interface TrafficStats { total: number; pages: PageStat[]; timestamp: number }
