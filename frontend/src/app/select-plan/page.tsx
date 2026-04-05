@@ -178,17 +178,22 @@ export default function SelectPlanPage() {
   const [bankRef, setBankRef] = useState('');
   const [message, setMessage] = useState('');
   const [profiles, setProfiles] = useState<any[]>([]);
+  const [profilesLoading, setProfilesLoading] = useState(true);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [pendingAction, setPendingAction] = useState<string | null>(null);
   const [siteDiscount, setSiteDiscount] = useState<SiteDiscount>({ active: false, pct: 0, label: '' });
 
-  const reloadProfiles = () => {
+  const reloadProfiles = (showLoadingSpinner = false) => {
     const token = typeof window !== 'undefined' ? localStorage.getItem('mn_token') : null;
     if (token) {
+      if (showLoadingSpinner) setProfilesLoading(true);
       profileApi.getMyProfiles()
         .then((r) => setProfiles(r.data ?? []))
-        .catch(() => { });
+        .catch(() => { })
+        .finally(() => setProfilesLoading(false));
+    } else {
+      setProfilesLoading(false);
     }
   };
 
@@ -210,19 +215,15 @@ export default function SelectPlanPage() {
       })
       .finally(() => setLoading(false));
 
-    // If we arrived from create-profile, seed the profile list with that ID
-    if (preselectedProfileId) {
-      setProfiles([{ id: preselectedProfileId, name: 'Your new profile' }]);
-    } else {
-      reloadProfiles();
-    }
+    // Always load real profiles from API (even if profileId is in URL)
+    reloadProfiles(true);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const onProfileCreated = async (profileId: string) => {
-    // Update profiles list immediately
-    setProfiles(prev => [...prev, { id: profileId }]);
     setShowProfileModal(false);
+    // Reload full profile list so we have the actual name
+    reloadProfiles();
 
     // If user was trying to do bank transfer, proceed now
     if (pendingAction === 'bank') {
@@ -461,48 +462,80 @@ export default function SelectPlanPage() {
 
               {isLoggedIn ? (
                 <div className="space-y-3 pt-2">
-                  {/* Profile exists indicator */}
-                  {profiles.length > 0 ? (
+                  {/* Profile status indicator */}
+                  {profilesLoading ? (
+                    <div className="flex items-center gap-2 bg-white/10 rounded-lg px-3 py-2 text-xs">
+                      <svg className="w-3.5 h-3.5 text-white/50 animate-spin flex-shrink-0" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
+                      </svg>
+                      <span className="text-white/50">Loading your profile...</span>
+                    </div>
+                  ) : profiles.length > 0 ? (
                     <div className="flex items-center gap-2 bg-white/10 rounded-lg px-3 py-2 text-xs">
                       <svg className="w-3.5 h-3.5 text-green-400 flex-shrink-0" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
                         <polyline points="20 6 9 17 4 12" />
                       </svg>
-                      <span className="text-white/80">Profile: <strong className="text-white">{profiles[0]?.name ?? 'Created'}</strong></span>
+                      <span className="text-white/80">Profile: <strong className="text-white">{profiles[0]?.name ?? 'Your Profile'}</strong>
+                        {profiles[0]?.status === 'PAYMENT_PENDING' && (
+                          <span className="ml-1 text-amber-300">(awaiting approval)</span>
+                        )}
+                      </span>
                     </div>
                   ) : (
                     <div className="flex items-center gap-2 bg-amber-500/20 border border-amber-400/30 rounded-lg px-3 py-2 text-xs">
                       <svg className="w-3.5 h-3.5 text-amber-300 flex-shrink-0" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
                         <circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" />
                       </svg>
-                      <span className="text-amber-200">A profile will be created when you submit payment</span>
+                      <span className="text-amber-200">No profile yet - one will be created when you click submit</span>
                     </div>
                   )}
 
-                  <input
-                    type="text"
-                    placeholder="Enter bank reference / slip number *"
-                    value={bankRef}
-                    onChange={(e) => setBankRef(e.target.value)}
-                    className="w-full rounded-lg bg-white/15 border border-white/20 px-3 py-2.5 text-white placeholder-white/40 text-sm focus:outline-none focus:border-[#F5C518]"
-                  />
-                  <textarea
-                    placeholder="Remark / note (optional) — e.g. your name or transaction note"
-                    rows={2}
-                    className="w-full rounded-lg bg-white/15 border border-white/20 px-3 py-2.5 text-white placeholder-white/40 text-sm focus:outline-none focus:border-[#F5C518] resize-none"
-                  />
-                  <button
-                    onClick={handleBankTransfer}
-                    disabled={submitting || !bankRef.trim()}
-                    className="w-full rounded-lg bg-[#1B6EDD] hover:bg-[#1559b8] disabled:opacity-60 text-white font-semibold py-3 transition-all duration-200 flex items-center justify-center gap-2"
-                  >
-                    {submitting ? (
-                      <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
-                      </svg>
-                    ) : null}
-                    {submitting ? 'Submitting...' : 'Continue With Plans'}
-                  </button>
+                  {/* If profile already has pending payment, block re-submission */}
+                  {!profilesLoading && profiles.length > 0 && profiles[0]?.status === 'PAYMENT_PENDING' ? (
+                    <div className="space-y-3">
+                      <div className="bg-green-700/30 border border-green-500/40 rounded-lg px-4 py-3 text-center">
+                        <p className="text-green-300 font-semibold text-sm">✅ Payment Already Submitted</p>
+                        <p className="text-green-200/70 text-xs mt-1">
+                          Your payment is awaiting admin approval. You&apos;ll be notified once your profile is activated.
+                        </p>
+                      </div>
+                      <Link
+                        href="/dashboard/parent"
+                        className="block w-full text-center rounded-lg bg-[#1B6B4A] hover:bg-[#15563d] text-white font-semibold py-3 transition"
+                      >
+                        Go to My Dashboard →
+                      </Link>
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      <input
+                        type="text"
+                        placeholder="Enter bank reference / slip number *"
+                        value={bankRef}
+                        onChange={(e) => setBankRef(e.target.value)}
+                        className="w-full rounded-lg bg-white/15 border border-white/20 px-3 py-2.5 text-white placeholder-white/40 text-sm focus:outline-none focus:border-[#F5C518]"
+                      />
+                      <textarea
+                        placeholder="Remark / note (optional) — e.g. your name or transaction note"
+                        rows={2}
+                        className="w-full rounded-lg bg-white/15 border border-white/20 px-3 py-2.5 text-white placeholder-white/40 text-sm focus:outline-none focus:border-[#F5C518] resize-none"
+                      />
+                      <button
+                        onClick={handleBankTransfer}
+                        disabled={submitting || !bankRef.trim() || profilesLoading}
+                        className="w-full rounded-lg bg-[#1B6EDD] hover:bg-[#1559b8] disabled:opacity-60 text-white font-semibold py-3 transition-all duration-200 flex items-center justify-center gap-2"
+                      >
+                        {submitting ? (
+                          <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
+                          </svg>
+                        ) : null}
+                        {submitting ? 'Submitting...' : 'Submit Payment'}
+                      </button>
+                    </div>
+                  )}
                 </div>
               ) : (
                 <div className="space-y-2 pt-2">
@@ -522,7 +555,7 @@ export default function SelectPlanPage() {
               )}
             </div>
 
-            {isLoggedIn && (
+            {isLoggedIn && profiles[0]?.status !== 'PAYMENT_PENDING' && (
               <p className="text-center text-xs text-gray-400">
                 Already paid?{' '}
                 <Link href="/dashboard/parent" className="text-[#1B6B4A] font-medium hover:underline">

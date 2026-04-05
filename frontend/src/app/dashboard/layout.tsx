@@ -73,25 +73,66 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
     const token = localStorage.getItem('mn_token');
     if (!token) { router.replace('/login'); return; }
 
+    // Check JWT expiry without a library — decode the payload and check exp
+    try {
+      const payload = JSON.parse(atob(token.split('.')[1]));
+      if (typeof payload.exp === 'number' && payload.exp * 1000 <= Date.now()) {
+        // Token is expired — clear stale session and redirect to login
+        localStorage.removeItem('mn_token');
+        localStorage.removeItem('mn_user');
+        router.replace('/login');
+        return;
+      }
+    } catch {
+      // Malformed token — treat as expired
+      localStorage.removeItem('mn_token');
+      localStorage.removeItem('mn_user');
+      router.replace('/login');
+      return;
+    }
+
     const u = JSON.parse(localStorage.getItem('mn_user') ?? '{}');
     setUser(u);
 
     if (u.role === 'ADMIN') { setChecking(false); return; }
 
-    Promise.all([
-      subscriptionApi.mySubscriptions().catch(() => ({ data: [] })),
-      profileApi.getMyProfiles().catch(() => ({ data: [] })),
-    ]).then(([subRes, profRes]) => {
-      const profiles = profRes.data ?? [];
-      const hasActive = (subRes.data ?? []).some((s: any) => s.subscription?.status === 'ACTIVE');
-      const hasPending = profiles.some((p: any) => p.status === 'PAYMENT_PENDING' || p.status === 'DRAFT');
-
-      if (!hasActive && !hasPending && profiles.length === 0) {
-        router.replace('/select-plan');
-      } else {
-        setChecking(false);
-      }
-    }).catch(() => router.replace('/select-plan'));
+    // Fetch profiles to decide whether the user needs to select a plan
+    profileApi.getMyProfiles()
+      .then((profRes) => {
+        const profiles: any[] = profRes.data ?? [];
+        // If user has ANY profile (in any status), let them into the dashboard
+        if (profiles.length > 0) {
+          setChecking(false);
+          return;
+        }
+        // No profiles at all — check subscriptions as a fallback
+        return subscriptionApi.mySubscriptions()
+          .then((subRes) => {
+            const hasAny = (subRes.data ?? []).length > 0;
+            if (hasAny) {
+              setChecking(false);
+            } else {
+              router.replace('/select-plan');
+            }
+          })
+          .catch(() => {
+            // Can't verify subscription — redirect to be safe
+            router.replace('/select-plan');
+          });
+      })
+      .catch((err: any) => {
+        // If the token is invalid/expired, profileApi will throw 401
+        // In that case clear auth and redirect to login
+        const status = err?.status ?? err?.statusCode;
+        if (status === 401) {
+          localStorage.removeItem('mn_token');
+          localStorage.removeItem('mn_user');
+          router.replace('/login');
+        } else {
+          // Network/server error — don't kick the user out, just show dashboard
+          setChecking(false);
+        }
+      });
   }, [router]);
 
   const logout = () => {

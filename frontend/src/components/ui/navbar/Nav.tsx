@@ -4,11 +4,22 @@ import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 
+// Decode JWT payload and check if token is still valid (not expired)
+function isTokenValid(token: string): boolean {
+  try {
+    const payload = JSON.parse(atob(token.split('.')[1]))
+    return typeof payload.exp === 'number' && payload.exp * 1000 > Date.now()
+  } catch {
+    return false
+  }
+}
+
 const Nav = () => {
   const pathname = usePathname()
   const router = useRouter()
   const [menuOpen, setMenuOpen] = useState(false)
   const [user, setUser] = useState<{ email: string; role: string } | null>(null)
+  const [mounted, setMounted] = useState(false)   // prevents SSR hydration flash
 
   const navItems = [
     { name: 'Home', href: '/' },
@@ -18,15 +29,28 @@ const Nav = () => {
     { name: 'Contact us', href: '/contact' },
   ]
 
-  // Read auth from localStorage on client — re-run on pathname change AND on auth events
+  // Read auth from localStorage — validates token expiry each time
   useEffect(() => {
     const sync = () => {
+      const token = localStorage.getItem('mn_token')
       const stored = localStorage.getItem('mn_user')
-      setUser(stored ? JSON.parse(stored) : null)
+
+      if (token && stored && isTokenValid(token)) {
+        // Token is present and not expired — show logged-in state
+        setUser(JSON.parse(stored))
+      } else {
+        // Token missing, expired, or malformed — clear stale session
+        if (token || stored) {
+          localStorage.removeItem('mn_token')
+          localStorage.removeItem('mn_user')
+        }
+        setUser(null)
+      }
+      setMounted(true)   // mark hydration complete after first sync
     }
-    sync()                                                    // run on mount / pathname change
-    window.addEventListener('mn_auth_change', sync)          // fired by dashboard logout
-    window.addEventListener('storage', sync)                 // fired by other tabs
+    sync()                                                     // run on mount / pathname change
+    window.addEventListener('mn_auth_change', sync)           // fired by dashboard/nav logout
+    window.addEventListener('storage', sync)                  // fired by other tabs
     return () => {
       window.removeEventListener('mn_auth_change', sync)
       window.removeEventListener('storage', sync)
@@ -43,6 +67,7 @@ const Nav = () => {
     localStorage.removeItem('mn_token')
     localStorage.removeItem('mn_user')
     setUser(null)
+    window.dispatchEvent(new Event('mn_auth_change'))
     router.push('/')
   }
 
@@ -83,9 +108,9 @@ const Nav = () => {
                 })}
               </div>
 
-              {/* Auth buttons — desktop */}
+              {/* Auth buttons — desktop: hidden until client hydration to avoid flash */}
               <div className="hidden xl:flex shrink-0 items-center justify-end space-x-3">
-                {user ? (
+                {mounted && (user ? (
                   <>
                     <Link href={user.role === 'ADMIN' ? '/admin' : '/dashboard/parent'}>
                       <button type="button"
@@ -117,7 +142,7 @@ const Nav = () => {
                       </button>
                     </Link>
                   </>
-                )}
+                ))}
               </div>
 
               {/* Hamburger — hidden from xl up (desktop); wrapper avoids display conflicts with inline-flex */}
@@ -159,7 +184,7 @@ const Nav = () => {
               })}
             </ul>
             <div className="flex flex-col gap-2 px-4 py-4 border-t border-white/15 bg-white/5">
-              {user ? (
+              {mounted && (user ? (
                 <>
                   <Link href={user.role === 'ADMIN' ? '/admin' : '/dashboard/parent'}
                     className="flex items-center justify-center w-full rounded-xl px-4 py-3 text-white font-poppins font-medium text-[15px] border border-white/20 hover:bg-white/10 transition-colors">
@@ -181,7 +206,7 @@ const Nav = () => {
                     Register
                   </Link>
                 </>
-              )}
+              ))}
             </div>
           </div>
         )}
