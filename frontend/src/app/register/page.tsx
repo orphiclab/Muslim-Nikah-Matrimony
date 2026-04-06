@@ -458,6 +458,15 @@ const LOOKING_COUNTRIES = [
   'UAE','Saudi Arabia','Qatar','USA','Malaysia','Other',
 ];
 
+const blockDigits = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+  if (e.key >= '0' && e.key <= '9') e.preventDefault();
+};
+const stripDigitsOnPaste = (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
+  e.preventDefault();
+  const text = e.clipboardData.getData('text').replace(/[0-9]/g, '');
+  document.execCommand('insertText', false, text);
+};
+
 function Step5({ data, onChange, lookingFor, setLookingFor, agreedTerms, setAgreedTerms }: {
   data: Record<string, string>;
   onChange: (e: React.ChangeEvent<HTMLSelectElement | HTMLInputElement | HTMLTextAreaElement>) => void;
@@ -501,6 +510,8 @@ function Step5({ data, onChange, lookingFor, setLookingFor, agreedTerms, setAgre
           onChange={onChange as React.ChangeEventHandler<HTMLTextAreaElement>}
           rows={4}
           placeholder="Tell us more about yourself....."
+          onKeyDown={blockDigits}
+          onPaste={stripDigitsOnPaste}
           className="w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-700 shadow-sm outline-none focus:border-[#1B6B4A] focus:ring-2 focus:ring-[#1B6B4A]/20 transition resize-none"
         />
       </div>
@@ -513,6 +524,8 @@ function Step5({ data, onChange, lookingFor, setLookingFor, agreedTerms, setAgre
           onChange={onChange as React.ChangeEventHandler<HTMLTextAreaElement>}
           rows={4}
           placeholder="What are you looking for in partner......"
+          onKeyDown={blockDigits}
+          onPaste={stripDigitsOnPaste}
           className="w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-700 shadow-sm outline-none focus:border-[#1B6B4A] focus:ring-2 focus:ring-[#1B6B4A]/20 transition resize-none"
         />
       </div>

@@ -12,16 +12,16 @@ function page() {
   return (
     <main>
       <Hero />
-      <div data-aos="fade-up" data-aos-delay="100" data-aos-duration="2000">
+      <div data-aos="fade-up" data-aos-delay="100" data-aos-duration="2000" suppressHydrationWarning>
       <About />
       <JourneyCards />
       </div>
       <GenuineSection />
-      <div data-aos="fade-up" data-aos-delay="100" data-aos-duration="1500">
+      <div data-aos="fade-up" data-aos-delay="100" data-aos-duration="1500" suppressHydrationWarning>
       <SafetyHeader />
       <SafetyCards />
       </div>
-      <div data-aos="fade-up"  data-aos-duration="1500">
+      <div data-aos="fade-up" data-aos-duration="1500" suppressHydrationWarning>
       <EverythingSection />
       </div>  
       <ReadySection />

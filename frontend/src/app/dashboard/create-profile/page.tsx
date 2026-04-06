@@ -52,14 +52,31 @@ function Field({ label, name, value, onChange, type = 'text', placeholder = '', 
   );
 }
 
+const blockDigits = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+  if (e.key >= '0' && e.key <= '9') e.preventDefault();
+};
+const stripDigitsOnPaste = (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
+  e.preventDefault();
+  const text = e.clipboardData.getData('text').replace(/[0-9]/g, '');
+  document.execCommand('insertText', false, text);
+};
+
 function Textarea({ label, name, value, onChange, placeholder = '', rows = 4, optional = false }: any) {
   return (
     <div>
       <label className="block text-xs font-semibold text-gray-500 mb-1.5">
         {label} {optional && <span className="text-gray-400 font-normal"> (optional)</span>}
       </label>
-      <textarea name={name} value={value ?? ''} onChange={onChange} rows={rows} placeholder={placeholder}
-        className={`${inputCls()} resize-none`} />
+      <textarea
+        name={name}
+        value={value ?? ''}
+        onChange={onChange}
+        rows={rows}
+        placeholder={placeholder}
+        onKeyDown={blockDigits}
+        onPaste={stripDigitsOnPaste}
+        className={`${inputCls()} resize-none`}
+      />
     </div>
   );
 }
