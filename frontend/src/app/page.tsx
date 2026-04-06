@@ -7,13 +7,10 @@ import SafetyCards from '@/components/home/safety/cards'
 import GenuineSection from '@/components/home/genuine/genie'
 import EverythingSection from '@/components/home/everthing/everthig'
 import ReadySection from '@/components/home/ready/ready'
-import AosInit from '@/components/ui/AosInit'
-
 
 function page() {
   return (
     <main>
-      <AosInit />
       <Hero />
       <div data-aos="fade-up" data-aos-delay="100" data-aos-duration="2000">
       <About />

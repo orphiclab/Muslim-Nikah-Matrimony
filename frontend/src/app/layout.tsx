@@ -5,6 +5,7 @@ import "aos/dist/aos.css";
 import Nav from "@/components/ui/navbar/Nav";
 import Footer from "@/components/ui/footer/FooterWrapper";
 import TrafficBeacon from "@/components/ui/TrafficBeacon";
+import AosInit from "@/components/ui/AosInit";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -50,6 +51,7 @@ export default function RootLayout({
     >
       <body className="min-h-full flex flex-col" suppressHydrationWarning>
         <TrafficBeacon />
+        <AosInit />
         <Nav />
         {children}
         <Footer />
