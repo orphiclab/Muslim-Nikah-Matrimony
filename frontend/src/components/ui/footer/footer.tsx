@@ -1,6 +1,7 @@
 import React from "react";
 import Image from "next/image";
 import Link from "next/link";
+import FooterNewsletter from "@/components/ui/footer/FooterNewsletter";
 
 const Footer = () => {
   return (
@@ -36,30 +37,7 @@ const Footer = () => {
               Subscribe
             </p>
             <div className="flex w-full min-w-0 flex-col items-stretch gap-5 lg:items-end">
-            {/* Email input — full width on small screens, capped on large */}
-            <div className="flex w-full max-w-full min-w-0 items-center rounded-full bg-white shadow-md overflow-hidden sm:max-w-[18rem]">
-              <input
-                type="email"
-                placeholder="Get updates"
-                className="min-w-0 flex-1 px-3 py-2.5 text-sm text-gray-700 outline-none bg-transparent font-poppins placeholder:text-gray-400 sm:px-5 sm:py-3"
-              />
-              <button
-                className="flex shrink-0 items-center justify-center w-10 h-10 m-0.5 rounded-full text-white sm:w-11 sm:h-11 touch-manipulation"
-                style={{ backgroundColor: "#DB9D30" }}
-                aria-label="Subscribe"
-              >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  strokeWidth={2.5}
-                  stroke="currentColor"
-                  className="w-4 h-4"
-                >
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" />
-                </svg>
-              </button>
-            </div>
+            <FooterNewsletter />
 
             {/* Social Icons */}
             <div className="flex items-center gap-3">

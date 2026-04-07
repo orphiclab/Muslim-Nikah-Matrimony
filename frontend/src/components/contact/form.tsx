@@ -1,5 +1,8 @@
-import React from "react";
-import { CheckCircle2 } from "lucide-react";
+
+"use client";
+
+import React, { useCallback, useEffect, useMemo, useState } from "react";
+import { CheckCircle2, X } from "lucide-react";
 import MainButton from "@/components/ui/mainbtn";
 
 const WhatsAppIcon = () => (
@@ -39,9 +42,226 @@ const FEATURES = [
   },
 ] as const;
 
+function isValidEmail(value: string) {
+  return /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(
+    value.trim(),
+  );
+}
+
+function phoneDigitsOnly(phone: string) {
+  return phone.replace(/[\s\-().+]/g, "");
+}
+
+function isValidPhoneOptional(phone: string) {
+  const t = phone.trim();
+  if (!t) return true;
+  const d = phoneDigitsOnly(t);
+  return /^\d+$/.test(d) && d.length >= 8 && d.length <= 15;
+}
+
+type ToastState = {
+  variant: "success" | "error";
+  title: string;
+  description?: string;
+};
+
+function ContactToast({
+  toast,
+  onClose,
+}: {
+  toast: ToastState;
+  onClose: () => void;
+}) {
+  useEffect(() => {
+    const t = setTimeout(onClose, 5200);
+    return () => clearTimeout(t);
+  }, [onClose]);
+
+  const isSuccess = toast.variant === "success";
+
+  return (
+    <div
+      role="status"
+      className="fixed right-4 top-24 z-200 w-[min(100vw-2rem,22rem)] animate-in fade-in slide-in-from-right-4 duration-300 md:right-8"
+    >
+      <div
+        className={`overflow-hidden rounded-xl border bg-[#F7F9F8] shadow-lg ${
+          isSuccess ? "border-[#E6EEEC]" : "border-red-100"
+        }`}
+      >
+        <div
+          className={`h-1.5 w-full ${isSuccess ? "bg-[#DB9D30]" : "bg-red-500"}`}
+        />
+        <div className="flex items-start gap-3 p-4 pr-2">
+          <div className="min-w-0 flex-1">
+            <p
+              className={`font-poppins text-sm font-semibold ${
+                isSuccess ? "text-[#1D6B3A]" : "text-[#B42318]"
+              }`}
+            >
+              {toast.title}
+            </p>
+            {toast.description ? (
+              <p className="mt-1 font-poppins text-xs leading-relaxed text-[#5c6562]">
+                {toast.description}
+              </p>
+            ) : null}
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="shrink-0 rounded-lg p-1 text-[#878787] transition hover:bg-black/5 hover:text-[#010806]"
+            aria-label="Dismiss"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+const inputBase =
+  "rounded-lg font-poppins border bg-white px-4 py-2.5 text-[14px] text-[#010806] outline-none transition focus:ring-2 focus:ring-[#397466]/20";
+
 export default function ContactFormSection() {
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
+  const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
+  const [message, setMessage] = useState("");
+
+  const [emailError, setEmailError] = useState("");
+  const [phoneError, setPhoneError] = useState("");
+
+  const [status, setStatus] = useState<"idle" | "submitting">("idle");
+  const [toast, setToast] = useState<ToastState | null>(null);
+
+  const dismissToast = useCallback(() => setToast(null), []);
+
+  const canSubmit = useMemo(() => {
+    const namesOk = firstName.trim() && lastName.trim();
+    const emailOk = email.trim() && isValidEmail(email);
+    const phoneOk = isValidPhoneOptional(phone);
+    const msgOk = message.trim().length >= 5;
+    return Boolean(namesOk && emailOk && phoneOk && msgOk && status !== "submitting");
+  }, [email, firstName, lastName, message, phone, status]);
+
+  function validateFields(): boolean {
+    let ok = true;
+    if (!email.trim()) {
+      setEmailError("Email is required.");
+      ok = false;
+    } else if (!isValidEmail(email)) {
+      setEmailError("Enter a valid email address.");
+      ok = false;
+    } else {
+      setEmailError("");
+    }
+
+    if (!isValidPhoneOptional(phone)) {
+      setPhoneError(
+        "Use 8–15 digits only, or leave blank. Spaces and + are allowed.",
+      );
+      ok = false;
+    } else {
+      setPhoneError("");
+    }
+
+    return ok;
+  }
+
+  async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    if (!validateFields()) return;
+
+    setStatus("submitting");
+
+    try {
+      const res = await fetch("/api/contact", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          firstName,
+          lastName,
+          email: email.trim(),
+          phone: phone.trim(),
+          message,
+        }),
+      });
+
+      const data = (await res.json().catch(() => null)) as {
+        ok?: boolean;
+        error?: string;
+        details?: string;
+      } | null;
+
+      if (!res.ok || !data || data.ok !== true) {
+        if (res.status === 400 && data?.error) {
+          if (
+            data.error.toLowerCase().includes("email") ||
+            data.error.toLowerCase().includes("phone")
+          ) {
+            if (data.error.toLowerCase().includes("email")) {
+              setEmailError(data.error);
+            }
+            if (data.error.toLowerCase().includes("phone")) {
+              setPhoneError(data.error);
+            }
+          }
+          setToast({
+            variant: "error",
+            title: "Please check the form",
+            description: data.error,
+          });
+        } else {
+          console.error("[ContactForm] Send failed", {
+            status: res.status,
+            error: data?.error,
+            details: data?.details,
+          });
+          setToast({
+            variant: "error",
+            title: "Message failed to send",
+            description:
+              "Something went wrong on our side. Please try again later.",
+          });
+        }
+        setStatus("idle");
+        return;
+      }
+
+      setFirstName("");
+      setLastName("");
+      setEmail("");
+      setPhone("");
+      setMessage("");
+      setEmailError("");
+      setPhoneError("");
+      setStatus("idle");
+      setToast({
+        variant: "success",
+        title: "Message sent successfully",
+        description: "We'll get back to you soon.",
+      });
+    } catch (err) {
+      console.error("[ContactForm] Network or unexpected error", err);
+      setStatus("idle");
+      setToast({
+        variant: "error",
+        title: "Message failed to send",
+        description:
+          "Could not reach the server. Check your connection and try again.",
+      });
+    }
+  }
+
   return (
     <section className="w-full bg-white margin-y py-10">
+      {toast ? (
+        <ContactToast toast={toast} onClose={dismissToast} />
+      ) : null}
+
       <div className="containerpadding container mx-auto">
         <div className="flex flex-col gap-10 lg:flex-row lg:items-start lg:gap-14">
 
@@ -106,7 +326,7 @@ export default function ContactFormSection() {
               Please enter your information
             </h3>
 
-            <form className="flex flex-col gap-5">
+            <form className="flex flex-col gap-5" onSubmit={onSubmit} noValidate>
               {/* First / Last name */}
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div className="flex flex-col gap-1.5">
@@ -115,8 +335,11 @@ export default function ContactFormSection() {
                   </label>
                   <input
                     type="text"
-                    placeholder=""
-                    className="rounded-lg font-poppins  border border-transparent bg-white px-4 py-2.5 text-[14px] text-[#010806] outline-none transition focus:border-[#397466] focus:ring-2 focus:ring-[#397466]/20"
+                    placeholder="John"
+                    autoComplete="given-name"
+                    value={firstName}
+                    onChange={(e) => setFirstName(e.target.value)}
+                    className={`${inputBase} border-transparent focus:border-[#397466]`}
                   />
                 </div>
                 <div className="flex flex-col gap-1.5">
@@ -125,8 +348,11 @@ export default function ContactFormSection() {
                   </label>
                   <input
                     type="text"
-                    placeholder=""
-                    className="rounded-lg font-poppins  border border-transparent bg-white px-4 py-2.5 text-[14px] text-[#010806] outline-none transition focus:border-[#397466] focus:ring-2 focus:ring-[#397466]/20"
+                    placeholder="Doe"
+                    autoComplete="family-name"
+                    value={lastName}
+                    onChange={(e) => setLastName(e.target.value)}
+                    className={`${inputBase} border-transparent focus:border-[#397466]`}
                   />
                 </div>
               </div>
@@ -139,19 +365,61 @@ export default function ContactFormSection() {
                   </label>
                   <input
                     type="email"
-                    placeholder=""
-                    className="rounded-lg font-poppins  border border-transparent bg-white px-4 py-2.5 text-[14px] text-[#010806] outline-none transition focus:border-[#397466] focus:ring-2 focus:ring-[#397466]/20"
+                    placeholder="you@example.com"
+                    autoComplete="email"
+                    value={email}
+                    onChange={(e) => {
+                      setEmail(e.target.value);
+                      if (emailError) setEmailError("");
+                    }}
+                    onBlur={() => {
+                      if (email.trim() && !isValidEmail(email)) {
+                        setEmailError("Enter a valid email address.");
+                      }
+                    }}
+                    className={`${inputBase} ${
+                      emailError
+                        ? "border-red-300 focus:border-red-400 focus:ring-red-200"
+                        : "border-transparent focus:border-[#397466]"
+                    }`}
                   />
+                  {emailError ? (
+                    <p className="font-poppins text-xs text-[#B42318]">
+                      {emailError}
+                    </p>
+                  ) : null}
                 </div>
                 <div className="flex flex-col gap-1.5">
                   <label className="font-poppins title-sub-top font-medium text-[#02100DA8]/66">
-                    Phone
+                    Phone <span className="font-normal opacity-70">(optional)</span>
                   </label>
                   <input
                     type="tel"
-                    placeholder=""
-                    className="rounded-lg font-poppins  border border-transparent bg-white px-4 py-2.5 text-[14px] text-[#010806] outline-none transition focus:border-[#397466] focus:ring-2 focus:ring-[#397466]/20"
+                    placeholder="+94 77 123 4567"
+                    autoComplete="tel"
+                    value={phone}
+                    onChange={(e) => {
+                      setPhone(e.target.value);
+                      if (phoneError) setPhoneError("");
+                    }}
+                    onBlur={() => {
+                      if (phone.trim() && !isValidPhoneOptional(phone)) {
+                        setPhoneError(
+                          "Use 8–15 digits, or leave blank.",
+                        );
+                      }
+                    }}
+                    className={`${inputBase} ${
+                      phoneError
+                        ? "border-red-300 focus:border-red-400 focus:ring-red-200"
+                        : "border-transparent focus:border-[#397466]"
+                    }`}
                   />
+                  {phoneError ? (
+                    <p className="font-poppins text-xs text-[#B42318]">
+                      {phoneError}
+                    </p>
+                  ) : null}
                 </div>
               </div>
 
@@ -162,17 +430,20 @@ export default function ContactFormSection() {
                 </label>
                 <textarea
                   rows={12}
-                  placeholder=""
-                  className="resize-none font-poppins  rounded-lg border border-transparent bg-white px-4 py-2.5 text-[14px] text-[#010806] outline-none transition focus:border-[#397466] focus:ring-2 focus:ring-[#397466]/20"
+                  placeholder="Enter your message"
+                  value={message}
+                  onChange={(e) => setMessage(e.target.value)}
+                  className={`resize-none ${inputBase} border-transparent focus:border-[#397466]`}
                 />
               </div>
 
               {/* Submit */}
               <MainButton
                 type="submit"
+                disabled={!canSubmit}
                 className="w-full py-3 text-base font-semibold font-poppins"
               >
-                Send Message
+                {status === "submitting" ? "Sending..." : "Send Message"}
               </MainButton>
             </form>
           </div>

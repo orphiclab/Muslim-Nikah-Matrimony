@@ -5,7 +5,7 @@ const CONTACT_ITEMS = [
   {
     icon: Mail,
     title: "Email Address",
-    detail: "Example@gmail.com",
+    detail: "akrammuslim1986@gmail.com",
   },
   {
     icon: PhoneCall,
