@@ -23,6 +23,9 @@ export class CreatePackageDto {
   @IsOptional() @IsString() type?: string;
   @IsOptional() @IsNumber() @Min(0) discountPct?: number;
   @IsOptional() @IsNumber() @Min(0) originalPrice?: number;
+  @IsOptional() @IsBoolean() isPopular?: boolean;
+  @IsOptional() @IsNumber() @Min(0) usdPrice?: number;
+  @IsOptional() @IsNumber() @Min(0) usdOriginalPrice?: number;
 }
 
 export class UpdateSiteSettingsDto {

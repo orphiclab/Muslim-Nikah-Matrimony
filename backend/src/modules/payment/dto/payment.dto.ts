@@ -28,6 +28,9 @@ export class InitiatePaymentDto {
 
   @IsOptional() @IsNumber()
   packageDurationDays?: number;
+
+  @IsOptional() @IsString()
+  currency?: string;
 }
 
 export class VerifyPaymentDto {

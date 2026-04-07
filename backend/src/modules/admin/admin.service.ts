@@ -61,15 +61,18 @@ export class AdminService {
         where: { id: payment.id },
         data: { status: 'FAILED', rejectionReason: dto.reason, approvedBy: adminId },
       });
-      // Reset profile back to DRAFT so user can re-submit payment
-      await tx.childProfile.update({
-        where: { id: payment.childProfileId },
-        data: { status: 'DRAFT', rejectionReason: dto.reason },
-      });
+
+      // Only reset subscription profile — leave BOOST profile untouched
+      if (payment.purpose !== 'BOOST') {
+        await tx.childProfile.update({
+          where: { id: payment.childProfileId },
+          data: { status: 'DRAFT', rejectionReason: dto.reason },
+        });
+      }
     });
 
-    this.logger.log(`Admin REJECTED payment: ${payment.id} — reason: ${dto.reason}`);
-    return { success: true, message: 'Payment rejected and profile reset to DRAFT' };
+    this.logger.log(`Admin REJECTED payment: ${payment.id} — reason: ${dto.reason} (purpose: ${payment.purpose})`);
+    return { success: true, message: 'Payment rejected' };
   }
 
   async getAllPayments(status?: string) {
@@ -89,11 +92,45 @@ export class AdminService {
     const users = await this.prisma.user.findMany({
       select: {
         id: true, email: true, role: true, phone: true, createdAt: true,
-        childProfiles: { select: { id: true, name: true, status: true, subscription: { select: { status: true } } } },
+        _count: { select: { childProfiles: true } },
       },
       orderBy: { createdAt: 'desc' },
     });
     return { success: true, data: users };
+  }
+
+  async getUser(id: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { id },
+      select: {
+        id: true, email: true, role: true, phone: true,
+        whatsappNumber: true, createdAt: true, updatedAt: true,
+        childProfiles: {
+          select: {
+            id: true, memberId: true, name: true, gender: true,
+            status: true, city: true, country: true, createdAt: true,
+            subscription: { select: { status: true, endDate: true, planName: true } },
+          },
+          orderBy: { createdAt: 'desc' },
+        },
+        _count: { select: { childProfiles: true } },
+      },
+    });
+    if (!user) throw new NotFoundException('User not found');
+    return { success: true, data: user };
+  }
+
+  async updateUser(id: string, dto: { phone?: string; whatsappNumber?: string; role?: string }) {
+    const user = await this.prisma.user.findUnique({ where: { id } });
+    if (!user) throw new NotFoundException('User not found');
+    const data: any = {};
+    if (dto.phone !== undefined) data.phone = dto.phone;
+    if (dto.whatsappNumber !== undefined) data.whatsappNumber = dto.whatsappNumber;
+    if (dto.role !== undefined) data.role = dto.role;
+    const updated = await this.prisma.user.update({ where: { id }, data,
+      select: { id: true, email: true, role: true, phone: true, whatsappNumber: true, createdAt: true, updatedAt: true },
+    });
+    return { success: true, data: updated };
   }
 
   // ─── Profiles ─────────────────────────────────────────────────
@@ -104,6 +141,23 @@ export class AdminService {
       orderBy: { createdAt: 'desc' },
     });
     return { success: true, data: profiles };
+  }
+
+  async getProfile(id: string) {
+    const profile = await this.prisma.childProfile.findUnique({
+      where: { id },
+      include: {
+        user: { select: { id: true, email: true, phone: true, role: true } },
+        subscription: true,
+        payments: {
+          orderBy: { createdAt: 'desc' },
+          take: 10,
+          select: { id: true, amount: true, currency: true, status: true, purpose: true, createdAt: true, method: true },
+        },
+      },
+    });
+    if (!profile) throw new NotFoundException('Profile not found');
+    return { success: true, data: profile };
   }
 
   // ─── Boosts ─────────────────────────────────────────────────
@@ -417,6 +471,9 @@ export class AdminService {
         type: dto.type ?? 'SUBSCRIPTION',
         discountPct: dto.discountPct ?? null,
         originalPrice: dto.originalPrice ?? null,
+        isPopular: dto.isPopular ?? false,
+        usdPrice: dto.usdPrice ?? null,
+        usdOriginalPrice: dto.usdOriginalPrice ?? null,
       },
     });
     return { success: true, data: pkg };
@@ -440,6 +497,9 @@ export class AdminService {
     // Allow null to CLEAR the discount (explicitly write null, not skip)
     if ('discountPct' in dto) data.discountPct = dto.discountPct ?? null;
     if ('originalPrice' in dto) data.originalPrice = dto.originalPrice ?? null;
+    if (dto.isPopular !== undefined) data.isPopular = dto.isPopular;
+    if ('usdPrice' in dto) data.usdPrice = dto.usdPrice ?? null;
+    if ('usdOriginalPrice' in dto) data.usdOriginalPrice = dto.usdOriginalPrice ?? null;
 
     const pkg = await this.prisma.package.update({ where: { id }, data });
     this.logger.log(`Package updated: ${id} — price=${data.price ?? existing.price}, discountPct=${data.discountPct ?? existing.discountPct}`);

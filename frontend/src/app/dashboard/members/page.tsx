@@ -10,7 +10,8 @@ type Profile = {
   dateOfBirth?: string; city: string; country: string;
   height?: number; education?: string; occupation?: string;
   civilStatus?: string; ethnicity?: string; createdAt: string;
-  aboutUs?: string; _meta?: { contactVisible?: boolean };
+  aboutUs?: string; isVip?: boolean; boostExpiresAt?: string | null;
+  _meta?: { contactVisible?: boolean };
 };
 
 type Filters = {
@@ -319,17 +320,25 @@ export default function BrowseMembersPage() {
               <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-5">
                 {paginated.map(p => (
                   <div key={p.id} className="block group">
-                    {/* Member ID badge */}
+                    {/* VIP Boost badge row */}
                     <div className="flex items-center gap-1.5 mb-1.5 px-1">
+                      {p.isVip && (
+                        <span className="inline-flex items-center gap-1 bg-[#DB9D30] text-white text-[10px] font-bold px-2.5 py-0.5 rounded-full shadow-sm animate-pulse">
+                          ⚡ VIP BOOST
+                        </span>
+                      )}
                       <span className="inline-flex items-center gap-1 bg-[#1C3B35]/8 text-[#1C3B35] text-[10px] font-mono font-bold px-2 py-0.5 rounded-full border border-[#1C3B35]/20 tracking-widest group-hover:bg-[#1C3B35]/15 transition">
                         🪪 {p.memberId}
                       </span>
                     </div>
-                    <GenuineProfileCard
-                      {...toCardProps(p)}
-                      onChatClick={() => handleChat(p)}
-                      onViewClick={() => handleView(p)}
-                    />
+                    {/* Card with gold border for VIP */}
+                    <div className={p.isVip ? 'rounded-[20px] ring-2 ring-[#DB9D30] ring-offset-1 shadow-lg' : ''}>
+                      <GenuineProfileCard
+                        {...toCardProps(p)}
+                        onChatClick={() => handleChat(p)}
+                        onViewClick={() => handleView(p)}
+                      />
+                    </div>
                   </div>
                 ))}
               </div>

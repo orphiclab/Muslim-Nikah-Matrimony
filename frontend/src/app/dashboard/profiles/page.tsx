@@ -167,6 +167,7 @@ export default function ProfilesPage() {
   const [privacy, setPrivacy] = useState<Record<string, { showRealName: boolean; nickname: string; saving: boolean }>>({});
   const [boost, setBoost] = useState<Record<string, { boosting: boolean; boostExpiresAt?: string | null }>>({});
   const [siteSettings, setSiteSettings] = useState<any>(null);
+  const [boostCurrency, setBoostCurrency] = useState<'LKR' | 'USD'>('LKR');
   const [boostPlans, setBoostPlans] = useState<any[]>([
     { durationDays: 10, price: 4.99, name: '10 Days', description: 'Top listing for 10 days' },
     { durationDays: 15, price: 7.99, name: '15 Days', description: 'Top listing for 15 days' },
@@ -200,19 +201,19 @@ export default function ProfilesPage() {
     setBoost(initB);
   }, [profiles]);
 
-  const purchaseBoost = async (profileId: string, days: number) => {
-    const plan = boostPlans.find(p => p.durationDays === days);
-    if (!plan) return;
-    setBoost(prev => ({ ...prev, [profileId]: { ...prev[profileId], boosting: true } }));
-    try {
-      await paymentApi.initiate({ childProfileId: profileId, amount: plan.price, method: 'GATEWAY', purpose: 'BOOST', days });
-      showToast(`Boost payment initiated for ${days} days! Admin will approve shortly.`);
-      load();
-    } catch (e: any) {
-      showToast(e.message ?? 'Failed to initiate boost payment', false);
-    } finally {
-      setBoost(prev => ({ ...prev, [profileId]: { ...prev[profileId], boosting: false } }));
-    }
+  const goToBoostPayment = (profileId: string, profileName: string, memberId: string, plan: any, currency: 'LKR' | 'USD') => {
+    const amount = currency === 'USD' && plan.usdPrice != null ? plan.usdPrice : plan.price;
+    const params = new URLSearchParams({
+      profileId,
+      profileName,
+      memberId,
+      planId:   plan.id ?? '',
+      planName: plan.name ?? `${plan.durationDays} Day Boost`,
+      days:     String(plan.durationDays),
+      amount:   String(amount),
+      currency,
+    });
+    router.push(`/boost-payment?${params.toString()}`);
   };
 
   const savePrivacy = async (profileId: string) => {
@@ -372,14 +373,42 @@ export default function ProfilesPage() {
                   </div>
 
                   {/* Subscription info */}
-                  {p.subscription && (
-                    <div className={`mt-2 rounded-lg px-3 py-2 text-xs flex items-center justify-between ${
-                      p.subscription.status === 'ACTIVE' ? 'bg-green-50 text-green-700' : 'bg-gray-50 text-gray-500'
-                    }`}>
-                      <span>Subscription: <strong>{p.subscription.status}</strong></span>
+                  {p.subscription && p.subscription.status === 'ACTIVE' && (
+                    <div className="mt-2 rounded-lg px-3 py-2 text-xs flex items-center justify-between bg-green-50 text-green-700">
+                      <span>Subscription: <strong>ACTIVE</strong></span>
                       {p.subscription.endDate && (
                         <span className="text-[10px] opacity-70">Expires {new Date(p.subscription.endDate).toLocaleDateString()}</span>
                       )}
+                    </div>
+                  )}
+
+                  {/* Expired subscription banner */}
+                  {p.subscription && p.subscription.status === 'EXPIRED' && (
+                    <div className="mt-2 rounded-xl border border-red-200 bg-red-50 px-3 py-2.5 space-y-2">
+                      <div className="flex items-center gap-2">
+                        <svg className="w-3.5 h-3.5 text-red-500 flex-shrink-0" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                          <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+                        </svg>
+                        <div>
+                          <p className="text-xs font-bold text-red-700">Subscription Expired</p>
+                          {p.subscription.endDate && (
+                            <p className="text-[10px] text-red-400 mt-0.5">
+                              Expired on {new Date(p.subscription.endDate).toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' })}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                      <p className="text-[10px] text-red-400 leading-relaxed">
+                        Your profile is hidden from the public members list. Reactivate your subscription to be visible again.
+                      </p>
+                      <button
+                        onClick={() => router.push(`/select-plan?profileId=${p.id}`)}
+                        className="w-full text-[11px] font-bold bg-red-600 text-white px-3 py-2 rounded-lg hover:bg-red-700 transition flex items-center justify-center gap-1.5">
+                        <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
+                          <rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/>
+                        </svg>
+                        Reactivate Subscription
+                      </button>
                     </div>
                   )}
 
@@ -524,9 +553,35 @@ export default function ProfilesPage() {
                         <strong>{new Date(boost[p.id].boostExpiresAt!).toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' })}</strong>
                       </div>
                     ) : (
-                      <div className="grid grid-cols-3 gap-1.5 sm:gap-2">
+                    <div className="grid grid-cols-3 gap-1.5 sm:gap-2">
+                        {/* Currency toggle */}
+                        <div className="col-span-3 flex items-center justify-between mb-1">
+                          <p className="text-[10px] text-[#A07830] font-semibold uppercase tracking-wide">Select Currency</p>
+                          <div className="inline-flex rounded-full border border-[#DB9D30]/40 overflow-hidden bg-white">
+                            {(['LKR', 'USD'] as const).map(cur => (
+                              <button
+                                key={cur}
+                                onClick={() => setBoostCurrency(cur)}
+                                className={`px-3 py-1 text-[10px] font-bold transition-all ${
+                                  boostCurrency === cur
+                                    ? 'bg-[#DB9D30] text-white'
+                                    : 'text-[#A07830] hover:bg-[#DB9D30]/10'
+                                }`}
+                              >
+                                {cur === 'LKR' ? '🇱🇰 LKR' : '🇺🇸 USD'}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+
                         {boostPlans.map((plan, idx) => {
-                          const popular = idx === 1;
+                          const popular = plan.isPopular ?? idx === 1;
+                          // Pick price based on currency
+                          const hasUsd = boostCurrency === 'USD' && plan.usdPrice != null;
+                          const displayPrice = hasUsd ? plan.usdPrice : plan.price;
+                          const displayOrig  = hasUsd ? plan.usdOriginalPrice : plan.originalPrice;
+                          const symbol       = hasUsd ? '$' : 'Rs.';
+                          const payAmount    = hasUsd ? (plan.usdPrice ?? plan.price) : plan.price;
                           return (
                             <div key={plan.id ?? plan.durationDays} className={`relative rounded-xl border-2 p-2 sm:p-3 text-center cursor-pointer transition-all ${
                               popular ? 'border-[#DB9D30] bg-[#DB9D30]/8 shadow-sm' : 'border-[#DB9D30]/25 bg-white hover:border-[#DB9D30]/60'
@@ -537,10 +592,19 @@ export default function ProfilesPage() {
                                 </span>
                               )}
                               <p className="text-[9px] sm:text-[11px] font-bold text-[#8B5E00] font-poppins leading-tight">{plan.name}</p>
-                              <p className="text-[13px] sm:text-[16px] font-extrabold text-[#DB9D30] font-poppins mt-0.5 leading-tight">{plan.currency || 'Rs.'} {plan.price}</p>
+                              {/* Sale price */}
+                              <p className="text-[13px] sm:text-[16px] font-extrabold text-[#DB9D30] font-poppins mt-0.5 leading-tight">
+                                {symbol} {Number(displayPrice).toFixed(2)}
+                              </p>
+                              {/* Strikethrough original */}
+                              {displayOrig != null && displayOrig > displayPrice && (
+                                <p className="text-[9px] text-[#A07830]/60 line-through leading-tight">
+                                  {symbol} {Number(displayOrig).toFixed(2)}
+                                </p>
+                              )}
                               <p className="hidden sm:block text-[9px] text-[#A07830] font-poppins mt-0.5 leading-tight">{plan.description || `Top listing for ${plan.durationDays} days`}</p>
                               <button
-                                onClick={() => purchaseBoost(p.id, plan.durationDays)}
+                                onClick={() => goToBoostPayment(p.id, p.name ?? '', p.memberId ?? '', plan, boostCurrency)}
                                 disabled={boost[p.id]?.boosting}
                                 className={`mt-1.5 sm:mt-2 w-full py-1 sm:py-1.5 rounded-lg text-[9px] sm:text-[10px] font-bold font-poppins transition-all disabled:opacity-50 ${
                                   popular
@@ -568,7 +632,7 @@ export default function ProfilesPage() {
                 {/* Card footer */}
                 <div className="px-5 py-3 border-t border-gray-50">
 
-                  {/* ── Rejection reason notice (DRAFT with rejectionReason) ── */}
+                  {/* ── Rejection reason notice (DRAFT with rejectionReason = subscription rejected) ── */}
                   {p.status === 'DRAFT' && p.rejectionReason && (
                     <div className="mb-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 space-y-1.5">
                       <div className="flex items-start gap-2">

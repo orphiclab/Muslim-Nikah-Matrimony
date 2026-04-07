@@ -28,10 +28,19 @@ export class ProfileListService {
       include: { subscription: true },
     });
 
+    // Hide profiles whose subscription has expired
+    const now = new Date();
+    const visibleProfiles = allActiveProfiles.filter(profile => {
+      const sub = (profile as any).subscription;
+      if (!sub) return false; // no subscription = not visible
+      if (sub.status === 'ACTIVE' && sub.endDate && new Date(sub.endDate) < now) return false; // expired
+      return sub.status === 'ACTIVE';
+    });
+
     // Pass every profile through RuleEngine — NEVER bypass
     const allowed = this.ruleEngine.getVisibleProfiles(
       viewerProfile as any,
-      allActiveProfiles as any[],
+      visibleProfiles as any[],
     );
 
     // Sanitize each result — strip private fields, apply nickname privacy
@@ -50,8 +59,20 @@ export class ProfileListService {
       return {
         ...safeProfile,
         name: displayName,
+        boostExpiresAt: (profile as any).boostExpiresAt ?? null,
+        isVip: !!((profile as any).boostExpiresAt && new Date((profile as any).boostExpiresAt) > new Date()),
         _meta: { contactVisible, nameIsNickname: !profile.showRealName },
       };
+    });
+
+    // Sort: active VIP boosts first, then by createdAt descending
+    const now = new Date();
+    sanitized.sort((a, b) => {
+      const aVip = !!(a.boostExpiresAt && new Date(a.boostExpiresAt) > now);
+      const bVip = !!(b.boostExpiresAt && new Date(b.boostExpiresAt) > now);
+      if (aVip && !bVip) return -1;
+      if (!aVip && bVip) return 1;
+      return new Date(b.createdAt ?? 0).getTime() - new Date(a.createdAt ?? 0).getTime();
     });
 
     this.logger.log(`getVisibleProfiles: ${sanitized.length} profiles for viewer=${viewerProfileId}`);

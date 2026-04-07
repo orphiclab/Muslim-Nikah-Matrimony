@@ -70,8 +70,19 @@ export class AdminController {
   @Get('users')
   users() { return this.service.getAllUsers(); }
 
+  @Get('users/:id')
+  getUser(@Param('id') id: string) { return this.service.getUser(id); }
+
+  @Put('users/:id')
+  updateUser(@Param('id') id: string, @Body() body: { phone?: string; whatsappNumber?: string; role?: string }) {
+    return this.service.updateUser(id, body);
+  }
+
   @Get('profiles')
   profiles(@Query('status') status?: string) { return this.service.getAllProfiles(status); }
+
+  @Get('profiles/:id')
+  getProfile(@Param('id') id: string) { return this.service.getProfile(id); }
 
   @Get('analytics')
   analytics() { return this.service.getAnalytics(); }

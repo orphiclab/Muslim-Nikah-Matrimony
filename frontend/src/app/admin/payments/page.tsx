@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { adminApi } from '@/services/api';
 import { useCurrency } from '@/hooks/useCurrency';
 
@@ -233,6 +234,18 @@ export default function AdminPaymentsPage() {
   const [toast, setToast] = useState<{ text: string; ok: boolean } | null>(null);
   const PER_PAGE = 10;
   const { fmt } = useCurrency();
+  const router = useRouter();
+
+  // ── Sorting ──────────────────────────────────────────────────────
+  type SortKey = 'customer' | 'amount' | 'method' | 'status' | 'date';
+  const [sortKey, setSortKey] = useState<SortKey>('date');
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
+
+  const handleSort = (key: SortKey) => {
+    if (sortKey === key) setSortDir(d => d === 'asc' ? 'desc' : 'asc');
+    else { setSortKey(key); setSortDir('asc'); }
+    setPage(1);
+  };
 
   const load = () => {
     setLoading(true);
@@ -286,7 +299,35 @@ export default function AdminPaymentsPage() {
   const totalBoostPending = boostPayments.filter(p => p.status === 'PENDING').length;
 
   const totalPages = Math.ceil(payments.length / PER_PAGE);
-  const pageData = payments.slice((page - 1) * PER_PAGE, page * PER_PAGE);
+
+  // Apply sort
+  const sorted = [...payments].sort((a, b) => {
+    let cmp = 0;
+    if (sortKey === 'customer') cmp = (a.user?.email ?? '').localeCompare(b.user?.email ?? '');
+    else if (sortKey === 'amount') cmp = a.amount - b.amount;
+    else if (sortKey === 'method') cmp = a.method.localeCompare(b.method);
+    else if (sortKey === 'status') cmp = a.status.localeCompare(b.status);
+    else if (sortKey === 'date') cmp = new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+    return sortDir === 'asc' ? cmp : -cmp;
+  });
+
+  const pageData = sorted.slice((page - 1) * PER_PAGE, page * PER_PAGE);
+
+  // Sort header helper
+  const SortTh = ({ colKey, label, className = '' }: { colKey: SortKey; label: string; className?: string }) => (
+    <th
+      onClick={() => handleSort(colKey)}
+      className={`px-5 py-3.5 text-left text-xs font-semibold text-gray-500 tracking-wide cursor-pointer select-none group whitespace-nowrap ${className}`}
+    >
+      <div className="flex items-center gap-1.5">
+        <span className={sortKey === colKey ? 'text-[#1C3B35]' : 'group-hover:text-gray-700 transition'}>{label}</span>
+        <span className="flex flex-col gap-[1px] shrink-0">
+          <svg className={`w-2.5 h-2.5 transition ${sortKey === colKey && sortDir === 'asc' ? 'text-[#1C3B35]' : 'text-gray-300 group-hover:text-gray-400'}`} fill="currentColor" viewBox="0 0 10 6"><path d="M5 0L10 6H0z" /></svg>
+          <svg className={`w-2.5 h-2.5 transition ${sortKey === colKey && sortDir === 'desc' ? 'text-[#1C3B35]' : 'text-gray-300 group-hover:text-gray-400'}`} fill="currentColor" viewBox="0 0 10 6"><path d="M5 6L0 0H10z" /></svg>
+        </span>
+      </div>
+    </th>
+  );
 
   return (
     <>
@@ -412,9 +453,14 @@ export default function AdminPaymentsPage() {
               <table className="w-full text-sm">
                 <thead className="bg-gray-50 border-b border-gray-100">
                   <tr>
-                    {['Customer', 'Profile', 'Amount', 'Method', 'Bank Ref', 'Status', 'Date', 'Action'].map((h) => (
-                      <th key={h} className="px-5 py-3.5 text-left text-xs font-semibold text-gray-500 tracking-wide whitespace-nowrap">{h}</th>
-                    ))}
+                    <SortTh colKey="customer" label="Customer" />
+                    <th className="px-5 py-3.5 text-left text-xs font-semibold text-gray-500 tracking-wide whitespace-nowrap">Profile</th>
+                    <SortTh colKey="amount" label="Amount" />
+                    <SortTh colKey="method" label="Method" />
+                    <th className="px-5 py-3.5 text-left text-xs font-semibold text-gray-500 tracking-wide whitespace-nowrap">Bank Ref</th>
+                    <SortTh colKey="status" label="Status" />
+                    <SortTh colKey="date" label="Date" />
+                    <th className="px-5 py-3.5 text-left text-xs font-semibold text-gray-500 tracking-wide">Action</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-50">
@@ -428,6 +474,17 @@ export default function AdminPaymentsPage() {
                         )}
                         {p.purpose === 'BOOST' && (
                           <span className="inline-block mt-0.5 text-[9px] font-bold bg-[#DB9D30] text-white px-1.5 py-0.5 rounded shadow-sm">⚡ BOOST</span>
+                        )}
+                        {p.childProfile?.id && (
+                          <button
+                            onClick={() => router.push(`/admin/profiles/${p.childProfile!.id}`)}
+                            className="mt-1.5 inline-flex items-center gap-1 text-[10px] font-semibold text-white bg-blue-500 hover:bg-blue-600 px-2 py-1 rounded-lg transition shadow-sm"
+                          >
+                            <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                              <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" /><circle cx="12" cy="12" r="3" />
+                            </svg>
+                            View Profile
+                          </button>
                         )}
                       </td>
                       <td className="px-5 py-3.5 font-semibold text-gray-800 whitespace-nowrap">
@@ -501,7 +558,7 @@ export default function AdminPaymentsPage() {
           {!loading && payments.length > 0 && (
             <div className="px-5 py-3.5 border-t border-gray-100 flex flex-col sm:flex-row items-center justify-between gap-3">
               <p className="text-xs text-gray-400">
-                Showing {(page - 1) * PER_PAGE + 1}–{Math.min(page * PER_PAGE, payments.length)} of {payments.length} entries
+                Showing {(page - 1) * PER_PAGE + 1}–{Math.min(page * PER_PAGE, sorted.length)} of {sorted.length} entries
               </p>
               <div className="flex items-center gap-2">
                 <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1}

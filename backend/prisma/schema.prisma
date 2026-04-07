@@ -234,6 +234,12 @@ model Package {
   discountPct      Float?   // e.g. 25.0 = 25% off; null = no package discount
   originalPrice    Float?   // strikethrough price; if null, auto-computed
 
+  // USD pricing (optional)
+  usdPrice         Float?   // USD sale price
+  usdOriginalPrice Float?   // USD regular/strikethrough price
+
+  isPopular        Boolean  @default(false)
+
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
 }

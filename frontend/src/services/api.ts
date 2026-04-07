@@ -100,6 +100,7 @@ export const paymentApi = {
     bankSlipUrl?: string;
     purpose?: string;
     days?: number;
+    currency?: string;
     packageId?: string;
     packageDurationDays?: number;
   }) =>
@@ -149,7 +150,11 @@ export const adminApi = {
 
   payments: (status?: string) => request<any>(`/admin/payments${status ? `?status=${status}` : ''}`),
   users: () => request<any>('/admin/users'),
+  getUser: (id: string) => request<any>(`/admin/users/${id}`),
+  updateUser: (id: string, body: { phone?: string; whatsappNumber?: string; role?: string }) =>
+    request<any>(`/admin/users/${id}`, { method: 'PUT', body: JSON.stringify(body) }),
   profiles: (status?: string) => request<any>(`/admin/profiles${status ? `?status=${status}` : ''}`),
+  getProfile: (id: string) => request<any>(`/admin/profiles/${id}`),
 
   // Analytics (both names for compatibility)
   analytics: () => request<any>('/admin/analytics'),

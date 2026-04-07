@@ -1,22 +1,30 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { adminApi } from '@/services/api';
 
 type Profile = {
   id: string; name: string; gender: string; status: string;
-  country?: string; city?: string; education?: string; occupation?: string;
+  country?: string; city?: string; occupation?: string;
   createdAt: string; user?: { email: string };
 };
 
 const STATUS_OPTIONS = ['ALL', 'ACTIVE', 'DRAFT', 'PAYMENT_PENDING', 'EXPIRED'];
 
+type SortKey = 'name' | 'owner' | 'gender' | 'location' | 'status' | 'joined';
+
 export default function AdminProfilesPage() {
+  const router = useRouter();
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('ALL');
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
+  const [sortKey, setSortKey] = useState<SortKey>('joined');
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
+  const [openAction, setOpenAction] = useState<string | null>(null);
+  const dropdownRef = useRef<HTMLDivElement>(null);
   const PER_PAGE = 10;
 
   useEffect(() => {
@@ -27,6 +35,17 @@ export default function AdminProfilesPage() {
       .finally(() => setLoading(false));
   }, []);
 
+  // Close dropdown on outside click
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+        setOpenAction(null);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
+
   const filtered = profiles.filter(p => {
     const matchSearch = p.name.toLowerCase().includes(search.toLowerCase()) ||
       (p.user?.email ?? '').toLowerCase().includes(search.toLowerCase());
@@ -34,8 +53,26 @@ export default function AdminProfilesPage() {
     return matchSearch && matchStatus;
   });
 
-  const totalPages = Math.ceil(filtered.length / PER_PAGE);
-  const pageData = filtered.slice((page - 1) * PER_PAGE, page * PER_PAGE);
+  // Sorting
+  const handleSort = (key: SortKey) => {
+    if (sortKey === key) setSortDir(d => d === 'asc' ? 'desc' : 'asc');
+    else { setSortKey(key); setSortDir('asc'); }
+    setPage(1);
+  };
+
+  const sorted = [...filtered].sort((a, b) => {
+    let cmp = 0;
+    if (sortKey === 'name') cmp = a.name.localeCompare(b.name);
+    else if (sortKey === 'owner') cmp = (a.user?.email ?? '').localeCompare(b.user?.email ?? '');
+    else if (sortKey === 'gender') cmp = a.gender.localeCompare(b.gender);
+    else if (sortKey === 'location') cmp = ([a.city, a.country].filter(Boolean).join(', ')).localeCompare([b.city, b.country].filter(Boolean).join(', '));
+    else if (sortKey === 'status') cmp = a.status.localeCompare(b.status);
+    else if (sortKey === 'joined') cmp = new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+    return sortDir === 'asc' ? cmp : -cmp;
+  });
+
+  const totalPages = Math.ceil(sorted.length / PER_PAGE);
+  const pageData = sorted.slice((page - 1) * PER_PAGE, page * PER_PAGE);
 
   const statusColor = (s: string) => ({
     ACTIVE: 'bg-green-100 text-green-700',
@@ -48,6 +85,28 @@ export default function AdminProfilesPage() {
     ACTIVE: 'Active', DRAFT: 'Draft',
     PAYMENT_PENDING: 'Pending Payment', EXPIRED: 'Expired',
   }[s] ?? s);
+
+  // Sortable column header helper
+  const SortTh = ({ colKey, label }: { colKey: SortKey; label: string }) => (
+    <th
+      onClick={() => handleSort(colKey)}
+      className="px-5 py-3.5 text-left text-xs font-semibold text-gray-500 tracking-wide cursor-pointer select-none group whitespace-nowrap"
+    >
+      <div className="flex items-center gap-1.5">
+        <span className={sortKey === colKey ? 'text-[#1C3B35]' : 'group-hover:text-gray-700 transition'}>
+          {label}
+        </span>
+        <span className="flex flex-col gap-[1px] shrink-0">
+          <svg className={`w-2.5 h-2.5 transition ${sortKey === colKey && sortDir === 'asc' ? 'text-[#1C3B35]' : 'text-gray-300 group-hover:text-gray-400'}`} fill="currentColor" viewBox="0 0 10 6">
+            <path d="M5 0L10 6H0z" />
+          </svg>
+          <svg className={`w-2.5 h-2.5 transition ${sortKey === colKey && sortDir === 'desc' ? 'text-[#1C3B35]' : 'text-gray-300 group-hover:text-gray-400'}`} fill="currentColor" viewBox="0 0 10 6">
+            <path d="M5 6L0 0H10z" />
+          </svg>
+        </span>
+      </div>
+    </th>
+  );
 
   return (
     <div className="font-poppins space-y-6">
@@ -72,7 +131,6 @@ export default function AdminProfilesPage() {
       <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
         {/* Filters */}
         <div className="px-5 py-4 border-b border-gray-100 flex flex-col sm:flex-row gap-3 items-start sm:items-center">
-          {/* Status tabs */}
           <div className="flex gap-1 flex-wrap">
             {STATUS_OPTIONS.map((s) => (
               <button key={s} onClick={() => { setFilter(s); setPage(1); }}
@@ -86,7 +144,6 @@ export default function AdminProfilesPage() {
               </button>
             ))}
           </div>
-          {/* Search */}
           <div className="flex items-center gap-2 sm:ml-auto bg-gray-50 border border-gray-200 rounded-xl px-3.5 py-2.5 w-full sm:w-64">
             <svg className="w-4 h-4 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
               <circle cx="11" cy="11" r="8" /><path d="m21 21-4.35-4.35" />
@@ -94,11 +151,18 @@ export default function AdminProfilesPage() {
             <input value={search} onChange={(e) => { setSearch(e.target.value); setPage(1); }}
               placeholder="Search name or email…"
               className="flex-1 bg-transparent text-sm outline-none text-gray-700 placeholder:text-gray-400" />
+            {search && (
+              <button onClick={() => { setSearch(''); setPage(1); }} className="text-gray-400 hover:text-gray-600 transition">
+                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                  <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+                </svg>
+              </button>
+            )}
           </div>
         </div>
 
         {/* Table */}
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto" ref={dropdownRef}>
           {loading ? (
             <div className="flex items-center justify-center h-40 text-gray-400 text-sm">Loading…</div>
           ) : pageData.length === 0 ? (
@@ -110,16 +174,21 @@ export default function AdminProfilesPage() {
             <table className="w-full text-sm">
               <thead className="bg-gray-50 border-b border-gray-100">
                 <tr>
-                  {['#', 'Name', 'Owner', 'Gender', 'Location', 'Education', 'Status', 'Joined', 'Action'].map(h => (
-                    <th key={h} className="px-5 py-3.5 text-left text-xs font-semibold text-gray-500 tracking-wide whitespace-nowrap">{h}</th>
-                  ))}
+                  <th className="px-5 py-3.5 text-left text-xs font-semibold text-gray-500 tracking-wide w-10">#</th>
+                  <SortTh colKey="name" label="Name" />
+                  <SortTh colKey="owner" label="Owner" />
+                  <SortTh colKey="gender" label="Gender" />
+                  <SortTh colKey="location" label="Location" />
+                  <SortTh colKey="status" label="Status" />
+                  <SortTh colKey="joined" label="Joined" />
+                  <th className="px-5 py-3.5 text-left text-xs font-semibold text-gray-500 tracking-wide">Action</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-50">
                 {pageData.map((p, i) => (
                   <tr key={p.id} className={`hover:bg-gray-50 transition ${i % 2 === 1 ? 'bg-[#FAFAFA]' : ''}`}>
                     <td className="px-5 py-3.5 text-xs text-gray-400 font-mono">{(page - 1) * PER_PAGE + i + 1}</td>
-                    <td className="px-5 py-3.5 font-semibold text-gray-800">{p.name}</td>
+                    <td className="px-5 py-3.5 font-semibold text-gray-800 whitespace-nowrap">{p.name}</td>
                     <td className="px-5 py-3.5 text-xs text-gray-500">{p.user?.email ?? '—'}</td>
                     <td className="px-5 py-3.5">
                       <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${p.gender === 'FEMALE' ? 'bg-pink-50 text-pink-600' : 'bg-blue-50 text-blue-600'}`}>
@@ -127,15 +196,33 @@ export default function AdminProfilesPage() {
                       </span>
                     </td>
                     <td className="px-5 py-3.5 text-gray-500 text-xs">{[p.city, p.country].filter(Boolean).join(', ') || '—'}</td>
-                    <td className="px-5 py-3.5 text-gray-500 text-xs">{p.education ?? '—'}</td>
                     <td className="px-5 py-3.5">
                       <span className={`text-xs px-2.5 py-1 rounded-full font-semibold ${statusColor(p.status)}`}>{statusLabel(p.status)}</span>
                     </td>
                     <td className="px-5 py-3.5 text-xs text-gray-400 whitespace-nowrap">{new Date(p.createdAt).toLocaleDateString()}</td>
-                    <td className="px-5 py-3.5">
-                      <button className="text-gray-400 hover:text-gray-700 transition px-2 py-1 rounded-lg hover:bg-gray-100">
+                    <td className="px-5 py-3.5 relative">
+                      <button
+                        onClick={() => setOpenAction(openAction === p.id ? null : p.id)}
+                        className="text-gray-400 hover:text-gray-700 transition px-2 py-1 rounded-lg hover:bg-gray-100"
+                      >
                         <span className="text-base tracking-widest font-bold">···</span>
                       </button>
+
+                      {openAction === p.id && (
+                        <div className="absolute right-4 z-50 mt-1 w-44 bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden" style={{ top: '100%' }}>
+                          {/* View Profile */}
+                          <button
+                            onClick={() => { setOpenAction(null); router.push(`/admin/profiles/${p.id}`); }}
+                            className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition"
+                          >
+                            <svg className="w-4 h-4 text-blue-500" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                              <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                              <circle cx="12" cy="12" r="3" />
+                            </svg>
+                            View Profile
+                          </button>
+                        </div>
+                      )}
                     </td>
                   </tr>
                 ))}
@@ -145,10 +232,10 @@ export default function AdminProfilesPage() {
         </div>
 
         {/* Footer */}
-        {!loading && filtered.length > 0 && (
+        {!loading && sorted.length > 0 && (
           <div className="px-5 py-3.5 border-t border-gray-100 flex flex-col sm:flex-row items-center justify-between gap-3">
             <p className="text-xs text-gray-400">
-              Showing {(page - 1) * PER_PAGE + 1}–{Math.min(page * PER_PAGE, filtered.length)} of {filtered.length} entries
+              Showing {(page - 1) * PER_PAGE + 1}–{Math.min(page * PER_PAGE, sorted.length)} of {sorted.length} entries
             </p>
             <div className="flex items-center gap-2">
               <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1}

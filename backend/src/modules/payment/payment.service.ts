@@ -54,7 +54,9 @@ export class PaymentService {
         purpose: dto.purpose || 'SUBSCRIPTION',
         bankRef: dto.bankRef,
         bankSlipUrl: dto.bankSlipUrl,
-        gatewayPayload: dto.purpose === 'BOOST' && dto.days ? { days: dto.days } : undefined,
+        gatewayPayload: dto.purpose === 'BOOST' && dto.days
+          ? { days: dto.days, currency: dto.currency ?? 'LKR' }
+          : undefined,
         packageId: dto.packageId ?? null,
         packageDurationDays: dto.packageDurationDays ?? 30,
       },
@@ -160,6 +162,9 @@ export class PaymentService {
     const payments = await this.prisma.payment.findMany({
       where: { userId },
       orderBy: { createdAt: 'desc' },
+      include: {
+        childProfile: { select: { id: true, name: true, memberId: true } },
+      },
     });
     return { success: true, data: payments };
   }
