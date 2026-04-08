@@ -64,7 +64,7 @@ export default function ParentDashboard() {
   ];
 
   const quickActions = [
-    { label: 'Browse Members', href: '/dashboard/members', icon: '🔍' },
+    { label: 'Browse Members', href: '/profiles', icon: '🔍' },
     { label: 'Messages', href: '/dashboard/chat', icon: '💬' },
     { label: 'My Profiles', href: '/dashboard/profiles', icon: '👤' },
     { label: 'Manage Subscription', href: '/dashboard/subscription', icon: '💳' },
