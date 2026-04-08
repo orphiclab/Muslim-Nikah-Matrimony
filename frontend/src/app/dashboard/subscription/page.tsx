@@ -95,7 +95,7 @@ function SubscriptionCard({
               ✓ Active
             </span>
           )}
-          {isExpired && (
+          {isExpired && !pending && (
             <span className="inline-flex items-center gap-1 bg-red-100 text-red-600 text-[10px] font-bold px-2.5 py-1 rounded-full">
               Expired
             </span>

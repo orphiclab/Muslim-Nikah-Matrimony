@@ -25,20 +25,37 @@ export class PaymentService {
     // ── One profile, one membership plan ──────────────────────────────────
     const isSubscription = !dto.purpose || dto.purpose === 'SUBSCRIPTION';
     if (isSubscription) {
-      const existing = await this.prisma.payment.findFirst({
+      const now = new Date();
+
+      // Block only if there is a genuinely PENDING payment awaiting approval
+      const pendingPayment = await this.prisma.payment.findFirst({
         where: {
           childProfileId: dto.childProfileId,
           purpose: 'SUBSCRIPTION',
-          status: { in: ['PENDING', 'SUCCESS'] },
+          status: 'PENDING',
         },
       });
-      if (existing) {
+      if (pendingPayment) {
         throw new BadRequestException({
           success: false,
-          message:
-            existing.status === 'PENDING'
-              ? 'This profile already has a pending membership payment awaiting admin approval.'
-              : 'This profile already has an active membership plan.',
+          message: 'This profile already has a pending membership payment awaiting admin approval.',
+          error_code: 'PLAN_ALREADY_EXISTS',
+        });
+      }
+
+      // Block only if the subscription is still ACTIVE and not yet expired
+      const activeSubscription = await this.prisma.subscription.findUnique({
+        where: { childProfileId: dto.childProfileId },
+      });
+      if (
+        activeSubscription &&
+        activeSubscription.status === 'ACTIVE' &&
+        activeSubscription.endDate &&
+        activeSubscription.endDate > now
+      ) {
+        throw new BadRequestException({
+          success: false,
+          message: 'This profile already has an active membership plan.',
           error_code: 'PLAN_ALREADY_EXISTS',
         });
       }

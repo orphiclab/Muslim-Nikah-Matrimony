@@ -25,6 +25,8 @@ const statusBadge = (s: string) => {
  */
 function isSubExpired(p: any): boolean {
   if (!p.subscription) return false;
+  // If user has paid and is waiting for admin approval, do NOT show as expired
+  if (p.status === 'PAYMENT_PENDING') return false;
   if (p.subscription.status === 'EXPIRED') return true;
   if (p.subscription.endDate && new Date(p.subscription.endDate) < new Date()) return true;
   return false;
@@ -397,13 +399,30 @@ export default function ProfilesPage() {
                     )}
                   </div>
 
-                  {/* Subscription info — only shown when active and not date-expired */}
-                  {p.subscription && p.subscription.status === 'ACTIVE' && !isSubExpired(p) && (
+                  {/* Subscription info — only shown when active, not date-expired, and not awaiting admin review */}
+                  {p.subscription && p.subscription.status === 'ACTIVE' && !isSubExpired(p) && p.status !== 'PAYMENT_PENDING' && (
                     <div className="mt-2 rounded-lg px-3 py-2 text-xs flex items-center justify-between bg-green-50 text-green-700">
                       <span>Subscription: <strong>ACTIVE</strong></span>
                       {p.subscription.endDate && (
                         <span className="text-[10px] opacity-70">Expires {new Date(p.subscription.endDate).toLocaleDateString()}</span>
                       )}
+                    </div>
+                  )}
+
+                  {/* Payment pending — awaiting admin review notice */}
+                  {p.status === 'PAYMENT_PENDING' && (
+                    <div className="mt-2 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 flex items-start gap-3">
+                      <div className="w-8 h-8 rounded-lg bg-amber-100 flex items-center justify-center flex-shrink-0 mt-0.5">
+                        <svg className="w-4 h-4 text-amber-600" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                          <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+                        </svg>
+                      </div>
+                      <div>
+                        <p className="text-xs font-bold text-amber-800">Awaiting Admin Review</p>
+                        <p className="text-[11px] text-amber-600 mt-0.5 leading-relaxed">
+                          Your payment has been received. Your profile will be activated once the admin approves it.
+                        </p>
+                      </div>
                     </div>
                   )}
 
@@ -498,8 +517,8 @@ export default function ProfilesPage() {
                     </div>
                   )}
 
-                  {/* Privacy settings — hidden if subscription expired */}
-                  {privacy[p.id] && !isSubExpired(p) && (
+                  {/* Privacy settings — hidden if subscription expired or awaiting admin review */}
+                  {privacy[p.id] && !isSubExpired(p) && p.status !== 'PAYMENT_PENDING' && (
                     <div className="mt-3 border border-gray-100 rounded-xl bg-gray-50 px-4 py-3 space-y-3">
                       <div className="flex items-center justify-between">
                         <div>
@@ -723,15 +742,7 @@ export default function ProfilesPage() {
                         )
                       )}
 
-                      {/* PAYMENT_PENDING → review message */}
-                      {p.status === 'PAYMENT_PENDING' && (
-                        <div className="flex items-center gap-1.5 text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 font-medium">
-                          <svg className="w-3.5 h-3.5 text-amber-500 flex-shrink-0" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
-                            <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
-                          </svg>
-                          Your account will be activated shortly — admin is reviewing it.
-                        </div>
-                      )}
+
 
                       {/* ACTIVE → Chat button */}
                       {p.status === 'ACTIVE' && (

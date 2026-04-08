@@ -13,6 +13,8 @@ type Package = {
   discountPct?: number | null;
   originalPrice?: number | null;
   effectiveDiscountPct?: number;
+  usdPrice?: number | null;
+  usdOriginalPrice?: number | null;
 };
 
 type SiteDiscount = { active: boolean; pct: number; label: string };
@@ -35,21 +37,29 @@ const FALLBACK: Package[] = [
   },
 ];
 
-function getEffective(pkg: Package | null, site: SiteDiscount) {
+function getEffective(pkg: Package | null, site: SiteDiscount, currency: 'LKR' | 'USD' = 'LKR') {
   if (!pkg) return { disc: 0, orig: 0, final: 0 };
-  // Backend already computed effectiveDiscountPct and adjusted price/originalPrice
-  // effectiveDiscountPct already includes both package + site discount stacking
+
+  // If USD selected and usdPrice available, use USD prices directly (no site discount stacking)
+  if (currency === 'USD' && pkg.usdPrice != null) {
+    const usdOrig = pkg.usdOriginalPrice ?? pkg.usdPrice;
+    const hasDisc = usdOrig > pkg.usdPrice;
+    return {
+      disc: hasDisc ? Math.round((1 - pkg.usdPrice / usdOrig) * 100) : 0,
+      orig: usdOrig,
+      final: pkg.usdPrice,
+    };
+  }
+
+  // LKR path (existing logic)
   const disc = (pkg as any).effectiveDiscountPct ?? pkg.discountPct ?? 0;
   const siteDisc = site.active ? site.pct : 0;
-  // If no backend discount (fallback data), apply site discount client-side
   const effectiveDisc = disc > 0 ? disc : siteDisc;
   const orig = pkg.originalPrice ?? pkg.price;
   if (effectiveDisc <= 0) return { disc: 0, orig: pkg.price, final: pkg.price };
-  // If backend already computed price (discounted), use it directly
   if ((pkg as any).effectiveDiscountPct != null) {
     return { disc: effectiveDisc, orig, final: pkg.price };
   }
-  // Fallback: compute client-side
   const final = Math.round(orig * (1 - effectiveDisc / 100) * 100) / 100;
   return { disc: effectiveDisc, orig, final };
 }
@@ -183,6 +193,7 @@ export default function SelectPlanPage() {
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [pendingAction, setPendingAction] = useState<string | null>(null);
   const [siteDiscount, setSiteDiscount] = useState<SiteDiscount>({ active: false, pct: 0, label: '' });
+  const [currency, setCurrency] = useState<'LKR' | 'USD'>('LKR');
   const [whatsappContact, setWhatsappContact] = useState('+94 705 687 697');
   const [bank1, setBank1] = useState({ accName: 'M T M Akram', accNo: '112054094468', bankName: 'Sampath Bank PLC', branch: 'Ratmalana' });
   const [bank2, setBank2] = useState({ accName: 'M T M Akram', accNo: '89870069', bankName: 'BOC', branch: 'Anuradhapura' });
@@ -250,13 +261,14 @@ export default function SelectPlanPage() {
     if (!selected) { setMessage('Please select a package.'); return; }
 
     setSubmitting(true);
-    const { final } = getEffective(selected, siteDiscount);
+    const { final } = getEffective(selected, siteDiscount, currency);
     try {
       await paymentApi.initiate({
         childProfileId: profileId,
         amount: final,
         method: 'BANK_TRANSFER',
         bankRef,
+        currency,
         packageId: (selected as any).id,
         packageDurationDays: selected.durationDays,
       });
@@ -285,7 +297,14 @@ export default function SelectPlanPage() {
     await doSubmitPayment(profileId);
   };
 
-  const { disc: selDisc, orig: selOrig, final: selFinal } = getEffective(selected, siteDiscount);
+  // Currency-aware format helpers
+  const currSymbol = currency === 'USD' ? '$' : 'Rs.';
+  const fmtAmt = (n: number) => `${currSymbol} ${n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+
+  const { disc: selDisc, orig: selOrig, final: selFinal } = getEffective(selected, siteDiscount, currency);
+
+  // Check if any plan has a USD price set
+  const hasUsdPrices = plans.some(p => p.usdPrice != null);
 
   return (
     <div className="min-h-screen bg-gray-50 font-poppins pt-24">
@@ -330,12 +349,29 @@ export default function SelectPlanPage() {
           </p>
         </div>
 
-        {/* Currency indicator */}
-        <div className="flex items-center gap-4 mb-8">
-          <label className="text-sm font-medium text-gray-600">Currency</label>
-          <div className="border border-gray-300 rounded-lg px-4 py-2 text-sm text-gray-700 bg-white shadow-sm">
-            {symbol}
+        {/* Currency toggle */}
+        <div className="flex items-center gap-3 mb-8">
+          <span className="text-sm font-medium text-gray-600">Currency</span>
+          <div className="inline-flex rounded-full border border-gray-300 overflow-hidden bg-white shadow-sm">
+            {(['LKR', 'USD'] as const).map(cur => (
+              <button
+                key={cur}
+                onClick={() => setCurrency(cur)}
+                disabled={cur === 'USD' && !hasUsdPrices}
+                title={cur === 'USD' && !hasUsdPrices ? 'USD pricing not available for these packages' : undefined}
+                className={`px-5 py-2 text-sm font-semibold transition-all ${
+                  currency === cur
+                    ? 'bg-[#1B6B4A] text-white'
+                    : 'text-gray-600 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed'
+                }`}
+              >
+                {cur === 'LKR' ? '🇱🇰 LKR' : '🇺🇸 USD'}
+              </button>
+            ))}
           </div>
+          {currency === 'USD' && !hasUsdPrices && (
+            <span className="text-xs text-amber-600 font-medium">USD pricing not set for these packages</span>
+          )}
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -362,37 +398,42 @@ export default function SelectPlanPage() {
                 )}
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                   {plans.map((plan) => {
-                    const { disc, orig, final } = getEffective(plan, siteDiscount);
+                    const { disc, orig, final } = getEffective(plan, siteDiscount, currency);
                     const hasDiscount = disc > 0;
                     const isSelected = selected?.id === plan.id;
+                    // Show N/A if USD selected but no USD price set
+                    const noUsd = currency === 'USD' && plan.usdPrice == null;
                     return (
                       <div
                         key={plan.id}
-                        onClick={() => setSelected(plan)}
+                        onClick={() => !noUsd && setSelected(plan)}
                         className={`cursor-pointer rounded-xl border-2 p-5 text-center transition-all duration-200 ${
+                          noUsd ? 'opacity-50 cursor-not-allowed border-gray-200 bg-gray-50' :
                           isSelected
                             ? 'border-[#1B6B4A] bg-[#e8f5f0] shadow-lg scale-[1.02]'
                             : 'border-gray-300 bg-white hover:border-[#1B6B4A]/50 hover:shadow'
                         }`}
                       >
                         <p className="font-semibold text-gray-800 text-sm mb-2">{plan.name}</p>
-                        {hasDiscount ? (
+                        {noUsd ? (
+                          <p className="text-gray-400 text-sm font-medium">N/A in USD</p>
+                        ) : hasDiscount ? (
                           <>
                             <p className="text-red-600 font-bold text-lg">
-                              {fmt(final)}
+                              {fmtAmt(final)}
                             </p>
                             <p className="text-gray-400 text-xs line-through">
-                              {fmt(orig)}
+                              {fmtAmt(orig)}
                             </p>
                             <p className="text-red-500 text-xs font-bold">SAVE {disc}%</p>
                           </>
                         ) : (
                           <p className="text-[#1B6B4A] font-bold text-lg">
-                            {fmt(plan.price)}
+                            {fmtAmt(final)}
                           </p>
                         )}
                         <p className={`text-xs font-semibold mt-3 ${isSelected ? 'text-[#1B6B4A]' : 'text-[#DB9D30]'}`}>
-                          {isSelected ? '✓ Selected' : 'Select Package'}
+                          {noUsd ? '' : isSelected ? '✓ Selected' : 'Select Package'}
                         </p>
                       </div>
                     );
@@ -432,19 +473,19 @@ export default function SelectPlanPage() {
                 <div className="flex justify-between text-sm">
                   <span className="text-gray-600">Package</span>
                   <span className="font-semibold text-[#1B6B4A]">
-                    {selected ? fmt(selDisc > 0 ? selFinal : selected.price) : `${symbol} 0.00`}
+                    {selected ? fmtAmt(selDisc > 0 ? selFinal : selFinal) : `${currSymbol} 0.00`}
                   </span>
                 </div>
-                {selDisc > 0 && siteDiscount.active && (
+                {selDisc > 0 && selOrig - selFinal > 0 && (
                   <div className="flex justify-between text-sm">
                     <span className="text-gray-600">Savings ({selDisc}% off)</span>
-                    <span className="font-semibold text-red-500">-{fmt(selOrig - selFinal)}</span>
+                    <span className="font-semibold text-red-500">-{fmtAmt(selOrig - selFinal)}</span>
                   </div>
                 )}
                 <div className="border-t pt-3 flex justify-between text-sm font-bold">
                   <span>Total</span>
                   <span className="text-[#1B6B4A]">
-                    {selected ? fmt(selDisc > 0 ? selFinal : selected.price) : `${symbol} 0.00`}
+                    {selected ? fmtAmt(selFinal) : `${currSymbol} 0.00`}
                   </span>
                 </div>
               </div>
