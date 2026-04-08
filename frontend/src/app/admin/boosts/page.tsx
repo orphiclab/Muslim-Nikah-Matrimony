@@ -18,18 +18,135 @@ type Boost = {
   user: { email: string };
 };
 
-const EXTEND_OPTIONS = [
-  { days: 7,  label: '+ 7 days' },
-  { days: 15, label: '+ 15 days' },
-  { days: 30, label: '+ 30 days' },
-];
+/* ─── Extend Modal ──────────────────────────────────────────── */
+function ExtendModal({
+  boost,
+  onClose,
+  onConfirm,
+  loading,
+}: {
+  boost: Boost;
+  onClose: () => void;
+  onConfirm: (days: number) => void;
+  loading: boolean;
+}) {
+  const [days, setDays] = useState<string>('');
+  const parsed = parseInt(days, 10);
+  const valid  = !isNaN(parsed) && parsed > 0 && parsed <= 365;
 
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm"
+      onClick={onClose}
+    >
+      <div
+        className="bg-white rounded-2xl shadow-2xl w-full max-w-sm mx-4 p-6 space-y-5"
+        onClick={e => e.stopPropagation()}
+      >
+        {/* Header */}
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <h2 className="text-lg font-bold text-gray-800">Extend Boost</h2>
+            <p className="text-sm text-gray-500 mt-0.5">
+              <span className="font-semibold text-gray-700">{boost.name}</span>
+              {boost.isActive && boost.daysLeft > 0
+                ? ` · ${boost.daysLeft} day${boost.daysLeft !== 1 ? 's' : ''} remaining`
+                : ' · Expired'}
+            </p>
+          </div>
+          <button
+            onClick={onClose}
+            className="text-gray-400 hover:text-gray-600 transition mt-0.5"
+            aria-label="Close"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+
+        {/* Input */}
+        <div className="space-y-1.5">
+          <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide">
+            Number of days to extend
+          </label>
+          <div className="flex items-center gap-2">
+            <input
+              type="number"
+              min={1}
+              max={365}
+              value={days}
+              onChange={e => setDays(e.target.value)}
+              placeholder="e.g. 14"
+              className="flex-1 border border-gray-200 rounded-xl px-4 py-2.5 text-sm font-medium text-gray-800 focus:outline-none focus:ring-2 focus:ring-[#DB9D30]/40 focus:border-[#DB9D30] transition"
+            />
+            <span className="text-sm text-gray-400 font-medium">days</span>
+          </div>
+          {days && !valid && (
+            <p className="text-xs text-red-500">Enter a number between 1 and 365.</p>
+          )}
+        </div>
+
+        {/* Quick-pick chips */}
+        <div className="flex flex-wrap gap-2">
+          {[7, 15, 30, 60, 90].map(d => (
+            <button
+              key={d}
+              onClick={() => setDays(String(d))}
+              className={`text-xs font-semibold px-3 py-1.5 rounded-lg border transition ${
+                days === String(d)
+                  ? 'bg-[#DB9D30] text-white border-[#DB9D30]'
+                  : 'bg-[#DB9D30]/10 text-[#8B5E00] border-[#DB9D30]/30 hover:bg-[#DB9D30]/20'
+              }`}
+            >
+              +{d}d
+            </button>
+          ))}
+        </div>
+
+        {/* Actions */}
+        <div className="flex gap-3 pt-1">
+          <button
+            onClick={onClose}
+            disabled={loading}
+            className="flex-1 border border-gray-200 text-gray-600 rounded-xl py-2.5 text-sm font-semibold hover:bg-gray-50 transition disabled:opacity-50"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={() => valid && onConfirm(parsed)}
+            disabled={!valid || loading}
+            className="flex-1 bg-[#1C3B35] text-white rounded-xl py-2.5 text-sm font-semibold hover:bg-[#14302a] transition disabled:opacity-50 flex items-center justify-center gap-2"
+          >
+            {loading ? (
+              <>
+                <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
+                </svg>
+                Extending…
+              </>
+            ) : (
+              'Extend Boost'
+            )}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ─── Page ──────────────────────────────────────────────────── */
 export default function AdminBoostsPage() {
   const [boosts, setBoosts]   = useState<Boost[]>([]);
   const [loading, setLoading] = useState(true);
   const [toast, setToast]     = useState<{ text: string; ok: boolean } | null>(null);
   const [acting, setActing]   = useState<string | null>(null);
   const [filter, setFilter]   = useState<'all' | 'active' | 'expired'>('all');
+
+  /* extend modal state */
+  const [extendTarget, setExtendTarget] = useState<Boost | null>(null);
+  const extendLoading = acting?.startsWith(extendTarget?.id ?? '___') && acting.includes('_extend');
 
   const showToast = (text: string, ok = true) => {
     setToast({ text, ok });
@@ -58,11 +175,14 @@ export default function AdminBoostsPage() {
     } finally { setActing(null); }
   };
 
-  const handleExtend = async (id: string, days: number) => {
-    setActing(id + '_extend_' + days);
+  const handleExtendConfirm = async (days: number) => {
+    if (!extendTarget) return;
+    const id = extendTarget.id;
+    setActing(id + '_extend');
     try {
       await adminApi.extendBoost(id, days);
-      showToast(`Boost extended by ${days} days!`);
+      showToast(`Boost extended by ${days} day${days !== 1 ? 's' : ''}!`);
+      setExtendTarget(null);
       load();
     } catch {
       showToast('Failed to extend boost', false);
@@ -80,6 +200,17 @@ export default function AdminBoostsPage() {
 
   return (
     <div className="font-poppins space-y-6">
+
+      {/* Extend Modal */}
+      {extendTarget && (
+        <ExtendModal
+          boost={extendTarget}
+          onClose={() => setExtendTarget(null)}
+          onConfirm={handleExtendConfirm}
+          loading={!!extendLoading}
+        />
+      )}
+
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
@@ -230,26 +361,24 @@ export default function AdminBoostsPage() {
 
                     {/* Actions */}
                     <td className="px-5 py-4">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        {/* Extend dropdown */}
-                        <div className="flex gap-1">
-                          {EXTEND_OPTIONS.map(opt => (
-                            <button
-                              key={opt.days}
-                              onClick={() => handleExtend(b.id, opt.days)}
-                              disabled={acting !== null}
-                              className="text-[10px] font-semibold bg-[#DB9D30]/10 text-[#8B5E00] border border-[#DB9D30]/30 hover:bg-[#DB9D30]/20 px-2.5 py-1 rounded-lg transition disabled:opacity-40 whitespace-nowrap"
-                            >
-                              {acting === `${b.id}_extend_${opt.days}` ? '…' : opt.label}
-                            </button>
-                          ))}
-                        </div>
+                      <div className="flex items-center gap-2">
+                        {/* Extend */}
+                        <button
+                          onClick={() => setExtendTarget(b)}
+                          disabled={acting !== null}
+                          className="text-[10px] font-semibold bg-[#DB9D30]/10 text-[#8B5E00] border border-[#DB9D30]/30 hover:bg-[#DB9D30]/20 px-3 py-1.5 rounded-lg transition disabled:opacity-40 whitespace-nowrap flex items-center gap-1"
+                        >
+                          <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6l4 2m6-2a10 10 0 11-20 0 10 10 0 0120 0z" />
+                          </svg>
+                          Extend
+                        </button>
 
                         {/* Remove */}
                         <button
                           onClick={() => handleRemove(b.id)}
                           disabled={acting !== null}
-                          className="text-[10px] font-semibold bg-red-50 text-red-600 border border-red-200 hover:bg-red-100 px-2.5 py-1 rounded-lg transition disabled:opacity-40 whitespace-nowrap flex items-center gap-1"
+                          className="text-[10px] font-semibold bg-red-50 text-red-600 border border-red-200 hover:bg-red-100 px-3 py-1.5 rounded-lg transition disabled:opacity-40 whitespace-nowrap flex items-center gap-1"
                         >
                           {acting === `${b.id}_remove` ? (
                             <svg className="w-3 h-3 animate-spin" fill="none" viewBox="0 0 24 24">

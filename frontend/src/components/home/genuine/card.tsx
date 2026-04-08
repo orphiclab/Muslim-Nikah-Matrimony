@@ -1,11 +1,12 @@
 'use client';
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 
 export type ProfileCardProps = {
     name: string;
     city: string;
+    country?: string;
     isPrivate: boolean;
     isVerified: boolean;
     age: number;
@@ -45,8 +46,9 @@ function mapApiToCard(p: any): ProfileCardProps {
     return {
         name: p.name ?? 'Profile',
         city: p.city ?? '–',
-        isPrivate: false,         // public profiles are always visible
-        isVerified: false,        // no verified flag yet
+        country: p.country ?? '',
+        isPrivate: false,
+        isVerified: false,
         age: p.age ?? calcAge(p.dateOfBirth),
         height: cmToFeet(p.height),
         maritalStatus: p.civilStatus ?? 'Single',
@@ -58,6 +60,168 @@ function mapApiToCard(p: any): ProfileCardProps {
     };
 }
 
+// ── Filter state ──────────────────────────────────────────────────────────────
+type Filters = {
+    ageMin: string;
+    ageMax: string;
+    maritalStatus: string;
+    city: string;
+    country: string;
+};
+
+const INITIAL_FILTERS: Filters = {
+    ageMin: '',
+    ageMax: '',
+    maritalStatus: '',
+    city: '',
+    country: '',
+};
+
+const MARITAL_OPTIONS = [
+    { value: '', label: 'Any Status' },
+    { value: 'Never Married', label: 'Never Married' },
+    { value: 'Single', label: 'Single' },
+    { value: 'Divorced', label: 'Divorced' },
+    { value: 'Widowed', label: 'Widowed' },
+];
+
+// ── FilterBar ─────────────────────────────────────────────────────────────────
+const FilterBar = ({
+    filters,
+    onChange,
+    onReset,
+    cities,
+    countries,
+}: {
+    filters: Filters;
+    onChange: (f: Filters) => void;
+    onReset: () => void;
+    cities: string[];
+    countries: string[];
+}) => {
+    const set = (key: keyof Filters, val: string) =>
+        onChange({ ...filters, [key]: val });
+
+    const hasActive =
+        filters.ageMin || filters.ageMax || filters.maritalStatus || filters.city || filters.country;
+
+    return (
+        <div className="w-full mt-8 mb-2">
+            <div className="bg-white/80 backdrop-blur-sm border border-white shadow-lg rounded-2xl px-4 py-4 flex flex-wrap gap-3 items-end justify-center">
+
+                {/* Age range */}
+                <div className="flex flex-col gap-1 min-w-[100px]">
+                    <label className="text-[10px] font-semibold text-[#1C3B35]/70 uppercase tracking-wider font-poppins">Age Range</label>
+                    <div className="flex items-center gap-1.5">
+                        <input
+                            type="number"
+                            min={18}
+                            max={80}
+                            placeholder="Min"
+                            value={filters.ageMin}
+                            onChange={e => set('ageMin', e.target.value)}
+                            className="w-[52px] border border-gray-200 rounded-xl px-2 py-2 text-xs font-medium text-gray-700 focus:outline-none focus:ring-2 focus:ring-[#DB9D30]/40 focus:border-[#DB9D30] bg-white transition placeholder-gray-300"
+                        />
+                        <span className="text-gray-300 text-xs font-bold">–</span>
+                        <input
+                            type="number"
+                            min={18}
+                            max={80}
+                            placeholder="Max"
+                            value={filters.ageMax}
+                            onChange={e => set('ageMax', e.target.value)}
+                            className="w-[52px] border border-gray-200 rounded-xl px-2 py-2 text-xs font-medium text-gray-700 focus:outline-none focus:ring-2 focus:ring-[#DB9D30]/40 focus:border-[#DB9D30] bg-white transition placeholder-gray-300"
+                        />
+                    </div>
+                </div>
+
+                {/* Divider */}
+                <div className="hidden sm:block w-px h-8 bg-gray-200 self-center" />
+
+                {/* Marital Status */}
+                <div className="flex flex-col gap-1 min-w-[140px]">
+                    <label className="text-[10px] font-semibold text-[#1C3B35]/70 uppercase tracking-wider font-poppins">Marital Status</label>
+                    <select
+                        value={filters.maritalStatus}
+                        onChange={e => set('maritalStatus', e.target.value)}
+                        className="border border-gray-200 rounded-xl px-3 py-2 text-xs font-medium text-gray-700 focus:outline-none focus:ring-2 focus:ring-[#DB9D30]/40 focus:border-[#DB9D30] bg-white transition appearance-none cursor-pointer"
+                    >
+                        {MARITAL_OPTIONS.map(o => (
+                            <option key={o.value} value={o.value}>{o.label}</option>
+                        ))}
+                    </select>
+                </div>
+
+                {/* Divider */}
+                <div className="hidden sm:block w-px h-8 bg-gray-200 self-center" />
+
+                {/* City */}
+                <div className="flex flex-col gap-1 min-w-[130px]">
+                    <label className="text-[10px] font-semibold text-[#1C3B35]/70 uppercase tracking-wider font-poppins">City</label>
+                    {cities.length > 0 ? (
+                        <select
+                            value={filters.city}
+                            onChange={e => set('city', e.target.value)}
+                            className="border border-gray-200 rounded-xl px-3 py-2 text-xs font-medium text-gray-700 focus:outline-none focus:ring-2 focus:ring-[#DB9D30]/40 focus:border-[#DB9D30] bg-white transition appearance-none cursor-pointer"
+                        >
+                            <option value="">Any City</option>
+                            {cities.map(c => <option key={c} value={c}>{c}</option>)}
+                        </select>
+                    ) : (
+                        <input
+                            type="text"
+                            placeholder="Any city"
+                            value={filters.city}
+                            onChange={e => set('city', e.target.value)}
+                            className="border border-gray-200 rounded-xl px-3 py-2 text-xs font-medium text-gray-700 focus:outline-none focus:ring-2 focus:ring-[#DB9D30]/40 focus:border-[#DB9D30] bg-white transition placeholder-gray-300"
+                        />
+                    )}
+                </div>
+
+                {/* Divider */}
+                <div className="hidden sm:block w-px h-8 bg-gray-200 self-center" />
+
+                {/* Country */}
+                <div className="flex flex-col gap-1 min-w-[130px]">
+                    <label className="text-[10px] font-semibold text-[#1C3B35]/70 uppercase tracking-wider font-poppins">Country</label>
+                    {countries.length > 0 ? (
+                        <select
+                            value={filters.country}
+                            onChange={e => set('country', e.target.value)}
+                            className="border border-gray-200 rounded-xl px-3 py-2 text-xs font-medium text-gray-700 focus:outline-none focus:ring-2 focus:ring-[#DB9D30]/40 focus:border-[#DB9D30] bg-white transition appearance-none cursor-pointer"
+                        >
+                            <option value="">Any Country</option>
+                            {countries.map(c => <option key={c} value={c}>{c}</option>)}
+                        </select>
+                    ) : (
+                        <input
+                            type="text"
+                            placeholder="Any country"
+                            value={filters.country}
+                            onChange={e => set('country', e.target.value)}
+                            className="border border-gray-200 rounded-xl px-3 py-2 text-xs font-medium text-gray-700 focus:outline-none focus:ring-2 focus:ring-[#DB9D30]/40 focus:border-[#DB9D30] bg-white transition placeholder-gray-300"
+                        />
+                    )}
+                </div>
+
+                {/* Reset */}
+                {hasActive && (
+                    <button
+                        onClick={onReset}
+                        className="self-end flex items-center gap-1.5 text-xs font-semibold text-[#DB9D30] border border-[#DB9D30]/40 bg-[#DB9D30]/10 hover:bg-[#DB9D30]/20 px-3 py-2 rounded-xl transition font-poppins"
+                    >
+                        <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                        Clear
+                    </button>
+                )}
+            </div>
+        </div>
+    );
+};
+
+// ── Decorative border SVG ─────────────────────────────────────────────────────
 const DecorativeBorder = () => (
     <svg
         width="202"
@@ -73,7 +237,6 @@ const DecorativeBorder = () => (
                 d="M100.365 198.987L93.6102 192.095C93.2703 191.749 92.9092 191.366 92.5226 190.966C91.7876 190.191 91.0272 189.391 90.2965 188.718C86.7535 185.45 82.2419 182.621 76.0946 179.817C73.9535 178.84 71.4683 177.661 69.0553 176.082C63.2267 172.263 58.9699 166.962 56.6971 160.713C52.8397 159.555 49.3859 157.581 46.4248 154.835C43.2132 151.854 41.0381 148.359 39.7976 144.162C33.1788 141.804 27.6051 137.248 23.6415 130.936C22.2693 128.755 21.2497 126.54 20.4298 124.768C17.7024 118.86 14.8773 114.443 11.534 110.873C10.884 110.178 10.0768 109.424 9.22719 108.624C8.74713 108.174 8.25856 107.719 7.77001 107.247L0 99.7653L8.02915 92.5568C8.32653 92.2915 8.62395 92.0262 8.92132 91.7694L9.09972 91.6094C9.52454 91.2346 9.94089 90.8683 10.3445 90.481C13.5901 87.3483 16.4449 83.3146 19.0788 78.1482C19.5122 77.2935 19.9455 76.3545 20.4001 75.3608C20.6932 74.7166 20.9906 74.0766 21.2922 73.4408C23.5948 68.586 26.4835 64.7122 30.1243 61.6006C33.0259 59.1206 36.2461 57.2385 39.7126 55.9922C40.8851 51.9079 42.9626 48.4384 46.0468 45.4068C48.9271 42.5773 52.3852 40.5562 56.3403 39.3941C58.8 32.5982 63.4348 27.1245 70.1258 23.1203C72.063 21.9623 73.979 21.095 75.6656 20.3329L75.7803 20.2823C81.8808 17.5286 86.4179 14.6781 90.0544 11.3054C90.7256 10.6822 91.4563 9.91589 92.2252 9.10325C92.6925 8.61061 93.1301 8.15589 93.5762 7.69694L101.087 0L108.377 7.89903C108.674 8.22325 108.968 8.54746 109.261 8.86746C109.745 9.4022 110.2 9.90748 110.616 10.3243C114.167 13.8823 118.607 16.8507 124.588 19.6634C125.043 19.8781 125.502 20.0844 125.956 20.295C127.528 21.015 129.312 21.8318 131.122 22.8718C137.902 26.775 142.796 32.4593 145.328 39.352C149.483 40.5352 152.992 42.5815 156.034 45.5963C158.986 48.5226 161.021 51.9206 162.241 55.9543C169.148 58.3964 174.684 63.007 178.711 69.6597C179.888 71.6008 180.78 73.5292 181.57 75.2345L181.778 75.6808C184.459 81.4408 187.237 85.7567 190.53 89.2599C191.192 89.963 192 90.7209 192.854 91.521C193.329 91.9673 193.805 92.4136 194.285 92.8726L202 100.296L194.09 107.513C193.78 107.799 193.465 108.077 193.155 108.355L193.074 108.426C192.505 108.936 191.97 109.412 191.52 109.858C187.794 113.53 184.701 118.174 181.778 124.469L181.494 125.088C180.878 126.422 180.181 127.934 179.297 129.488C175.283 136.528 169.437 141.572 162.347 144.132C159.832 152.456 153.816 158.494 145.668 160.882C143.204 167.568 138.404 173.177 131.734 177.139C129.877 178.242 128.046 179.067 126.432 179.796L126.271 179.871C120.756 182.356 116.355 185.05 112.816 188.103C111.635 189.122 110.459 190.154 109.286 191.185L100.365 199V198.987ZM96.0401 189.754L100.543 194.347L107.039 188.655C108.216 187.619 109.397 186.579 110.59 185.551C114.38 182.28 119.053 179.417 124.869 176.793L125.022 176.726C126.564 176.031 128.301 175.248 129.996 174.242C136.335 170.478 140.63 165.336 142.758 158.957L143.047 158.086L143.943 157.859C151.722 155.871 157.181 150.376 159.326 142.389L159.56 141.513L160.431 141.227C167.19 139.012 172.547 134.502 176.353 127.825C177.165 126.401 177.832 124.957 178.418 123.681L178.707 123.058C181.804 116.384 185.117 111.429 189.136 107.466C189.65 106.957 190.266 106.41 190.814 105.925L190.891 105.854C191.192 105.584 191.494 105.315 191.8 105.037L197.076 100.224L191.932 95.2768C191.464 94.8305 190.997 94.3884 190.534 93.9547C189.638 93.1168 188.792 92.3252 188.057 91.542C184.514 87.7694 181.545 83.1714 178.711 77.0829L178.503 76.6324C177.751 75.0071 176.897 73.1671 175.814 71.3818C172.054 65.167 166.846 60.9522 160.333 58.8512L159.454 58.569L159.22 57.6848C158.201 53.8532 156.378 50.6742 153.646 47.9668C150.834 45.1836 147.554 43.352 143.616 42.3668L142.716 42.1394L142.423 41.2636C140.256 34.7751 135.766 29.4151 129.431 25.7687C127.758 24.8045 126.054 24.0255 124.546 23.3392C124.079 23.1245 123.611 22.9097 123.144 22.6908C116.797 19.7055 112.052 16.5265 108.216 12.6822C107.761 12.2275 107.268 11.6801 106.746 11.1033C106.465 10.7917 106.181 10.4759 105.888 10.1643L101.028 4.8969L96.0189 10.0254C95.5814 10.4717 95.1565 10.918 94.7402 11.3601C93.8906 12.2528 93.1259 13.0528 92.3782 13.7475C88.4655 17.377 83.6395 20.4213 77.1864 23.3308L77.0802 23.3771C75.4701 24.1013 73.6519 24.9266 71.8846 25.9834C65.6269 29.7266 61.3872 34.8761 59.2716 41.2846L58.9827 42.1562L58.0863 42.3878C54.3478 43.3478 51.1022 45.1626 48.4385 47.7774C45.588 50.5774 43.7357 53.8153 42.7713 57.6764L42.5462 58.5775L41.6541 58.868C38.2809 59.9627 35.1458 61.7354 32.3419 64.1312C29.0708 66.927 26.4581 70.4344 24.3637 74.8555C24.0706 75.4787 23.7817 76.1019 23.4928 76.7292C23.017 77.765 22.5752 78.7335 22.1079 79.6514C19.304 85.1546 16.2325 89.483 12.715 92.8768C12.2774 93.2978 11.8186 93.702 11.3556 94.1105L11.2069 94.2452C10.8883 94.5231 10.5994 94.78 10.3105 95.0368L4.95767 99.841L10.1363 104.831C10.6121 105.29 11.0879 105.736 11.5595 106.174C12.4516 107.012 13.297 107.799 14.0235 108.578C17.6217 112.422 20.638 117.117 23.5183 123.361C24.2957 125.05 25.2686 127.155 26.526 129.155C30.2348 135.062 35.4899 139.248 41.7263 141.256L42.6099 141.543L42.8436 142.435C43.8674 146.389 45.8004 149.639 48.7529 152.376C51.527 154.945 54.7939 156.743 58.4644 157.711L59.3523 157.947L59.6369 158.814C61.6124 164.789 65.4145 169.657 70.9373 173.278C73.1506 174.726 75.4999 175.838 77.5263 176.764C84.0091 179.724 88.8012 182.739 92.6161 186.259C93.4275 187.008 94.2262 187.846 94.9993 188.663C95.3689 189.05 95.7215 189.421 96.0487 189.758L96.0401 189.754Z"
             />
         </defs>
-        {/* Two-layer border: outer gold, inner white gap, inner gold */}
         <use href="#decor-border-shape" fill="#DB9D30" />
         <use
             href="#decor-border-shape"
@@ -142,18 +305,17 @@ const GenuineProfileCard = ({
     return (
         <div className="relative bg-white rounded-[20px] shadow-[0_4px_24px_rgba(0,0,0,0.10)] w-full flex-shrink-0 overflow-hidden pb-5">
 
-            {/* VIP Banner ─ full-width gold strip at top of card */}
+            {/* VIP Banner */}
             {isVip ? (
                 <div className="w-full bg-gradient-to-r from-[#E8BE1A] to-[#DB9D30] text-white text-[9px] sm:text-[10px] font-extrabold text-center py-[5px] tracking-[0.15em] flex items-center justify-center gap-1.5 font-poppins">
                     ✦ VIP BOOSTED
                 </div>
             ) : (
-                /* Invisible spacer so non-VIP cards align exactly */
                 <div className="h-[21px] sm:h-[23px]" />
             )}
 
             <div className="px-4 pt-2">
-                {/* Member ID + Private badge row */}
+                {/* Member ID + badge row */}
                 <div className="flex items-center justify-between mb-2">
                     {memberId ? (
                         <span className={`inline-flex items-center gap-1 text-[9px] font-mono font-bold px-2 py-0.5 rounded-full border tracking-widest ${
@@ -170,14 +332,11 @@ const GenuineProfileCard = ({
                     </span>
                 </div>
 
-                {/* Profile picture with decorative border */}
+                {/* Profile picture */}
                 <div className="relative w-[90px] h-[90px] sm:w-[110px] sm:h-[110px] lg:w-[120px] lg:h-[120px] xl:w-[130px] xl:h-[130px] 2xl:w-[140px] 2xl:h-[140px] mx-auto mt-1 mb-3">
-                    {/* SVG decorative frame */}
                     <div className="absolute inset-0 w-full h-full">
                         <DecorativeBorder />
                     </div>
-
-                    {/* Profile image clipped inside the diamond shape */}
                     <div className="absolute inset-[25px] rounded-full overflow-hidden bg-gray-100">
                         {profileImage ? (
                             // eslint-disable-next-line @next/next/no-img-element
@@ -187,7 +346,6 @@ const GenuineProfileCard = ({
                                 className="w-full h-full object-cover"
                             />
                         ) : (
-                            /* Placeholder silhouette */
                             <div className="w-full h-full flex items-center justify-center bg-gray-100">
                                 <svg
                                     viewBox="0 0 80 80"
@@ -202,8 +360,6 @@ const GenuineProfileCard = ({
                             </div>
                         )}
                     </div>
-
-                    {/* Verified badge */}
                     {isVerified && (
                         <div className="absolute bottom-5 right-5 w-6 h-6 z-10">
                             <VerifiedIcon />
@@ -233,15 +389,10 @@ const GenuineProfileCard = ({
 
                 {!hideFooter && (
                     <>
-                        {/* Divider */}
                         <div className="border-t border-dashed border-gray-700 mt-2 mb-3" />
-
-                        {/* Joined date */}
                         <p className="text-center text-[11px] lg:text-[13px] xl:text-[15px] 2xl:text-[17px] text-[#010806A1]/80 font-poppins mb-3">
                             Joined {joinedDaysAgo} days ago
                         </p>
-
-                        {/* CTA Buttons */}
                         <div className="flex gap-2 w-full">
                             <button onClick={onViewClick} className="flex-1 bg-white hover:bg-gray-50 border border-gray-200 text-[#1C3B35] transition-all duration-150 text-[12px] sm:text-[13px] lg:text-[14px] font-medium font-poppins py-2 rounded-xl shadow-sm">
                                 View
@@ -257,7 +408,7 @@ const GenuineProfileCard = ({
     );
 };
 
-// ── Skeleton card shown while loading ────────────────────────────────────────
+// ── Skeleton card ─────────────────────────────────────────────────────────────
 const SkeletonCard = () => (
     <div className="relative bg-white rounded-[20px] shadow-[0_4px_24px_rgba(0,0,0,0.10)] w-full overflow-hidden pb-5 animate-pulse">
         <div className="h-[21px] bg-gray-100" />
@@ -272,23 +423,23 @@ const SkeletonCard = () => (
                 <div className="h-3 w-20 bg-gray-100 rounded mx-auto" />
             </div>
             <div className="space-y-2 mb-3">
-                {[1,2,3,4,5].map(i => (
+                {[1, 2, 3, 4, 5].map(i => (
                     <div key={i} className="flex justify-between">
                         <div className="h-3 w-16 bg-gray-100 rounded" />
                         <div className="h-3 w-20 bg-gray-200 rounded" />
                     </div>
                 ))}
             </div>
-
         </div>
     </div>
 );
 
-// ── Live profiles fetched from the public API ────────────────────────────────
+// ── GenuineProfileCards (main export) ─────────────────────────────────────────
 const GenuineProfileCards = () => {
     const router = useRouter();
-    const [profiles, setProfiles] = useState<ProfileCardProps[]>([]);
+    const [allProfiles, setAllProfiles] = useState<ProfileCardProps[]>([]);
     const [loading, setLoading] = useState(true);
+    const [filters, setFilters] = useState<Filters>(INITIAL_FILTERS);
 
     useEffect(() => {
         const BASE = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3002/api';
@@ -296,12 +447,36 @@ const GenuineProfileCards = () => {
             .then(r => r.ok ? r.json() : Promise.reject())
             .then(d => {
                 const items: any[] = d.data ?? [];
-                // Take top 8, VIP boosted profiles first
-                setProfiles(items.slice(0, 8).map(mapApiToCard));
+                setAllProfiles(items.slice(0, 40).map(mapApiToCard));
             })
-            .catch(() => setProfiles([]))
+            .catch(() => setAllProfiles([]))
             .finally(() => setLoading(false));
     }, []);
+
+    // Derive unique cities & countries for select options
+    const cities = useMemo(() => {
+        const s = new Set(allProfiles.map(p => p.city).filter(c => c && c !== '–'));
+        return Array.from(s).sort();
+    }, [allProfiles]);
+
+    const countries = useMemo(() => {
+        const s = new Set(allProfiles.map(p => p.country ?? '').filter(Boolean));
+        return Array.from(s).sort();
+    }, [allProfiles]);
+
+    // Apply filters
+    const displayed = useMemo(() => {
+        return allProfiles
+            .filter(p => {
+                if (filters.ageMin && p.age < Number(filters.ageMin)) return false;
+                if (filters.ageMax && p.age > Number(filters.ageMax)) return false;
+                if (filters.maritalStatus && !p.maritalStatus.toLowerCase().includes(filters.maritalStatus.toLowerCase())) return false;
+                if (filters.city && p.city !== filters.city && !p.city.toLowerCase().includes(filters.city.toLowerCase())) return false;
+                if (filters.country && p.country !== filters.country && !(p.country ?? '').toLowerCase().includes(filters.country.toLowerCase())) return false;
+                return true;
+            })
+            .slice(0, 8);
+    }, [allProfiles, filters]);
 
     const handleChatClick = (e: React.MouseEvent) => {
         e.preventDefault();
@@ -317,25 +492,55 @@ const GenuineProfileCards = () => {
 
     if (loading) {
         return (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-6 xl:grid-cols-4 justify-items-center">
-                {Array.from({ length: 4 }).map((_, i) => <SkeletonCard key={i} />)}
+            <div>
+                <div className="w-full mt-8 mb-2">
+                    <div className="bg-white/80 backdrop-blur-sm border border-white shadow-lg rounded-2xl px-4 py-4 h-16 animate-pulse bg-gray-100" />
+                </div>
+                <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-6 xl:grid-cols-4 justify-items-center">
+                    {Array.from({ length: 4 }).map((_, i) => <SkeletonCard key={i} />)}
+                </div>
             </div>
         );
     }
 
-    if (profiles.length === 0) return null;
-
     return (
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-6 xl:grid-cols-4 justify-items-center">
-            {profiles.map((profile, idx) => (
-                <GenuineProfileCard
-                    key={idx}
-                    {...profile}
-                    onChatClick={handleChatClick}
-                    onViewClick={handleViewClick}
-                    hideFooter
-                />
-            ))}
+        <div>
+            {/* Filter bar */}
+            <FilterBar
+                filters={filters}
+                onChange={setFilters}
+                onReset={() => setFilters(INITIAL_FILTERS)}
+                cities={cities}
+                countries={countries}
+            />
+
+            {/* Result count hint */}
+            {(filters.ageMin || filters.ageMax || filters.maritalStatus || filters.city || filters.country) && (
+                <p className="text-center text-xs text-gray-500 font-poppins mt-3 mb-1">
+                    Showing <span className="font-semibold text-[#1C3B35]">{displayed.length}</span> profile{displayed.length !== 1 ? 's' : ''} matching your filters
+                </p>
+            )}
+
+            {/* Cards grid */}
+            <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-6 xl:grid-cols-4 justify-items-center">
+                {displayed.length === 0 ? (
+                    <div className="col-span-full flex flex-col items-center py-12 text-gray-400">
+                        <span className="text-5xl mb-3">🔍</span>
+                        <p className="font-semibold text-gray-500 font-poppins">No profiles match your filters</p>
+                        <p className="text-sm mt-1 font-poppins">Try adjusting or clearing your filters</p>
+                    </div>
+                ) : (
+                    displayed.map((profile, idx) => (
+                        <GenuineProfileCard
+                            key={idx}
+                            {...profile}
+                            onChatClick={handleChatClick}
+                            onViewClick={handleViewClick}
+                            hideFooter
+                        />
+                    ))
+                )}
+            </div>
         </div>
     );
 };
