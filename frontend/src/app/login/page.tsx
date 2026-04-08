@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { Eye, EyeOff, Lock, Mail } from "lucide-react";
 import { authApi, subscriptionApi } from "@/services/api";
 import { useRouter } from "next/navigation";
@@ -105,12 +106,14 @@ export default function LoginPage() {
 
           {/* Mobile-only brand header */}
           <div className="md:hidden mb-6 text-center">
-            <div className="inline-flex items-center justify-center h-12 w-12 rounded-full bg-[#1B6B4A] mb-3">
-              <svg viewBox="0 0 24 24" className="h-6 w-6 fill-white">
-                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 14H9V8h2v8zm4 0h-2V8h2v8z" />
-              </svg>
-            </div>
-            <p className="text-xs font-medium text-[#1B6B4A] uppercase tracking-widest">Muslim Nikah</p>
+            <Image
+              src="/images/muslimLogo1.png"
+              alt="Muslim Nikah logo"
+              width={220}
+              height={88}
+              className="mx-auto mb-3 h-auto w-[180px]"
+              priority
+            />
           </div>
 
           <div className="w-full max-w-md mx-auto">

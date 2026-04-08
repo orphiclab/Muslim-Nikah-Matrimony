@@ -27,8 +27,8 @@ const About = () => {
         />
       </div>
 
-      <div className=" margin-y">
-        <div className="flex flex-col items-center text-center gap-2">
+      <div className=" margin-y ">
+        <div className="flex flex-col items-center text-center gap-10 md:gap-3">
           {/* Top decorative image */}
           <div className="mb-2 pt-5">
             <Image

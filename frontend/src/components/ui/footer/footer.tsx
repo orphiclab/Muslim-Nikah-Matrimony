@@ -98,7 +98,7 @@ const Footer = () => {
 
         {/* Bottom Row */}
         <div className="flex flex-col sm:flex-row items-center justify-between footer-sub gap-3 text-sm font-poppins text-white/60">
-          <p>@ 2026 MuslimNika. All right reserved.</p>
+          <p>@ 2026 MuslimNikah. All right reserved.</p>
           <div className="flex items-center footer-sub  gap-6">
             <Link href="#" className="hover:text-white transition-colors">Privacy</Link>
             <Link href="#" className="hover:text-white transition-colors">Terms</Link>

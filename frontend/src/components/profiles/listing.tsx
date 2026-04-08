@@ -67,7 +67,7 @@ function RadioGroup({ options, value, onChange, labels }: {
       {options.map(opt => (
         <label key={opt} className="flex items-center gap-2 cursor-pointer"
           onClick={() => onChange(value === opt ? '' : opt)}>
-          <span className={`w-4 h-4 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-all ${value === opt ? 'border-[#1C3B35] bg-[#1C3B35]' : 'border-gray-300'}`}>
+          <span className={`w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0 transition-all ${value === opt ? 'border-[#1C3B35] bg-[#1C3B35]' : 'border-gray-300'}`}>
             {value === opt && <span className="w-1.5 h-1.5 rounded-full bg-white" />}
           </span>
           <span className="text-[12px] text-gray-600 font-poppins">{(labels?.[opt] ?? opt) || 'Any'}</span>
@@ -105,6 +105,7 @@ export default function ProfilesListing() {
   const [filters, setFilters] = useState<Filters>(EMPTY_FILTERS);
   const [applied, setApplied] = useState<Filters>(EMPTY_FILTERS);
   const [page, setPage] = useState(1);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const PER_PAGE = 9;
 
   const [activeProfiles, setActiveProfiles] = useState<any[]>([]);
@@ -260,174 +261,224 @@ export default function ProfilesListing() {
   });
 
   /* ════════════════════════════════════════════════════════════ */
+  useEffect(() => {
+    if (!isSidebarOpen) return;
+
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+
+    const onEsc = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setIsSidebarOpen(false);
+    };
+    window.addEventListener('keydown', onEsc);
+
+    return () => {
+      document.body.style.overflow = prevOverflow;
+      window.removeEventListener('keydown', onEsc);
+    };
+  }, [isSidebarOpen]);
+
+  const sidebarFilters = (
+    <>
+      {/* Header row */}
+      <div className="flex items-center justify-between mb-4">
+        <span className="text-[13px] font-bold text-[#1C3B35] font-poppins">{total} Results</span>
+        <button onClick={resetFilters}
+          className="text-[11px] text-[#DB9D30] font-semibold font-poppins hover:opacity-75 transition">
+          Reset all
+        </button>
+      </div>
+
+      {/* ── Profile Selector (logged in only) ── */}
+      {isLoggedIn && (
+        <div className="mb-4">
+          {profilesLoading ? (
+            <div className="h-8 bg-gray-100 rounded-lg animate-pulse" />
+          ) : userProfiles.length === 0 ? (
+            /* No active profile warning */
+            <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 text-center">
+              <p className="text-[11px] text-amber-700 font-poppins font-semibold mb-1.5">
+                No Active Profile
+              </p>
+              <p className="text-[10px] text-amber-600 font-poppins leading-relaxed mb-2">
+                You don't have an active profile. Please activate your profile to start searching for matches.
+              </p>
+              <Link href="/dashboard/profiles"
+                className="inline-block text-[10px] font-bold text-white bg-[#1C3B35] px-3 py-1 rounded-lg hover:bg-[#15302a] transition font-poppins">
+                Activate Profile →
+              </Link>
+            </div>
+          ) : (
+            <div>
+              <label className="block text-[11px] font-semibold text-[#1C3B35] font-poppins mb-1.5 uppercase tracking-wide">
+                Searching as
+              </label>
+              <div className="relative">
+                <select
+                  value={selectedProfile?.id ?? ''}
+                  onChange={e => {
+                    const found = userProfiles.find(p => p.id === e.target.value);
+                    setSelectedProfile(found ?? null);
+                  }}
+                  className="w-full border border-[#1C3B35]/30 bg-[#1C3B35]/5 rounded-xl px-3 py-2 text-[12px] font-semibold text-[#1C3B35] font-poppins outline-none focus:border-[#1C3B35] appearance-none pr-7 cursor-pointer"
+                >
+                  {userProfiles.map(p => (
+                    <option key={p.id} value={p.id}>
+                      {p.name} ({p.gender === 'MALE' ? '♂ Male' : '♀ Female'}, {p.age}y)
+                    </option>
+                  ))}
+                </select>
+                <Chevron open={false} />
+              </div>
+
+              {/* Smart filter info badge */}
+              {selectedProfile && (
+                <div className="mt-2 bg-[#1C3B35]/5 border border-[#1C3B35]/15 rounded-lg px-2.5 py-2">
+                  <p className="text-[10px] text-[#1C3B35] font-poppins font-semibold mb-0.5">
+                    Smart Filters Active
+                  </p>
+                  <p className="text-[10px] text-gray-500 font-poppins leading-relaxed">
+                    Showing {selectedProfile.gender === 'MALE' ? 'Female' : 'Male'} profiles only.
+                    {ageHint && <> {ageHint}</>}
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ── Member ID Search ── */}
+      <div className="mb-4">
+        <label className="block text-[12px] font-semibold text-[#1C3B35] font-poppins mb-1.5">
+          Search by Member ID
+        </label>
+        <div className="relative">
+          <input type="text" placeholder="e.g. MN-000001" value={filters.memberId}
+            onChange={e => handleMemberIdChange(e.target.value)}
+            className="w-full border border-gray-200 rounded-xl pl-8 pr-3 py-2 text-[12px] outline-none focus:border-[#1C3B35] font-poppins uppercase tracking-widest placeholder:normal-case placeholder:tracking-normal"
+          />
+          <svg className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+            <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
+          </svg>
+          {filters.memberId && (
+            <button onClick={() => { setFilters(f => ({ ...f, memberId: '' })); setApplied(f => ({ ...f, memberId: '' })); }}
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
+              ✕
+            </button>
+          )}
+        </div>
+        <p className="text-[10px] text-gray-400 font-poppins mt-1">Format: MN-000001</p>
+      </div>
+
+      <div className="border-t border-gray-100 pt-3">
+        {/* Age Filter — with profile-based constraints */}
+        <FilterSection label="Age" defaultOpen>
+          <div className="space-y-2">
+            <div className="flex items-center justify-between text-[11px] text-gray-500 font-poppins">
+              <span>Range</span>
+              <span className="font-semibold text-[#1C3B35]">{filters.minAge} – {filters.maxAge}</span>
+            </div>
+            <div className="flex gap-2">
+              <input type="number" min={17} max={80}
+                value={filters.minAge}
+                onChange={e => setFilters(f => ({ ...f, minAge: e.target.value }))}
+                readOnly={!!selectedProfile && selectedProfile.gender === 'FEMALE'}
+                className={`w-full border border-gray-200 rounded-lg px-2.5 py-1.5 text-[12px] outline-none focus:border-[#1C3B35] font-poppins ${selectedProfile?.gender === 'FEMALE' ? 'bg-gray-50 text-gray-400 cursor-not-allowed' : ''}`}
+              />
+              <input type="number" min={17} max={80}
+                value={filters.maxAge}
+                onChange={e => setFilters(f => ({ ...f, maxAge: e.target.value }))}
+                readOnly={!!selectedProfile && selectedProfile.gender === 'MALE'}
+                className={`w-full border border-gray-200 rounded-lg px-2.5 py-1.5 text-[12px] outline-none focus:border-[#1C3B35] font-poppins ${selectedProfile?.gender === 'MALE' ? 'bg-gray-50 text-gray-400 cursor-not-allowed' : ''}`}
+              />
+            </div>
+            {ageHint && (
+              <p className="text-[10px] text-[#1C3B35]/70 font-poppins leading-relaxed">
+                {ageHint}
+              </p>
+            )}
+          </div>
+        </FilterSection>
+
+        {!selectedProfile && (
+          <FilterSection label="Gender" defaultOpen>
+            <RadioGroup
+              options={['', 'MALE', 'FEMALE']} value={filters.gender}
+              onChange={set('gender')}
+              labels={{ '': 'Any', 'MALE': 'Male', 'FEMALE': 'Female' }}
+            />
+          </FilterSection>
+        )}
+
+        <FilterSection label="City">
+          <TextFilter placeholder="e.g. Colombo" value={filters.city} onChange={set('city')} />
+        </FilterSection>
+
+        <FilterSection label="Ethnicity">
+          <TextFilter placeholder="e.g. Malay, Arab" value={filters.ethnicity} onChange={set('ethnicity')} />
+        </FilterSection>
+
+        <FilterSection label="Civil Status">
+          <RadioGroup options={CIVIL_STATUSES} value={filters.civilStatus} onChange={set('civilStatus')} labels={{ '': 'Any' }} />
+        </FilterSection>
+
+        <FilterSection label="Education Level">
+          <RadioGroup options={EDUCATIONS} value={filters.education} onChange={set('education')} labels={{ '': 'Any' }} />
+        </FilterSection>
+
+        <FilterSection label="Profession">
+          <TextFilter placeholder="e.g. Engineer" value={filters.occupation} onChange={set('occupation')} />
+        </FilterSection>
+      </div>
+
+      <button onClick={() => { applyFilters(); setIsSidebarOpen(false); }}
+        className="mt-4 w-full bg-[#1C3B35] text-white text-[13px] font-semibold font-poppins py-2.5 rounded-xl hover:bg-[#15302a] transition">
+        Apply Filters
+      </button>
+    </>
+  );
+
   return (
     <section className="bg-[#F8F9FA] min-h-screen">
       <div className="containerpadding container mx-auto py-10">
         <div className="flex gap-6 items-start">
 
+          {/* Mobile/Tablet Sidebar Drawer */}
+          <div
+            className={`lg:hidden fixed inset-0 transition-opacity duration-300 ${isSidebarOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}
+            style={{ zIndex: 99999 }}
+          >
+            <button
+              aria-label="Close filters"
+              onClick={() => setIsSidebarOpen(false)}
+              className="absolute inset-0 bg-black/30"
+            />
+            <aside
+              className={`absolute left-0 top-0 h-full w-[90vw] max-w-sm bg-white shadow-2xl border-r border-gray-200 overflow-y-auto transition-transform duration-300 ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}
+              style={{ zIndex: 100000 }}
+            >
+              <div className="sticky top-0 z-10 flex items-center justify-between px-4 py-3 border-b border-gray-100 bg-white">
+                <h2 className="text-[18px] sm:text-[20px] font-poppins text-[#1C3B35] font-poppins">Sort and filter</h2>
+                <button
+                  onClick={() => setIsSidebarOpen(false)}
+                  className="text-[#1C3B35] p-1"
+                  aria-label="Close filters panel"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-6 h-6">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+              <div className="p-4">
+                {sidebarFilters}
+              </div>
+            </aside>
+          </div>
+
           {/* ── Sidebar ── */}
-          <aside className="hidden lg:block w-[230px] xl:w-[255px] flex-shrink-0 bg-white rounded-2xl shadow-sm border border-gray-100 p-4 sticky top-6">
-
-            {/* Header row */}
-            <div className="flex items-center justify-between mb-4">
-              <span className="text-[13px] font-bold text-[#1C3B35] font-poppins">{total} Results</span>
-              <button onClick={resetFilters}
-                className="text-[11px] text-[#DB9D30] font-semibold font-poppins hover:opacity-75 transition">
-                Reset all
-              </button>
-            </div>
-
-            {/* ── Profile Selector (logged in only) ── */}
-            {isLoggedIn && (
-              <div className="mb-4">
-                {profilesLoading ? (
-                  <div className="h-8 bg-gray-100 rounded-lg animate-pulse" />
-                ) : userProfiles.length === 0 ? (
-                  /* No active profile warning */
-                  <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 text-center">
-                    <p className="text-[11px] text-amber-700 font-poppins font-semibold mb-1.5">
-                      No Active Profile
-                    </p>
-                    <p className="text-[10px] text-amber-600 font-poppins leading-relaxed mb-2">
-                      You don't have an active profile. Please activate your profile to start searching for matches.
-                    </p>
-                    <Link href="/dashboard/profiles"
-                      className="inline-block text-[10px] font-bold text-white bg-[#1C3B35] px-3 py-1 rounded-lg hover:bg-[#15302a] transition font-poppins">
-                      Activate Profile →
-                    </Link>
-                  </div>
-                ) : (
-                  <div>
-                    <label className="block text-[11px] font-semibold text-[#1C3B35] font-poppins mb-1.5 uppercase tracking-wide">
-                      Searching as
-                    </label>
-                    <div className="relative">
-                      <select
-                        value={selectedProfile?.id ?? ''}
-                        onChange={e => {
-                          const found = userProfiles.find(p => p.id === e.target.value);
-                          setSelectedProfile(found ?? null);
-                        }}
-                        className="w-full border border-[#1C3B35]/30 bg-[#1C3B35]/5 rounded-xl px-3 py-2 text-[12px] font-semibold text-[#1C3B35] font-poppins outline-none focus:border-[#1C3B35] appearance-none pr-7 cursor-pointer"
-                      >
-                        {userProfiles.map(p => (
-                          <option key={p.id} value={p.id}>
-                            {p.name} ({p.gender === 'MALE' ? '♂ Male' : '♀ Female'}, {p.age}y)
-                          </option>
-                        ))}
-                      </select>
-                      <Chevron open={false} />
-                    </div>
-
-                    {/* Smart filter info badge */}
-                    {selectedProfile && (
-                      <div className="mt-2 bg-[#1C3B35]/5 border border-[#1C3B35]/15 rounded-lg px-2.5 py-2">
-                        <p className="text-[10px] text-[#1C3B35] font-poppins font-semibold mb-0.5">
-                          💡 Smart Filters Active
-                        </p>
-                        <p className="text-[10px] text-gray-500 font-poppins leading-relaxed">
-                          Showing {selectedProfile.gender === 'MALE' ? 'Female' : 'Male'} profiles only.
-                          {ageHint && <> {ageHint}</>}
-                        </p>
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* ── Member ID Search ── */}
-            <div className="mb-4">
-              <label className="block text-[12px] font-semibold text-[#1C3B35] font-poppins mb-1.5">
-                Search by Member ID
-              </label>
-              <div className="relative">
-                <input type="text" placeholder="e.g. MN-000001" value={filters.memberId}
-                  onChange={e => handleMemberIdChange(e.target.value)}
-                  className="w-full border border-gray-200 rounded-xl pl-8 pr-3 py-2 text-[12px] outline-none focus:border-[#1C3B35] font-poppins uppercase tracking-widest placeholder:normal-case placeholder:tracking-normal"
-                />
-                <svg className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
-                  <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
-                </svg>
-                {filters.memberId && (
-                  <button onClick={() => { setFilters(f => ({ ...f, memberId: '' })); setApplied(f => ({ ...f, memberId: '' })); }}
-                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
-                    ✕
-                  </button>
-                )}
-              </div>
-              <p className="text-[10px] text-gray-400 font-poppins mt-1">Format: MN-000001</p>
-            </div>
-
-            <div className="border-t border-gray-100 pt-3">
-              {/* Age Filter — with profile-based constraints */}
-              <FilterSection label="Age" defaultOpen>
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between text-[11px] text-gray-500 font-poppins">
-                    <span>Range</span>
-                    <span className="font-semibold text-[#1C3B35]">{filters.minAge} – {filters.maxAge}</span>
-                  </div>
-                  <div className="flex gap-2">
-                    <input type="number" min={17} max={80}
-                      value={filters.minAge}
-                      onChange={e => setFilters(f => ({ ...f, minAge: e.target.value }))}
-                      // Female profiles lock min to their age
-                      readOnly={!!selectedProfile && selectedProfile.gender === 'FEMALE'}
-                      className={`w-full border border-gray-200 rounded-lg px-2.5 py-1.5 text-[12px] outline-none focus:border-[#1C3B35] font-poppins ${selectedProfile?.gender === 'FEMALE' ? 'bg-gray-50 text-gray-400 cursor-not-allowed' : ''}`}
-                    />
-                    <input type="number" min={17} max={80}
-                      value={filters.maxAge}
-                      onChange={e => setFilters(f => ({ ...f, maxAge: e.target.value }))}
-                      // Male profiles lock max to their age
-                      readOnly={!!selectedProfile && selectedProfile.gender === 'MALE'}
-                      className={`w-full border border-gray-200 rounded-lg px-2.5 py-1.5 text-[12px] outline-none focus:border-[#1C3B35] font-poppins ${selectedProfile?.gender === 'MALE' ? 'bg-gray-50 text-gray-400 cursor-not-allowed' : ''}`}
-                    />
-                  </div>
-                  {/* Age hint message */}
-                  {ageHint && (
-                    <p className="text-[10px] text-[#1C3B35]/70 font-poppins leading-relaxed">
-                      ℹ️ {ageHint}
-                    </p>
-                  )}
-                </div>
-              </FilterSection>
-
-              {/* Gender filter — HIDDEN when a profile is selected (auto-set) */}
-              {!selectedProfile && (
-                <FilterSection label="Gender" defaultOpen>
-                  <RadioGroup
-                    options={['', 'MALE', 'FEMALE']} value={filters.gender}
-                    onChange={set('gender')}
-                    labels={{ '': 'Any', 'MALE': 'Male', 'FEMALE': 'Female' }}
-                  />
-                </FilterSection>
-              )}
-
-              <FilterSection label="City">
-                <TextFilter placeholder="e.g. Colombo" value={filters.city} onChange={set('city')} />
-              </FilterSection>
-
-              <FilterSection label="Ethnicity">
-                <TextFilter placeholder="e.g. Malay, Arab" value={filters.ethnicity} onChange={set('ethnicity')} />
-              </FilterSection>
-
-              <FilterSection label="Civil Status">
-                <RadioGroup options={CIVIL_STATUSES} value={filters.civilStatus} onChange={set('civilStatus')} labels={{ '': 'Any' }} />
-              </FilterSection>
-
-              <FilterSection label="Education Level">
-                <RadioGroup options={EDUCATIONS} value={filters.education} onChange={set('education')} labels={{ '': 'Any' }} />
-              </FilterSection>
-
-              <FilterSection label="Profession">
-                <TextFilter placeholder="e.g. Engineer" value={filters.occupation} onChange={set('occupation')} />
-              </FilterSection>
-            </div>
-
-            <button onClick={applyFilters}
-              className="mt-4 w-full bg-[#1C3B35] text-white text-[13px] font-semibold font-poppins py-2.5 rounded-xl hover:bg-[#15302a] transition">
-              Apply Filters
-            </button>
+          <aside className="hidden lg:block w-[230px] xl:w-[255px] shrink-0 bg-white rounded-2xl shadow-sm border border-gray-100 p-4 sticky top-6">
+            {sidebarFilters}
           </aside>
 
           {/* ── Main content ── */}
@@ -477,27 +528,15 @@ export default function ProfilesListing() {
                 </svg>
               </div>
 
-              {/* Mobile quick filters (only gender if no profile) */}
-              {!selectedProfile && (
-                <div className="flex gap-2 flex-wrap">
-                  <select value={filters.gender}
-                    onChange={e => setFilters(f => ({ ...f, gender: e.target.value }))}
-                    className="border border-gray-200 rounded-xl px-3 py-1.5 text-[12px] bg-white font-poppins outline-none">
-                    <option value="">Gender: Any</option>
-                    {['MALE', 'FEMALE'].map(v => <option key={v} value={v}>{v}</option>)}
-                  </select>
-                  <button onClick={applyFilters}
-                    className="bg-[#1C3B35] text-white text-[12px] px-4 py-1.5 rounded-xl font-semibold font-poppins">
-                    Search
-                  </button>
-                </div>
-              )}
-              {selectedProfile && (
-                <button onClick={applyFilters}
-                  className="w-full bg-[#1C3B35] text-white text-[12px] px-4 py-2 rounded-xl font-semibold font-poppins">
-                  Apply Filters
-                </button>
-              )}
+              <button
+                onClick={() => setIsSidebarOpen(true)}
+                className="w-full flex items-center justify-center gap-2 bg-[#1C3B35] text-white text-[13px] px-4 py-2.5 rounded-xl font-semibold font-poppins"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M3 4.5h18m-14.25 7.5h10.5m-7.5 7.5h4.5" />
+                </svg>
+                Sort and Filter
+              </button>
             </div>
 
             {/* Smart filter info banner (mobile) */}
