@@ -66,7 +66,6 @@ export class ProfileListService {
     });
 
     // Sort: active VIP boosts first, then by createdAt descending
-    const now = new Date();
     sanitized.sort((a, b) => {
       const aVip = !!(a.boostExpiresAt && new Date(a.boostExpiresAt) > now);
       const bVip = !!(b.boostExpiresAt && new Date(b.boostExpiresAt) > now);
