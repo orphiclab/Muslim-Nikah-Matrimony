@@ -12,7 +12,7 @@ const About = () => {
           alt="Left lantern"
           width={160}
           height={220}
-          className="h-[120px] sm:h-auto w-20 object-contain sm:w-28 md:w-32 lg:w-40 xl:w-48 2xl:w-52"
+          className="h-[100px] sm:h-auto w-20 object-contain sm:w-28 md:w-32 lg:w-40 xl:w-48 2xl:w-52"
         />
       </div>
 
@@ -23,12 +23,12 @@ const About = () => {
           alt="Right lantern"
           width={160}
           height={220}
-          className="h-[120px] sm:h-auto w-20 object-contain sm:w-28 md:w-32 lg:w-40 xl:w-48 2xl:w-52"
+          className="h-[100px] sm:h-auto w-20 object-contain sm:w-28 md:w-32 lg:w-40 xl:w-48 2xl:w-52"
         />
       </div>
 
-      <div className=" margin-y">
-        <div className="flex flex-col items-center text-center gap-2">
+      <div className=" margin-y py-10">
+        <div className="flex flex-col items-center text-center gap-10 md:gap-3">
           {/* Top decorative image */}
           <div className="mb-2 pt-5">
             <Image

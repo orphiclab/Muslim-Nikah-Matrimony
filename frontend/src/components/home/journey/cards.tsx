@@ -47,12 +47,12 @@ function JourneyCard({
           <path d={CARD_PATH} fill="#397466" />
         </svg>
 
-        <div className="relative z-10 flex h-full flex-col items-center px-4 pb-10 pt-6 text-center text-white sm:px-8 sm:pt-14 lg:pt-8 xl:pt-16">
-          <div className="flex h-10 w-10 lg:h-11 lg:w-11 shrink-0 items-center justify-center rounded-full bg-[#DB9D30] text-lg font-bold text-white shadow-sm mb-4 lg:mb-6 xl:mb-10">
+        <div className="relative z-10 flex h-full flex-col items-center px-4 pb-10 pt-4 text-center text-white sm:px-8 sm:pt-14 lg:pt-8 xl:pt-16">
+          <div className="flex h-8 w-8 sm:h-10 sm:w-10 lg:h-11 lg:w-11 shrink-0 items-center justify-center rounded-full bg-[#DB9D30] text-lg font-bold text-white shadow-sm mb-4 lg:mb-6 xl:mb-10">
             {step}
           </div>
-          <div className="flex flex-col gap-2 lg:gap-4">
-            <h3 className="font-poppins subtitle font-medium min-h-[3rem] lg:min-h-fit xl:min-h-[3.5rem] flex items-center justify-center leading-tight lg:whitespace-nowrap lg:text-[16px] xl:text-[20px] 2xl:subtitle">
+          <div className="flex flex-col gap-0 lg:gap-4">
+            <h3 className="font-poppins text-[16px] sm:text-[17px] md:text-[20px] lg:text-[20px] xl:text-[22px] 2xl:text-[25px] font-medium min-h-[3rem] lg:min-h-fit xl:min-h-[3.5rem] flex items-center justify-center leading-tight lg:whitespace-nowrap lg:text-[16px] xl:text-[20px] 2xl:subtitle">
               {title}
             </h3>
             <p className="font-aref-ruqaa-ink max-w-[320px] paragraph text-white/90">
@@ -68,7 +68,7 @@ function JourneyCard({
 const JourneyCards = () => {
   return (
     <section className="containerpadding container mx-auto bg-white">
-      <div className="grid grid-cols-2 gap-4 sm:grid-cols-2 sm:gap-6 lg:grid-cols-4 lg:gap-5 xl:gap-8">
+      <div className="grid grid-cols-2 gap-0 sm:grid-cols-2  sm:gap-6 lg:grid-cols-4 lg:gap-5 xl:gap-8">
         {STEPS.map((item) => (
           <JourneyCard key={item.step} {...item} />
         ))}
