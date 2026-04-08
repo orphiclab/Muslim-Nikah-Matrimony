@@ -487,7 +487,7 @@ const GenuineProfileCards = () => {
     const handleViewClick = (e: React.MouseEvent) => {
         e.preventDefault();
         const token = typeof window !== 'undefined' ? localStorage.getItem('mn_token') : null;
-        router.push(token ? '/dashboard/members' : '/login');
+        router.push(token ? '/profiles' : '/login');
     };
 
     if (loading) {

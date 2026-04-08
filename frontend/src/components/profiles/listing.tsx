@@ -119,7 +119,13 @@ export default function ProfilesListing() {
     profileApi.getMyProfiles()
       .then(r => {
         const active: UserProfile[] = (r.data ?? [])
-          .filter((p: any) => p.status === 'ACTIVE')
+          .filter((p: any) => {
+            if (p.status !== 'ACTIVE') return false;
+            if (p.subscription?.status === 'EXPIRED') return false;
+            // Also treat as expired if endDate has already passed
+            if (p.subscription?.endDate && new Date(p.subscription.endDate) < new Date()) return false;
+            return true;
+          })
           .map((p: any) => ({
             id: p.id,
             name: p.name ?? 'Profile',

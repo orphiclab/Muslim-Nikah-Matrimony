@@ -377,7 +377,7 @@ export default function ChatPage() {
             className="border border-gray-200 rounded-xl px-3 py-2 text-sm text-gray-700 bg-white outline-none focus:border-[#1C3B35] transition">
             {myProfiles.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
           </select>
-          <a href="/dashboard/members"
+          <a href="/profiles"
             className="text-xs bg-[#1C3B35] text-white px-4 py-2 rounded-xl hover:bg-[#15302a] transition font-semibold whitespace-nowrap">
             + Browse
           </a>
@@ -400,7 +400,7 @@ export default function ChatPage() {
                   <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
                 </svg>
                 <p className="text-sm font-medium text-gray-400">No conversations yet</p>
-                <a href="/dashboard/members" className="text-xs text-[#1C3B35] font-semibold mt-2 underline">Browse members →</a>
+                <a href="/profiles" className="text-xs text-[#1C3B35] font-semibold mt-2 underline">Browse members →</a>
               </div>
             ) : (
               conversations.map(c => {
@@ -460,7 +460,7 @@ export default function ChatPage() {
                   </svg>
                 </div>
                 <p className="text-sm font-medium text-gray-400">Select a conversation</p>
-                <p className="text-xs mt-1 text-gray-300">Or <a href="/dashboard/members" className="text-[#1C3B35] underline">browse members</a> to start a new chat</p>
+                <p className="text-xs mt-1 text-gray-300">Or <a href="/profiles" className="text-[#1C3B35] underline">browse members</a> to start a new chat</p>
               </div>
             </div>
           ) : (
@@ -482,7 +482,7 @@ export default function ChatPage() {
                     }
                   </p>
                 </div>
-                <a href={`/dashboard/members/${selectedChat}?viewer=${selectedMyProfile}`}
+                <a href={`/profiles/${selectedChat}?viewer=${selectedMyProfile}`}
                   className="text-xs text-[#1C3B35] border border-[#1C3B35]/20 px-3 py-1.5 rounded-lg hover:bg-[#1C3B35]/5 transition font-semibold flex-shrink-0">
                   View Profile
                 </a>
