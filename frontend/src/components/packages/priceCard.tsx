@@ -113,7 +113,7 @@ export default function PricingCards() {
         </div>
       )}
 
-      <div className="containerpadding container mx-auto">
+      <div className="containerpadding container mx-auto overflow-x-clip">
         <div className="flex flex-col items-stretch gap-6 sm:flex-row sm:items-stretch sm:justify-center">
           {plans.map((plan, idx) => {
             const isSelected = selectedId === plan.id;
@@ -132,9 +132,9 @@ export default function PricingCards() {
                 key={plan.id}
                 onClick={() => setSelectedId(plan.id)}
                 className={[
-                  "relative flex flex-1 cursor-pointer flex-col gap-5 rounded-2xl border-2 bg-white p-7 shadow-md transition-all duration-300",
+                  "relative flex w-full min-w-0 flex-1 cursor-pointer flex-col gap-5 rounded-2xl border-2 bg-white p-5 sm:p-7 shadow-md transition-all duration-300",
                   isSelected
-                    ? "z-10 scale-[1.05] border-[#DB9D30] shadow-2xl"
+                    ? "z-10 border-[#DB9D30] shadow-2xl sm:scale-[1.03]"
                     : "border-[#E5E7EB]/50 shadow-md hover:border-[#DB9D30]/40 hover:shadow-lg",
                 ].join(" ")}
               >
