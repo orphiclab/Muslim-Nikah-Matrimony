@@ -70,6 +70,11 @@ export class AdminController {
   @Get('users')
   users() { return this.service.getAllUsers(); }
 
+  @Post('users')
+  createUser(@Body() body: { email: string; password: string; phone?: string; whatsappNumber?: string; role: string }) {
+    return this.service.createUser(body);
+  }
+
   @Get('users/:id')
   getUser(@Param('id') id: string) { return this.service.getUser(id); }
 

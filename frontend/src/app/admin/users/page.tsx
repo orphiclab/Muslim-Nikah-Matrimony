@@ -124,8 +124,8 @@ export default function AdminUsersPage() {
             All registered platform users
           </p>
         </div>
-        {/* Summary chips */}
-        <div className="flex gap-2">
+        {/* Summary chips + Add User button */}
+        <div className="flex items-center gap-2 flex-wrap">
           <span className="text-xs font-semibold px-3 py-1.5 rounded-full bg-[#EAF2EE] text-[#1C3B35]">
             {users.length} Total
           </span>
@@ -135,6 +135,15 @@ export default function AdminUsersPage() {
           <span className="text-xs font-semibold px-3 py-1.5 rounded-full bg-blue-50 text-blue-700">
             {parentCount} Parents
           </span>
+          <button
+            onClick={() => router.push('/admin/users/create')}
+            className="flex items-center gap-1.5 bg-[#1C3B35] hover:bg-[#15302a] text-white text-xs font-semibold px-4 py-1.5 rounded-full transition shadow-sm"
+          >
+            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
+              <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
+            </svg>
+            Add User
+          </button>
         </div>
       </div>
 

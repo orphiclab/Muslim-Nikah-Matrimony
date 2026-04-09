@@ -1,16 +1,16 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { profileApi } from '@/services/api';
+import { CascadeLocation } from '@/components/ui/CascadeLocation';
+import { loadMasterData, MasterData } from '@/app/admin/master-file/data';
 
 // ── Steps (mirrors registration Steps 2–5) ────────────────────────────────────
 const STEPS = ['Personal Details', 'Location & Education', 'Family Details', 'Additional Details', 'Review'];
 
 const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
-const COUNTRIES = ['Sri Lanka','United Kingdom','Australia','Canada','UAE','Saudi Arabia','Qatar','USA','Malaysia','Other'];
-const LOOKING_COUNTRIES = ['Any Country','Sri Lanka','United Kingdom','Australia','Canada','UAE','Saudi Arabia','Qatar','USA','Malaysia','Other'];
-const ETHNICITIES = ['Arab','South Asian','African','South East Asian','European','Other'];
+const ETHNICITIES = ['Muslim','Sri Lankan Moors','Indian Moors','Malays','Indian Malays','Arab (Middle Eastern)','Tamil','Indian','Memons','Turkish','European','Other'];
 const OCCUPATIONS_GENERAL = ['Employed','Self Employed','Business Owner','Student','Not Employed'];
 const FATHER_OCCUPATIONS = ['Business','Government Employee','Private Sector','Retired','Not Employed','Deceased'];
 const MOTHER_OCCUPATIONS = ['Business','Government Employee','Private Sector','Homemaker','Retired','Not Employed'];
@@ -24,15 +24,23 @@ const FAMILY_STATUSES = ['Upper Class','Upper Middle Class','Middle Class','Lowe
 const CIVIL_STATUSES = ['Never Married','Widowed','Divorced','Separated','Other'];
 const CHILDREN_OPTS = ['No','Yes - 1','Yes - 2','Yes - 3','Yes - 3+'];
 const CREATED_BY_OPTS = ['Self','Parent','Guardian','Sibling'];
-const HEIGHT_OPTS = ["4'0\"","4'5\"","4'10\"","5'0\"","5'2\"","5'4\"","5'6\"","5'8\"","5'10\"","6'0\"","6'2\"","6'4\"","6'6\""];
-
-// Height string → cm (same as registration)
-const HEIGHT_TO_CM: Record<string, number> = {
-  "4'0\"": 122, "4'5\"": 135, "4'10\"": 147,
-  "5'0\"": 152, "5'2\"": 157, "5'4\"": 163,
-  "5'6\"": 168, "5'8\"": 173, "5'10\"": 178,
-  "6'0\"": 183, "6'2\"": 188, "6'4\"": 193, "6'6\"": 198,
-};
+// Generate every-inch heights from 4'0" to 8'0" with cm equivalents
+function buildHeights() {
+  const opts: string[] = [];
+  const map: Record<string, number> = {};
+  for (let feet = 4; feet <= 8; feet++) {
+    const maxInch = feet === 8 ? 0 : 11;
+    for (let inch = 0; inch <= maxInch; inch++) {
+      const label = `${feet}'${inch}"`;
+      const cm = Math.round((feet * 12 + inch) * 2.54);
+      opts.push(label);
+      map[label] = cm;
+    }
+  }
+  return { opts, map };
+}
+const { opts: HEIGHT_OPTS, map: HEIGHT_TO_CM } = buildHeights();
+const WEIGHT_OPTS = Array.from({ length: 101 }, (_, i) => `${i + 20} kg`);
 
 // ── Shared field components ───────────────────────────────────────────────────
 const inputCls = (err?: string) =>
@@ -198,11 +206,14 @@ function generateBio(form: any): { about: string; expectations: string } {
 export default function CreateProfilePage() {
   const router = useRouter();
   const [step, setStep] = useState(0);
+  const [masterData, setMasterData] = useState<MasterData | null>(null);
+
+  useEffect(() => { setMasterData(loadMasterData()); }, []);
   const [form, setForm] = useState<any>({
     // Personal
     firstName: '', lastName: '', createdBy: '', gender: 'MALE',
     dob_day: '', dob_month: '', dob_year: '', dateOfBirth: '',
-    height: '', appearance: '', complexion: '', ethnicity: '',
+    height: '', weight: '', appearance: '', complexion: '', ethnicity: '',
     dressCode: '', familyStatus: '', civilStatus: '', children: '',
     // Location & Edu
     country: '', state: '', city: '', residencyStatus: '',
@@ -219,10 +230,27 @@ export default function CreateProfilePage() {
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [apiError, setApiError] = useState('');
 
-  const handleField = (e: any) => {
+  const handleField = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
-    setForm((f: any) => ({ ...f, [name]: value }));
-    setFieldErrors(prev => { const n = { ...prev }; delete n[name]; return n; });
+    // Cascade: clear city when country changes for father/mother
+    if (name === 'fatherCountry') {
+      setForm((f: any) => ({ ...f, fatherCountry: value, fatherCity: '' }));
+    } else if (name === 'motherCountry') {
+      setForm((f: any) => ({ ...f, motherCountry: value, motherCity: '' }));
+    } else {
+      setForm((f: any) => ({ ...f, [name]: value }));
+    }
+    setFieldErrors((prev: any) => { const n = { ...prev }; delete n[name]; return n; });
+  };
+
+  // Cascading location handler
+  const handleLocationChange = (field: 'country' | 'city', value: string) => {
+    setForm((f: any) => {
+      const next = { ...f, [field]: value };
+      if (field === 'country') { next.city = ''; }
+      return next;
+    });
+    setFieldErrors((prev: any) => { const n = { ...prev }; delete n[field]; return n; });
   };
 
   const handleDob = (field: 'dob_day' | 'dob_month' | 'dob_year', value: string) => {
@@ -260,12 +288,10 @@ export default function CreateProfilePage() {
       if (!form.dressCode) errs.dressCode = 'Please select a dress code.';
       if (!form.familyStatus) errs.familyStatus = 'Please select a family status.';
       if (!form.civilStatus) errs.civilStatus = 'Please select a civil status.';
-      if (!form.children) errs.children = 'Please select children status.';
     }
     if (s === 1) {
       if (!form.country) errs.country = 'Please select a country.';
-      if (!form.state) errs.state = 'Please select a state/province.';
-      if (!form.city?.trim()) errs.city = 'City is required.';
+      if (!form.city) errs.city = 'Please select a city.';
       if (!form.residencyStatus) errs.residencyStatus = 'Please select a residency status.';
       if (!form.education) errs.education = 'Please select an education level.';
       if (!form.occupation) errs.occupation = 'Please select an occupation.';
@@ -320,6 +346,7 @@ export default function CreateProfilePage() {
         gender:             form.gender,
         dateOfBirth:        form.dateOfBirth,
         height:             heightCm,
+        weight:             form.weight ? parseInt(form.weight) : undefined,
         appearance:         form.appearance     || undefined,
         complexion:         form.complexion     || undefined,
         ethnicity:          form.ethnicity      || undefined,
@@ -327,7 +354,6 @@ export default function CreateProfilePage() {
         civilStatus:        form.civilStatus    || undefined,
         children:           form.children       || undefined,
         country:            form.country        || undefined,
-        state:              form.state          || undefined,
         city:               form.city           || undefined,
         residencyStatus:    form.residencyStatus|| undefined,
         education:          form.education      || undefined,
@@ -441,19 +467,23 @@ export default function CreateProfilePage() {
                 <div className={g2}>
                   <Select label="Height" name="height" value={form.height} onChange={handleField}
                     options={HEIGHT_OPTS} required error={fieldErrors.height} placeholder="Select Height" />
+                  <Select label="Weight" name="weight" value={form.weight} onChange={handleField}
+                    options={WEIGHT_OPTS} optional placeholder="Select Weight" />
+                </div>
+                <div className={g2}>
                   <Select label="Appearance" name="appearance" value={form.appearance} onChange={handleField} options={APPEARANCES} required error={fieldErrors.appearance} />
-                </div>
-                <div className={g2}>
                   <Select label="Complexion" name="complexion" value={form.complexion} onChange={handleField} options={COMPLEXIONS} required error={fieldErrors.complexion} />
-                  <Select label="Ethnicity" name="ethnicity" value={form.ethnicity} onChange={handleField} options={ETHNICITIES} required error={fieldErrors.ethnicity} />
                 </div>
                 <div className={g2}>
+                  <Select label="Ethnicity" name="ethnicity" value={form.ethnicity} onChange={handleField} options={ETHNICITIES} required error={fieldErrors.ethnicity} />
                   <Select label="Dress Code" name="dressCode" value={form.dressCode} onChange={handleField} options={DRESS_CODES} required error={fieldErrors.dressCode} />
+                </div>
+                <div className={g2}>
                   <Select label="Family Status" name="familyStatus" value={form.familyStatus} onChange={handleField} options={FAMILY_STATUSES} required error={fieldErrors.familyStatus} />
                 </div>
                 <div className={g2}>
                   <Select label="Civil Status" name="civilStatus" value={form.civilStatus} onChange={handleField} options={CIVIL_STATUSES} required error={fieldErrors.civilStatus} />
-                  <Select label="Children" name="children" value={form.children} onChange={handleField} options={CHILDREN_OPTS} required error={fieldErrors.children} />
+                  <Select label="Children" name="children" value={form.children} onChange={handleField} options={CHILDREN_OPTS} optional />
                 </div>
               </>
             )}
@@ -462,11 +492,13 @@ export default function CreateProfilePage() {
             {step === 1 && (
               <>
                 <div className={g2}>
-                  <Select label="Country" name="country" value={form.country} onChange={handleField} options={COUNTRIES} required error={fieldErrors.country} />
-                  <Select label="State / Province" name="state" value={form.state} onChange={handleField} options={STATES} required error={fieldErrors.state} />
-                </div>
-                <div className={g2}>
-                  <Field label="City" name="city" value={form.city} onChange={handleField} placeholder="Enter your city" required error={fieldErrors.city} />
+                  <CascadeLocation
+                    country={form.country || ''}
+                    city={form.city || ''}
+                    onChange={handleLocationChange}
+                    errors={{ country: fieldErrors.country, city: fieldErrors.city }}
+                    required
+                  />
                   <Select label="Residency Status" name="residencyStatus" value={form.residencyStatus} onChange={handleField} options={RESIDENCY_STATUSES} required error={fieldErrors.residencyStatus} />
                 </div>
                 <div className={g2}>
@@ -486,11 +518,24 @@ export default function CreateProfilePage() {
                 <p className="text-xs font-bold text-[#1C3B35] uppercase tracking-wide">Father's Details</p>
                 <div className={g2}>
                   <Select label="Ethnicity" name="fatherEthnicity" value={form.fatherEthnicity} onChange={handleField} options={ETHNICITIES} required error={fieldErrors.fatherEthnicity} />
-                  <Select label="Country" name="fatherCountry" value={form.fatherCountry} onChange={handleField} options={COUNTRIES} required error={fieldErrors.fatherCountry} />
+                  <Select label="Country" name="fatherCountry" value={form.fatherCountry} onChange={handleField}
+                    options={masterData ? masterData.countries.map(c => c.name) : ['Sri Lanka','United Kingdom','Australia','Canada','UAE','Saudi Arabia','Qatar','USA','Malaysia','Other']}
+                    required error={fieldErrors.fatherCountry} />
                 </div>
                 <div className={g2}>
                   <Select label="Occupation" name="fatherOccupation" value={form.fatherOccupation} onChange={handleField} options={FATHER_OCCUPATIONS} required error={fieldErrors.fatherOccupation} />
-                  <Field label="City" name="fatherCity" value={form.fatherCity} onChange={handleField} placeholder="Enter city" required error={fieldErrors.fatherCity} />
+                  <Select
+                    label="City"
+                    name="fatherCity"
+                    value={form.fatherCity}
+                    onChange={handleField}
+                    options={masterData && form.fatherCountry
+                      ? (masterData.countries.find(c => c.name === form.fatherCountry)?.cities.map(ci => ci.name) ?? [])
+                      : []}
+                    placeholder={form.fatherCountry ? 'Select city' : 'Select country first'}
+                    required
+                    error={fieldErrors.fatherCity}
+                  />
                 </div>
 
                 <div className="border-t border-gray-100 pt-3">
@@ -498,11 +543,24 @@ export default function CreateProfilePage() {
                 </div>
                 <div className={g2}>
                   <Select label="Ethnicity" name="motherEthnicity" value={form.motherEthnicity} onChange={handleField} options={ETHNICITIES} required error={fieldErrors.motherEthnicity} />
-                  <Select label="Country" name="motherCountry" value={form.motherCountry} onChange={handleField} options={COUNTRIES} required error={fieldErrors.motherCountry} />
+                  <Select label="Country" name="motherCountry" value={form.motherCountry} onChange={handleField}
+                    options={masterData ? masterData.countries.map(c => c.name) : ['Sri Lanka','United Kingdom','Australia','Canada','UAE','Saudi Arabia','Qatar','USA','Malaysia','Other']}
+                    required error={fieldErrors.motherCountry} />
                 </div>
                 <div className={g2}>
                   <Select label="Occupation" name="motherOccupation" value={form.motherOccupation} onChange={handleField} options={MOTHER_OCCUPATIONS} required error={fieldErrors.motherOccupation} />
-                  <Field label="City" name="motherCity" value={form.motherCity} onChange={handleField} placeholder="Enter city" required error={fieldErrors.motherCity} />
+                  <Select
+                    label="City"
+                    name="motherCity"
+                    value={form.motherCity}
+                    onChange={handleField}
+                    options={masterData && form.motherCountry
+                      ? (masterData.countries.find(c => c.name === form.motherCountry)?.cities.map(ci => ci.name) ?? [])
+                      : []}
+                    placeholder={form.motherCountry ? 'Select city' : 'Select country first'}
+                    required
+                    error={fieldErrors.motherCity}
+                  />
                 </div>
 
                 <div className="border-t border-gray-100 pt-3">
@@ -529,7 +587,7 @@ export default function CreateProfilePage() {
                   name="countryPreference"
                   value={form.countryPreference}
                   onChange={handleField}
-                  options={LOOKING_COUNTRIES}
+                  options={['Any Country', ...(masterData?.countries.map(c => c.name) ?? ['Sri Lanka','United Kingdom','Australia','Canada','UAE','Saudi Arabia','Qatar','USA','Malaysia','Other'])]}
                   placeholder="Any country"
                   optional
                 />

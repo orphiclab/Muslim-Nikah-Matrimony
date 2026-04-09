@@ -5,6 +5,27 @@ import { authApi, profileApi } from "@/services/api";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Check, ChevronDown, Calendar, Eye, EyeOff } from "lucide-react";
+import { CascadeLocation } from "@/components/ui/CascadeLocation";
+import { loadMasterData, MasterData } from '@/app/admin/master-file/data';
+import React from 'react';
+
+// Generate every-inch heights from 4'0" to 8'0"
+function buildHeights() {
+  const opts: string[] = [];
+  const map: Record<string, number> = {};
+  for (let feet = 4; feet <= 8; feet++) {
+    const maxInch = feet === 8 ? 0 : 11;
+    for (let inch = 0; inch <= maxInch; inch++) {
+      const label = `${feet}'${inch}"`;
+      const cm = Math.round((feet * 12 + inch) * 2.54);
+      opts.push(label);
+      map[label] = cm;
+    }
+  }
+  return { opts, map };
+}
+const { opts: HEIGHT_OPTIONS, map: HEIGHT_TO_CM } = buildHeights();
+const WEIGHT_OPTIONS = Array.from({ length: 101 }, (_, i) => `${i + 20} kg`);
 
 const STEPS = [
   { id: 1, label: "Account Details" },
@@ -22,6 +43,7 @@ function SelectField({
   value,
   onChange,
   error,
+  optional,
 }: {
   label: string;
   name: string;
@@ -29,11 +51,12 @@ function SelectField({
   value: string;
   onChange: (e: React.ChangeEvent<HTMLSelectElement>) => void;
   error?: string;
+  optional?: boolean;
 }) {
   return (
     <div className="flex flex-col gap-1">
       <label className="text-sm font-medium text-gray-600">
-        {label} <span className="text-red-400">*</span>
+        {label} {!optional && <span className="text-red-400">*</span>}{optional && <span className="text-gray-400 text-xs ml-1">(optional)</span>}
       </label>
       <div className="relative">
         <select
@@ -338,14 +361,15 @@ function Step1({
             <p className="text-xs text-red-500 mt-1">⚠ You must be at least 16 years old to register.</p>
           )}
         </div>
-        <SelectField label="Height" name="height" options={["4'0\"","4'5\"","4'10\"","5'0\"","5'2\"","5'4\"","5'6\"","5'8\"","5'10\"","6'0\"","6'2\"","6'4\"","6'6\""]} value={data.height || ""} onChange={onChange} error={fieldErrors?.height} />
+        <SelectField label="Height" name="height" options={HEIGHT_OPTIONS} value={data.height || ""} onChange={onChange} error={fieldErrors?.height} />
+        <SelectField label="Weight" name="weight" options={WEIGHT_OPTIONS} value={data.weight || ""} onChange={onChange} optional />
         <SelectField label="Appearance" name="appearance" options={["Very Fair", "Fair", "Wheatish", "Wheatish Brown", "Dark"]} value={data.appearance || ""} onChange={onChange} error={fieldErrors?.appearance} />
         <SelectField label="Complexion" name="complexion" options={["Very Fair", "Fair", "Medium", "Olive", "Dark"]} value={data.complexion || ""} onChange={onChange} error={fieldErrors?.complexion} />
-        <SelectField label="Ethnicity" name="ethnicity" options={["Arab", "South Asian", "African", "South East Asian", "European", "Other"]} value={data.ethnicity || ""} onChange={onChange} error={fieldErrors?.ethnicity} />
+        <SelectField label="Ethnicity" name="ethnicity" options={["Muslim", "Sri Lankan Moors", "Indian Moors", "Malays", "Indian Malays", "Arab (Middle Eastern)", "Tamil", "Indian", "Memons", "Turkish", "European", "Other"]} value={data.ethnicity || ""} onChange={onChange} error={fieldErrors?.ethnicity} />
         <SelectField label="Dress Code" name="dressCode" options={["Hijab", "Niqab", "Casual Modest", "Islamic Formal", "Traditional"]} value={data.dressCode || ""} onChange={onChange} error={fieldErrors?.dressCode} />
         <SelectField label="Family Status" name="familyStatus" options={["Upper Class", "Upper Middle Class", "Middle Class", "Lower Middle Class"]} value={data.familyStatus || ""} onChange={onChange} error={fieldErrors?.familyStatus} />
         <SelectField label="Civil Status" name="civilStatus" options={["Never Married", "Widowed", "Divorced", "Separated", "Other"]} value={data.civilStatus || ""} onChange={onChange} error={fieldErrors?.civilStatus} />
-        <SelectField label="Children" name="children" options={["No", "Yes - 1", "Yes - 2", "Yes - 3", "Yes - 3+"]} value={data.children || ""} onChange={onChange} error={fieldErrors?.children} />
+        <SelectField label="Children" name="children" options={["No", "Yes - 1", "Yes - 2", "Yes - 3", "Yes - 3+"]} value={data.children || ""} onChange={onChange} optional />
       </div>
     </div>
   );
@@ -375,10 +399,11 @@ function Step2({
 }
 
 function Step3({
-  data, onChange, fieldErrors,
+  data, onChange, onLocationChange, fieldErrors,
 }: {
   data: Record<string, string>;
   onChange: (e: React.ChangeEvent<HTMLSelectElement | HTMLInputElement>) => void;
+  onLocationChange: (field: 'country' | 'city', value: string) => void;
   fieldErrors?: Record<string, string>;
 }) {
   return (
@@ -386,9 +411,13 @@ function Step3({
       <h2 className="text-xl font-semibold text-gray-800">Location &amp; Education</h2>
       <p className="mt-1 text-sm text-gray-500">Tell us where you are based and your qualifications</p>
       <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <SelectField label="Country" name="country" options={["Sri Lanka", "United Kingdom", "Australia", "Canada", "UAE", "Saudi Arabia", "Qatar", "USA", "Malaysia", "Other"]} value={data.country || ""} onChange={onChange} error={fieldErrors?.country} />
-        <SelectField label="State / Province" name="state" options={["Western Province", "Central Province", "Southern Province", "Northern Province", "Eastern Province", "Other"]} value={data.state || ""} onChange={onChange} error={fieldErrors?.state} />
-        <TextField label="City" name="city" placeholder="Enter your city" value={data.city || ""} onChange={onChange} error={fieldErrors?.city} />
+        <CascadeLocation
+          country={data.country || ''}
+          city={data.city || ''}
+          onChange={onLocationChange}
+          errors={{ country: fieldErrors?.country, city: fieldErrors?.city }}
+          required
+        />
         <SelectField label="Residency Status" name="residencyStatus" options={["Citizen", "Permanent Resident", "Work Visa", "Student Visa", "Other"]} value={data.residencyStatus || ""} onChange={onChange} error={fieldErrors?.residencyStatus} />
         <SelectField label="Education" name="education" options={["High School","Diploma","Bachelor's Degree","Master's Degree","Doctorate (PhD)","Other"]} value={data.education || ""} onChange={onChange} error={fieldErrors?.education} />
         <TextField label="Field of Study" name="fieldOfStudy" placeholder="e.g. Computer Science" value={data.fieldOfStudy || ""} onChange={onChange} optional />
@@ -400,12 +429,27 @@ function Step3({
 }
 
 function Step4({
-  data, onChange, fieldErrors,
+  data, onChange, onFamilyLocationChange, fieldErrors,
 }: {
   data: Record<string, string>;
   onChange: (e: React.ChangeEvent<HTMLSelectElement | HTMLInputElement>) => void;
+  onFamilyLocationChange: (parent: 'father' | 'mother', field: 'Country' | 'City', value: string) => void;
   fieldErrors?: Record<string, string>;
 }) {
+  const [masterData, setMasterData] = React.useState<MasterData | null>(null);
+  React.useEffect(() => { setMasterData(loadMasterData()); }, []);
+
+  const selectCls = 'w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-700 shadow-sm outline-none focus:border-[#1B6B4A] focus:ring-2 focus:ring-[#1B6B4A]/20 transition appearance-none';
+  const errCls = (e?: string) => e ? selectCls + ' border-red-400' : selectCls;
+
+  const fatherCities = masterData && data.fatherCountry
+    ? (masterData.countries.find(c => c.name === data.fatherCountry)?.cities.map(ci => ci.name) ?? [])
+    : [];
+  const motherCities = masterData && data.motherCountry
+    ? (masterData.countries.find(c => c.name === data.motherCountry)?.cities.map(ci => ci.name) ?? [])
+    : [];
+  const countryOptions = masterData ? masterData.countries.map(c => c.name) : ['Sri Lanka','United Kingdom','Australia','Canada','UAE','Saudi Arabia','Qatar','USA','Malaysia','Other'];
+
   return (
     <div>
       <h2 className="text-xl font-semibold text-gray-800">Family Details</h2>
@@ -414,20 +458,66 @@ function Step4({
       <div className="mt-6">
         <h3 className="text-sm font-semibold text-gray-700 mb-3">Father's Details</h3>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <SelectField label="Ethnicity" name="fatherEthnicity" options={["Arab","South Asian","African","South East Asian","European","Other"]} value={data.fatherEthnicity || ""} onChange={onChange} error={fieldErrors?.fatherEthnicity} />
-          <SelectField label="Country" name="fatherCountry" options={["Sri Lanka","United Kingdom","Australia","Canada","UAE","Saudi Arabia","Qatar","USA","Malaysia","Other"]} value={data.fatherCountry || ""} onChange={onChange} error={fieldErrors?.fatherCountry} />
+          <SelectField label="Ethnicity" name="fatherEthnicity" options={["Muslim","Sri Lankan Moors","Indian Moors","Malays","Indian Malays","Arab (Middle Eastern)","Tamil","Indian","Memons","Turkish","European","Other"]} value={data.fatherEthnicity || ""} onChange={onChange} error={fieldErrors?.fatherEthnicity} />
+          <div className="flex flex-col gap-1">
+            <label className="text-sm font-medium text-gray-600">Country</label>
+            <select
+              value={data.fatherCountry || ''}
+              onChange={e => onFamilyLocationChange('father', 'Country', e.target.value)}
+              className={errCls(fieldErrors?.fatherCountry)}
+            >
+              <option value="">Select Country</option>
+              {countryOptions.map(c => <option key={c} value={c}>{c}</option>)}
+            </select>
+            {fieldErrors?.fatherCountry && <p className="text-xs text-red-500 mt-0.5">{fieldErrors.fatherCountry}</p>}
+          </div>
           <SelectField label="Occupation" name="fatherOccupation" options={["Business","Government Employee","Private Sector","Retired","Not Employed","Deceased"]} value={data.fatherOccupation || ""} onChange={onChange} error={fieldErrors?.fatherOccupation} />
-          <TextField label="City" name="fatherCity" placeholder="Enter City" value={data.fatherCity || ""} onChange={onChange} error={fieldErrors?.fatherCity} />
+          <div className="flex flex-col gap-1">
+            <label className={`text-sm font-medium ${data.fatherCountry ? 'text-gray-600' : 'text-gray-300'}`}>City</label>
+            <select
+              value={data.fatherCity || ''}
+              onChange={e => onFamilyLocationChange('father', 'City', e.target.value)}
+              disabled={!data.fatherCountry}
+              className={`${errCls(fieldErrors?.fatherCity)} ${!data.fatherCountry ? 'cursor-not-allowed bg-gray-50 text-gray-300' : ''}`}
+            >
+              <option value="">{data.fatherCountry ? 'Select City' : 'Select country first'}</option>
+              {fatherCities.map(c => <option key={c} value={c}>{c}</option>)}
+            </select>
+            {fieldErrors?.fatherCity && <p className="text-xs text-red-500 mt-0.5">{fieldErrors.fatherCity}</p>}
+          </div>
         </div>
       </div>
 
       <div className="mt-6">
         <h3 className="text-sm font-semibold text-gray-700 mb-3">Mother's Details</h3>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <SelectField label="Ethnicity" name="motherEthnicity" options={["Arab","South Asian","African","South East Asian","European","Other"]} value={data.motherEthnicity || ""} onChange={onChange} error={fieldErrors?.motherEthnicity} />
-          <SelectField label="Country" name="motherCountry" options={["Sri Lanka","United Kingdom","Australia","Canada","UAE","Saudi Arabia","Qatar","USA","Malaysia","Other"]} value={data.motherCountry || ""} onChange={onChange} error={fieldErrors?.motherCountry} />
+          <SelectField label="Ethnicity" name="motherEthnicity" options={["Muslim","Sri Lankan Moors","Indian Moors","Malays","Indian Malays","Arab (Middle Eastern)","Tamil","Indian","Memons","Turkish","European","Other"]} value={data.motherEthnicity || ""} onChange={onChange} error={fieldErrors?.motherEthnicity} />
+          <div className="flex flex-col gap-1">
+            <label className="text-sm font-medium text-gray-600">Country</label>
+            <select
+              value={data.motherCountry || ''}
+              onChange={e => onFamilyLocationChange('mother', 'Country', e.target.value)}
+              className={errCls(fieldErrors?.motherCountry)}
+            >
+              <option value="">Select Country</option>
+              {countryOptions.map(c => <option key={c} value={c}>{c}</option>)}
+            </select>
+            {fieldErrors?.motherCountry && <p className="text-xs text-red-500 mt-0.5">{fieldErrors.motherCountry}</p>}
+          </div>
           <SelectField label="Occupation" name="motherOccupation" options={["Business","Government Employee","Private Sector","Homemaker","Retired","Not Employed"]} value={data.motherOccupation || ""} onChange={onChange} error={fieldErrors?.motherOccupation} />
-          <TextField label="City" name="motherCity" placeholder="Enter City" value={data.motherCity || ""} onChange={onChange} error={fieldErrors?.motherCity} />
+          <div className="flex flex-col gap-1">
+            <label className={`text-sm font-medium ${data.motherCountry ? 'text-gray-600' : 'text-gray-300'}`}>City</label>
+            <select
+              value={data.motherCity || ''}
+              onChange={e => onFamilyLocationChange('mother', 'City', e.target.value)}
+              disabled={!data.motherCountry}
+              className={`${errCls(fieldErrors?.motherCity)} ${!data.motherCountry ? 'cursor-not-allowed bg-gray-50 text-gray-300' : ''}`}
+            >
+              <option value="">{data.motherCountry ? 'Select City' : 'Select country first'}</option>
+              {motherCities.map(c => <option key={c} value={c}>{c}</option>)}
+            </select>
+            {fieldErrors?.motherCity && <p className="text-xs text-red-500 mt-0.5">{fieldErrors.motherCity}</p>}
+          </div>
         </div>
       </div>
 
@@ -452,11 +542,6 @@ function Step4({
   );
 }
 
-const LOOKING_COUNTRIES = [
-  'Any Country',
-  'Sri Lanka','United Kingdom','Australia','Canada',
-  'UAE','Saudi Arabia','Qatar','USA','Malaysia','Other',
-];
 
 const blockDigits = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
   if (e.key >= '0' && e.key <= '9') e.preventDefault();
@@ -475,6 +560,13 @@ function Step5({ data, onChange, lookingFor, setLookingFor, agreedTerms, setAgre
   agreedTerms: boolean;
   setAgreedTerms: (v: boolean) => void;
 }) {
+  const [masterData, setMasterData] = React.useState<MasterData | null>(null);
+  React.useEffect(() => { setMasterData(loadMasterData()); }, []);
+
+  const countryOptions = masterData
+    ? ['Any Country', ...masterData.countries.map(c => c.name)]
+    : ['Any Country','Sri Lanka','United Kingdom','Australia','Canada','UAE','Saudi Arabia','Qatar','USA','Malaysia','Other'];
+
   return (
     <div>
       <h2 className="text-xl font-semibold text-gray-800">Additional Details</h2>
@@ -483,7 +575,7 @@ function Step5({ data, onChange, lookingFor, setLookingFor, agreedTerms, setAgre
       {/* ── Looking Country ───────────────────────────────────── */}
       <div className="mt-6 flex flex-col gap-1">
         <label className="text-sm font-medium text-gray-600">
-          Looking Country <span className="text-red-400">*</span>
+          Looking Country <span className="text-gray-400 text-xs font-normal">(optional)</span>
         </label>
         <div className="relative">
           <select
@@ -492,9 +584,9 @@ function Step5({ data, onChange, lookingFor, setLookingFor, agreedTerms, setAgre
             onChange={onChange as React.ChangeEventHandler<HTMLSelectElement>}
             className="w-full appearance-none rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-700 shadow-sm outline-none focus:border-[#1B6B4A] focus:ring-2 focus:ring-[#1B6B4A]/20 transition"
           >
-            <option value="">Select looking country</option>
-            {LOOKING_COUNTRIES.map((c) => (
-              <option key={c} value={c === 'Any Country' ? '' : c}>{c}</option>
+            <option value="">Any Country</option>
+            {countryOptions.filter(c => c !== 'Any Country').map((c) => (
+              <option key={c} value={c}>{c}</option>
             ))}
           </select>
           <svg className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>
@@ -577,6 +669,27 @@ export default function RegisterPage() {
     setFieldErrors((prev) => { const n = { ...prev }; delete n[fieldName]; return n; });
   };
 
+  // Cascading location handler
+  const handleLocationChange = (field: 'country' | 'city', value: string) => {
+    setFormData((prev) => {
+      const next = { ...prev, [field]: value };
+      if (field === 'country') { next.city = ''; }
+      return next;
+    });
+    setFieldErrors((prev) => { const n = { ...prev }; delete n[field]; return n; });
+  };
+
+  // Cascading family location handler (father/mother country → clears city)
+  const handleFamilyLocationChange = (parent: 'father' | 'mother', field: 'Country' | 'City', value: string) => {
+    const key = `${parent}${field}` as string;
+    setFormData((prev) => {
+      const next = { ...prev, [key]: value };
+      if (field === 'Country') { next[`${parent}City`] = ''; }
+      return next;
+    });
+    setFieldErrors((prev) => { const n = { ...prev }; delete n[key]; return n; });
+  };
+
   const [checking, setChecking] = useState(false);
 
   const handleNext = async () => {
@@ -644,7 +757,6 @@ export default function RegisterPage() {
       if (!formData.dressCode) errs.dressCode = 'Please select a dress code.';
       if (!formData.familyStatus) errs.familyStatus = 'Please select a family status.';
       if (!formData.civilStatus) errs.civilStatus = 'Please select a civil status.';
-      if (!formData.children) errs.children = 'Please select children status.';
       if (Object.keys(errs).length > 0) {
         setFieldErrors(errs);
         return;
@@ -655,8 +767,7 @@ export default function RegisterPage() {
     if (currentStep === 3) {
       const errs: Record<string, string> = {};
       if (!formData.country) errs.country = 'Please select a country.';
-      if (!formData.state) errs.state = 'Please select a state/province.';
-      if (!formData.city?.trim()) errs.city = 'City is required.';
+      if (!formData.city) errs.city = 'Please select a city.';
       if (!formData.residencyStatus) errs.residencyStatus = 'Please select a residency status.';
       if (!formData.education) errs.education = 'Please select an education level.';
       if (!formData.occupation) errs.occupation = 'Please select an occupation.';
@@ -775,14 +886,8 @@ export default function RegisterPage() {
         const fullName = [formData.firstName, formData.lastName].filter(Boolean).join(" ").trim();
         const genderMap: Record<string, string> = { Male: "MALE", Female: "FEMALE" };
 
-        // Height: DTO expects an integer in cm (100–250). The form stores strings like "5'6\""
-        const heightStrToNum: Record<string, number> = {
-          "4'0\"": 122, "4'5\"": 135, "4'10\"": 147,
-          "5'0\"": 152, "5'2\"": 157, "5'4\"": 163,
-          "5'6\"": 168, "5'8\"": 173, "5'10\"": 178,
-          "6'0\"": 183, "6'2\"": 188, "6'4\"": 193, "6'6\"": 198,
-        };
-        const heightNum = formData.height ? (heightStrToNum[formData.height] ?? undefined) : undefined;
+        // Height: DTO expects an integer in cm. The form stores strings like "5'6""
+        const heightNum = formData.height ? (HEIGHT_TO_CM[formData.height] ?? undefined) : undefined;
 
         // Build profile payload — include every collected field
         const profilePayload: Record<string, any> = {
@@ -794,6 +899,7 @@ export default function RegisterPage() {
           // Step 2 — Personal Details
           ...(formData.createdBy && { createdBy: formData.createdBy }),
           ...(heightNum !== undefined && { height: heightNum }),
+          ...(formData.weight && { weight: parseInt(formData.weight) }),
           ...(formData.appearance && { appearance: formData.appearance }),
           ...(formData.complexion && { complexion: formData.complexion }),
           ...(formData.ethnicity && { ethnicity: formData.ethnicity }),
@@ -942,8 +1048,8 @@ export default function RegisterPage() {
             <div className="flex-1">
               {currentStep === 1 && <Step2 data={formData} onChange={handleChange} onPhoneChange={handlePhoneChange} fieldErrors={fieldErrors} />}
               {currentStep === 2 && <Step1 data={formData} onChange={handleChange} fieldErrors={fieldErrors} />}
-              {currentStep === 3 && <Step3 data={formData} onChange={handleChange} fieldErrors={fieldErrors} />}
-              {currentStep === 4 && <Step4 data={formData} onChange={handleChange} fieldErrors={fieldErrors} />}
+              {currentStep === 3 && <Step3 data={formData} onChange={handleChange} onLocationChange={handleLocationChange} fieldErrors={fieldErrors} />}
+              {currentStep === 4 && <Step4 data={formData} onChange={handleChange} onFamilyLocationChange={handleFamilyLocationChange} fieldErrors={fieldErrors} />}
               {currentStep === 5 && <Step5 data={formData} onChange={handleChange} lookingFor={lookingFor} setLookingFor={setLookingFor} agreedTerms={agreedTerms} setAgreedTerms={setAgreedTerms} />}
             </div>
 

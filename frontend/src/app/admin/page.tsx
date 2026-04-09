@@ -219,7 +219,7 @@ export default function AdminDashboard() {
   const quickActions = [
     { label: 'Approve Payments', href: '/admin/payments', icon: '✅', badge: pendingCount > 0 ? pendingCount : null },
     { label: 'Membership', href: '/admin/users', icon: '👥', badge: null },
-    { label: 'Master File', href: '/admin/profiles', icon: '📋', badge: null },
+    { label: 'Profiles', href: '/admin/profiles', icon: '📋', badge: null },
     { label: 'Manage Packages', href: '/admin/packages', icon: '📦', badge: null },
     { label: 'Manage Boosts', href: '/admin/boosts', icon: '⚡', badge: null },
     { label: 'Analytics', href: '/admin/analytics', icon: '📊', badge: null },

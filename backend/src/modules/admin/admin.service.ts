@@ -1,9 +1,10 @@
-import { Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException, ConflictException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { PaymentService } from '../payment/payment.service';
 import { ApprovePaymentDto, RejectPaymentDto, CreatePackageDto, UpdateSiteSettingsDto } from './dto/admin.dto';
 import { PaymentStatus, ProfileStatus } from '@prisma/client';
+import * as bcrypt from 'bcrypt';
 
 export { ApprovePaymentDto, RejectPaymentDto, CreatePackageDto, UpdateSiteSettingsDto };
 
@@ -117,6 +118,24 @@ export class AdminService {
       },
     });
     if (!user) throw new NotFoundException('User not found');
+    return { success: true, data: user };
+  }
+
+  async createUser(dto: { email: string; password: string; phone?: string; whatsappNumber?: string; role: string }) {
+    const existing = await this.prisma.user.findUnique({ where: { email: dto.email } });
+    if (existing) throw new ConflictException('A user with this email already exists.');
+    const hashedPassword = await bcrypt.hash(dto.password, 10);
+    const user = await this.prisma.user.create({
+      data: {
+        email: dto.email,
+        password: hashedPassword,
+        phone: dto.phone ?? null,
+        whatsappNumber: dto.whatsappNumber ?? null,
+        role: dto.role as any,
+      },
+      select: { id: true, email: true, role: true, phone: true, createdAt: true },
+    });
+    this.logger.log(`Admin created user: ${user.email} (${user.role})`);
     return { success: true, data: user };
   }
 

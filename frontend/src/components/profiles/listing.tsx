@@ -5,6 +5,7 @@ import { publicProfilesApi, profileApi } from '@/services/api';
 import { GenuineProfileCard } from '@/components/home/genuine/card';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { loadMasterData, MasterData } from '@/app/admin/master-file/data';
 
 /* ─── Types ─────────────────────────────────────────────────────── */
 type Profile = {
@@ -15,23 +16,22 @@ type Profile = {
 };
 
 type UserProfile = {
-  id: string; name: string; gender: string; age: number; status: string;
+  id: string; name: string; gender: string; age: number; status: string; height: number | null;
 };
 
 type Filters = {
   memberId: string;
   minAge: string; maxAge: string; gender: string;
-  city: string; ethnicity: string; civilStatus: string;
+  country: string; city: string; ethnicity: string; civilStatus: string;
   education: string; occupation: string;
 };
 
 const EMPTY_FILTERS: Filters = {
-  memberId: '', minAge: '17', maxAge: '60',
-  gender: '', city: '', ethnicity: '', civilStatus: '', education: '', occupation: '',
+  memberId: '', minAge: '18', maxAge: '65',
+  gender: '', country: '', city: '', ethnicity: '', civilStatus: '', education: '', occupation: '',
 };
 
-const CIVIL_STATUSES = ['', 'Single', 'Divorced', 'Widowed'];
-const EDUCATIONS = ['', 'School', 'Diploma', 'Degree', 'Masters', 'PhD'];
+const CIVIL_STATUSES = ['', 'Never Married', 'Widowed', 'Divorced', 'Separated', 'Other'];
 
 /* ─── Small UI helpers ───────────────────────────────────────────── */
 const Chevron = ({ open }: { open: boolean }) => (
@@ -107,8 +107,14 @@ export default function ProfilesListing() {
   const [page, setPage] = useState(1);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const PER_PAGE = 9;
+  const [masterData, setMasterData] = useState<MasterData | null>(null);
 
   const [activeProfiles, setActiveProfiles] = useState<any[]>([]);
+
+  /* ── 0. Load master data for filter dropdowns ── */
+  useEffect(() => {
+    setMasterData(loadMasterData());
+  }, []);
 
   /* ── 1. Check login & load user's active profiles ── */
   useEffect(() => {
@@ -126,47 +132,36 @@ export default function ProfilesListing() {
             if (p.subscription?.endDate && new Date(p.subscription.endDate) < new Date()) return false;
             return true;
           })
-          .map((p: any) => ({
-            id: p.id,
-            name: p.name ?? 'Profile',
-            gender: p.gender ?? '',
-            age: p.age ?? 0,
-            status: p.status,
-          }));
+          .map((p: any) => {
+            const dob = p.dateOfBirth ? new Date(p.dateOfBirth) : null;
+            const computedAge = dob
+              ? Math.floor((Date.now() - dob.getTime()) / (365.25 * 24 * 60 * 60 * 1000))
+              : 0;
+            return {
+              id: p.id,
+              name: p.name ?? 'Profile',
+              gender: p.gender ?? '',
+              age: p.age ?? computedAge,       // API may or may not return age
+              height: (p.height && p.height > 0) ? p.height : null,
+              status: p.status,
+            };
+          });
         setUserProfiles(active);
         setActiveProfiles(active);
         if (active.length > 0) {
-          setSelectedProfile(active[0]);
+          const first = active[0];
+          setSelectedProfile(first);
+          // Auto-apply smart gender filter (opposite gender) on initial load
+          const oppositeGender = first.gender === 'MALE' ? 'FEMALE' : 'MALE';
+          const smart: Filters = { ...EMPTY_FILTERS, gender: oppositeGender };
+          setFilters(smart);
+          setApplied(smart);
         }
       })
       .catch(() => {})
       .finally(() => setProfilesLoading(false));
   }, []);
 
-  /* ── 2. Auto-apply smart filters when selected profile changes ── */
-  useEffect(() => {
-    if (!selectedProfile) return;
-
-    const oppositeGender = selectedProfile.gender === 'MALE' ? 'FEMALE' : 'MALE';
-    const age = selectedProfile.age ?? 0;
-
-    setFilters(f => ({
-      ...f,
-      gender: oppositeGender,
-      // Female sees men aged profile.age+ (older men preferred)
-      // Male sees women aged up to profile.age (younger women preferred)
-      minAge: selectedProfile.gender === 'FEMALE' ? String(age) : '17',
-      maxAge: selectedProfile.gender === 'MALE' ? String(age) : '60',
-    }));
-
-    setApplied(f => ({
-      ...f,
-      gender: oppositeGender,
-      minAge: selectedProfile.gender === 'FEMALE' ? String(age) : '17',
-      maxAge: selectedProfile.gender === 'MALE' ? String(age) : '60',
-    }));
-    setPage(1);
-  }, [selectedProfile]);
 
   /* ── 3. Load profiles list ── */
   const load = useCallback((f: Filters) => {
@@ -182,10 +177,16 @@ export default function ProfilesListing() {
       occupation: f.occupation || undefined,
       memberId: f.memberId || undefined,
     })
-      .then(r => { setProfiles(r.data ?? []); setTotal(r.total ?? 0); })
+      .then(r => {
+        // Exclude the viewer's own profiles from the results
+        const ownIds = new Set(userProfiles.map(p => p.id));
+        const filtered = (r.data ?? []).filter((p: Profile) => !ownIds.has(p.id));
+        setProfiles(filtered);
+        setTotal(filtered.length);
+      })
       .catch(() => { setProfiles([]); setTotal(0); })
       .finally(() => setLoading(false));
-  }, []);
+  }, [userProfiles]);
 
   useEffect(() => { load(applied); }, [applied, load]);
 
@@ -197,15 +198,8 @@ export default function ProfilesListing() {
 
   const resetFilters = () => {
     if (selectedProfile) {
-      // Keep profile-based auto filters, reset the rest
       const oppositeGender = selectedProfile.gender === 'MALE' ? 'FEMALE' : 'MALE';
-      const age = selectedProfile.age ?? 0;
-      const smart: Filters = {
-        ...EMPTY_FILTERS,
-        gender: oppositeGender,
-        minAge: selectedProfile.gender === 'FEMALE' ? String(age) : '17',
-        maxAge: selectedProfile.gender === 'MALE' ? String(age) : '60',
-      };
+      const smart: Filters = { ...EMPTY_FILTERS, gender: oppositeGender };
       setFilters(smart);
       setApplied(smart);
     } else {
@@ -236,16 +230,43 @@ export default function ProfilesListing() {
     router.push(`/profiles/${p.id}`);
   };
 
+  /* ── canChat: checks if viewer can chat with target ── */
+  const canChat = (target: Profile): boolean => {
+    if (!selectedProfile) return true;
+
+    const vAge  = selectedProfile.age   ?? 0;
+    const vHeight = selectedProfile.height != null ? Number(selectedProfile.height) : null;
+
+    const tAge  = target.age ?? 0;
+    const rawH  = (target as any).height;
+    const tHeight = rawH != null && rawH !== '' ? Number(rawH) : null;
+
+    // Normalise: treat 0 as unknown
+    const vH = vHeight && vHeight > 0 ? vHeight : null;
+    const tH = tHeight && tHeight > 0 ? tHeight : null;
+
+    console.log('[canChat]', {
+      viewer: { gender: selectedProfile.gender, age: vAge, height: vH },
+      target: { id: target.id, name: target.name, age: tAge, height: tH, rawH },
+    });
+
+    if (selectedProfile.gender === 'MALE') {
+      if (tAge > vAge) return false;           // target older than viewer
+      if (vH && tH && tH > vH) return false;  // target taller than viewer
+      return true;
+    } else if (selectedProfile.gender === 'FEMALE') {
+      if (tAge < vAge) return false;           // target younger than viewer
+      if (vH && tH && tH < vH) return false;  // target shorter than viewer
+      return true;
+    }
+    return true;
+  };
+
   /* ── Derived ── */
   const paginated = profiles.slice((page - 1) * PER_PAGE, page * PER_PAGE);
   const totalPages = Math.ceil(profiles.length / PER_PAGE);
 
-  /* Age constraint hint message */
-  const ageHint = selectedProfile
-    ? selectedProfile.gender === 'FEMALE'
-      ? `You can select matches aged ${selectedProfile.age}+ based on your profile.`
-      : `You can select matches aged ${selectedProfile.age} and below based on your profile.`
-    : null;
+  const ageHint = null;
 
   const toCardProps = (p: Profile) => ({
     name: p.name ?? 'Profile',
@@ -318,17 +339,24 @@ export default function ProfilesListing() {
                   value={selectedProfile?.id ?? ''}
                   onChange={e => {
                     const found = userProfiles.find(p => p.id === e.target.value);
-                    setSelectedProfile(found ?? null);
+                    if (found) {
+                      setSelectedProfile(found);
+                      const opp = found.gender === 'MALE' ? 'FEMALE' : 'MALE';
+                      const smart: Filters = { ...EMPTY_FILTERS, gender: opp };
+                      setFilters(smart); setApplied(smart); setPage(1);
+                    }
                   }}
                   className="w-full border border-[#1C3B35]/30 bg-[#1C3B35]/5 rounded-xl px-3 py-2 text-[12px] font-semibold text-[#1C3B35] font-poppins outline-none focus:border-[#1C3B35] appearance-none pr-7 cursor-pointer"
                 >
                   {userProfiles.map(p => (
                     <option key={p.id} value={p.id}>
-                      {p.name} ({p.gender === 'MALE' ? '♂ Male' : '♀ Female'}, {p.age}y)
+                      {p.name}
                     </option>
                   ))}
                 </select>
-                <Chevron open={false} />
+                  <span className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-[#1C3B35]/60">
+                    <Chevron open={false} />
+                  </span>
               </div>
 
               {/* Smart filter info badge */}
@@ -380,22 +408,24 @@ export default function ProfilesListing() {
               <span className="font-semibold text-[#1C3B35]">{filters.minAge} – {filters.maxAge}</span>
             </div>
             <div className="flex gap-2">
-              <input type="number" min={17} max={80}
+              <input type="number"
+                min={masterData?.ageRange.min ?? 18}
+                max={(masterData?.ageRange.max ?? 65) - 1}
                 value={filters.minAge}
                 onChange={e => setFilters(f => ({ ...f, minAge: e.target.value }))}
-                readOnly={!!selectedProfile && selectedProfile.gender === 'FEMALE'}
-                className={`w-full border border-gray-200 rounded-lg px-2.5 py-1.5 text-[12px] outline-none focus:border-[#1C3B35] font-poppins ${selectedProfile?.gender === 'FEMALE' ? 'bg-gray-50 text-gray-400 cursor-not-allowed' : ''}`}
+                className="w-full border border-gray-200 rounded-lg px-2.5 py-1.5 text-[12px] outline-none focus:border-[#1C3B35] font-poppins"
               />
-              <input type="number" min={17} max={80}
+              <input type="number"
+                min={(masterData?.ageRange.min ?? 18) + 1}
+                max={masterData?.ageRange.max ?? 65}
                 value={filters.maxAge}
                 onChange={e => setFilters(f => ({ ...f, maxAge: e.target.value }))}
-                readOnly={!!selectedProfile && selectedProfile.gender === 'MALE'}
-                className={`w-full border border-gray-200 rounded-lg px-2.5 py-1.5 text-[12px] outline-none focus:border-[#1C3B35] font-poppins ${selectedProfile?.gender === 'MALE' ? 'bg-gray-50 text-gray-400 cursor-not-allowed' : ''}`}
+                className="w-full border border-gray-200 rounded-lg px-2.5 py-1.5 text-[12px] outline-none focus:border-[#1C3B35] font-poppins"
               />
             </div>
-            {ageHint && (
-              <p className="text-[10px] text-[#1C3B35]/70 font-poppins leading-relaxed">
-                {ageHint}
+            {masterData && (
+              <p className="text-[10px] text-gray-400 font-poppins">
+                Allowed: {masterData.ageRange.min}–{masterData.ageRange.max} years
               </p>
             )}
           </div>
@@ -411,12 +441,50 @@ export default function ProfilesListing() {
           </FilterSection>
         )}
 
-        <FilterSection label="City">
-          <TextFilter placeholder="e.g. Colombo" value={filters.city} onChange={set('city')} />
+        {/* Country */}
+        <FilterSection label="Country">
+          <select
+            value={filters.country}
+            onChange={e => setFilters(f => ({ ...f, country: e.target.value, city: '' }))}
+            className="w-full border border-gray-200 rounded-lg px-2.5 py-1.5 text-[12px] outline-none focus:border-[#1C3B35] font-poppins"
+          >
+            <option value="">Any Country</option>
+            {(masterData?.countries ?? []).map(c => (
+              <option key={c.id} value={c.name}>{c.name}</option>
+            ))}
+          </select>
         </FilterSection>
 
+        {/* City — cascades from Country */}
+        <FilterSection label="City">
+          <select
+            value={filters.city}
+            onChange={e => setFilters(f => ({ ...f, city: e.target.value }))}
+            disabled={!filters.country}
+            className={`w-full border rounded-lg px-2.5 py-1.5 text-[12px] outline-none focus:border-[#1C3B35] font-poppins ${
+              filters.country ? 'border-gray-200' : 'border-gray-100 bg-gray-50 text-gray-300 cursor-not-allowed'
+            }`}
+          >
+            <option value="">{filters.country ? 'Any City' : 'Select country first'}</option>
+            {filters.country && (masterData?.countries.find(c => c.name === filters.country)?.cities ?? [])
+              .sort((a, b) => a.name.localeCompare(b.name))
+              .map(ci => <option key={ci.id} value={ci.name}>{ci.name}</option>)
+            }
+          </select>
+        </FilterSection>
+
+        {/* Ethnicity — master data dropdown */}
         <FilterSection label="Ethnicity">
-          <TextFilter placeholder="e.g. Malay, Arab" value={filters.ethnicity} onChange={set('ethnicity')} />
+          <select
+            value={filters.ethnicity}
+            onChange={e => setFilters(f => ({ ...f, ethnicity: e.target.value }))}
+            className="w-full border border-gray-200 rounded-lg px-2.5 py-1.5 text-[12px] outline-none focus:border-[#1C3B35] font-poppins"
+          >
+            <option value="">Any Ethnicity</option>
+            {(masterData?.ethnicity ?? []).map(e => (
+              <option key={e.id} value={e.value}>{e.value}</option>
+            ))}
+          </select>
         </FilterSection>
 
         <FilterSection label="Civil Status">
@@ -424,11 +492,33 @@ export default function ProfilesListing() {
         </FilterSection>
 
         <FilterSection label="Education Level">
-          <RadioGroup options={EDUCATIONS} value={filters.education} onChange={set('education')} labels={{ '': 'Any' }} />
+          {masterData ? (
+            <RadioGroup
+              options={['', ...masterData.education.map(e => e.value)]}
+              value={filters.education}
+              onChange={set('education')}
+              labels={{ '': 'Any' }}
+            />
+          ) : (
+            <RadioGroup options={CIVIL_STATUSES} value={filters.education} onChange={set('education')} labels={{ '': 'Any' }} />
+          )}
         </FilterSection>
 
         <FilterSection label="Profession">
-          <TextFilter placeholder="e.g. Engineer" value={filters.occupation} onChange={set('occupation')} />
+          {masterData ? (
+            <select
+              value={filters.occupation}
+              onChange={e => setFilters(f => ({ ...f, occupation: e.target.value }))}
+              className="w-full border border-gray-200 rounded-lg px-2.5 py-1.5 text-[12px] outline-none focus:border-[#1C3B35] font-poppins"
+            >
+              <option value="">Any Occupation</option>
+              {masterData.occupation.map(o => (
+                <option key={o.id} value={o.value}>{o.value}</option>
+              ))}
+            </select>
+          ) : (
+            <TextFilter placeholder="e.g. Engineer" value={filters.occupation} onChange={set('occupation')} />
+          )}
         </FilterSection>
       </div>
 
@@ -494,13 +584,18 @@ export default function ProfilesListing() {
                     value={selectedProfile?.id ?? ''}
                     onChange={e => {
                       const found = userProfiles.find(p => p.id === e.target.value);
-                      setSelectedProfile(found ?? null);
+                      if (found) {
+                        setSelectedProfile(found);
+                        const opp = found.gender === 'MALE' ? 'FEMALE' : 'MALE';
+                        const smart: Filters = { ...EMPTY_FILTERS, gender: opp };
+                        setFilters(smart); setApplied(smart); setPage(1);
+                      }
                     }}
                     className="flex-1 border-0 bg-transparent text-[12px] font-semibold text-[#1C3B35] font-poppins outline-none"
                   >
                     {userProfiles.map(p => (
                       <option key={p.id} value={p.id}>
-                        {p.name} ({p.gender === 'MALE' ? '♂' : '♀'} {p.age}y)
+                        {p.name}
                       </option>
                     ))}
                   </select>
@@ -587,6 +682,8 @@ export default function ProfilesListing() {
                         {...toCardProps(p)}
                         memberId={p.memberId}
                         isVip={p.isVip}
+                        gender={p.gender}
+                        chatDisabled={isLoggedIn && !!selectedProfile && !canChat(p)}
                         onChatClick={(e) => handleChatClick(e, p)}
                         onViewClick={() => handleViewClick(p)}
                       />

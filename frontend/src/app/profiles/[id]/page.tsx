@@ -3,7 +3,8 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { publicProfilesApi } from '@/services/api';
+import { publicProfilesApi, profileApi } from '@/services/api';
+import { ProfileAvatar } from '@/components/ui/ProfileAvatar';
 
 /* ── helpers ─────────────────────────────────────────── */
 const fmt = (val: any, suffix = '') =>
@@ -78,6 +79,7 @@ export default function ProfileDetailPage() {
   const [profile, setProfile] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [viewerProfile, setViewerProfile] = useState<{ gender: string; age: number; height: number } | null>(null);
 
   // ── Auth guard — redirect to login if not logged in ──
   useEffect(() => {
@@ -85,6 +87,26 @@ export default function ProfileDetailPage() {
       router.replace('/login');
     }
   }, [router]);
+
+  // ── Load viewer's active profile for eligibility check ──
+  useEffect(() => {
+    const token = typeof window !== 'undefined' ? localStorage.getItem('mn_token') : null;
+    if (!token) return;
+    profileApi.getMyProfiles().then((r: any) => {
+      const active = (r.data ?? []).find((p: any) => p.status === 'ACTIVE');
+      if (active) {
+        const dob = active.dateOfBirth ? new Date(active.dateOfBirth) : null;
+        const computedAge = dob
+          ? Math.floor((Date.now() - dob.getTime()) / (365.25 * 24 * 60 * 60 * 1000))
+          : 0;
+        setViewerProfile({
+          gender: active.gender ?? '',
+          age: active.age ?? computedAge,
+          height: active.height ?? 0,
+        });
+      }
+    }).catch(() => {});
+  }, []);
 
   useEffect(() => {
     if (!id) return;
@@ -95,6 +117,26 @@ export default function ProfileDetailPage() {
       .catch(() => setError('Profile not found or no longer active.'))
       .finally(() => setLoading(false));
   }, [id]);
+
+  // ── Eligibility: can the viewer chat/see contact of this profile? ──
+  const canInteract = (): boolean => {
+    if (!viewerProfile || !profile) return true;
+    const vAge = viewerProfile.age;
+    const vHeight = viewerProfile.height > 0 ? viewerProfile.height : null;
+    const tAge = profile.age ?? 0;
+    const tHeight = (profile.height && profile.height > 0) ? profile.height : null;
+    if (viewerProfile.gender === 'MALE') {
+      const ageOk = tAge <= vAge;
+      const heightOk = (vHeight && tHeight) ? tHeight <= vHeight : true;
+      return ageOk && heightOk;
+    } else if (viewerProfile.gender === 'FEMALE') {
+      const ageOk = tAge >= vAge;
+      const heightOk = (vHeight && tHeight) ? tHeight >= vHeight : true;
+      return ageOk && heightOk;
+    }
+    return true;
+  };
+  const eligible = canInteract();
 
 
   const handleChat = () => {
@@ -174,7 +216,7 @@ export default function ProfileDetailPage() {
                   isVip ? 'ring-[#DB9D30]' : 'ring-white/30'
                 } shadow-2xl`}
               >
-                <AvatarPlaceholder gender={profile.gender} />
+                <ProfileAvatar gender={profile.gender} name={profile.name} className="w-full h-full" size={144} />
               </div>
               {isVip && (
                 <div className="absolute -bottom-2 -right-2 bg-gradient-to-br from-[#E8BE1A] to-[#DB9D30] text-white text-[9px] font-extrabold px-2 py-0.5 rounded-full shadow-lg tracking-widest font-poppins">
@@ -231,12 +273,21 @@ export default function ProfileDetailPage() {
               >
                 ← Back
               </Link>
-              <button
-                onClick={handleChat}
-                className="flex items-center gap-2 bg-[#DB9D30] hover:bg-[#c98b26] text-white text-[13px] font-bold font-poppins px-5 py-2.5 rounded-xl transition shadow-lg shadow-[#DB9D30]/30"
-              >
-                💬 Send Interest
-              </button>
+              {eligible ? (
+                <button
+                  onClick={handleChat}
+                  className="flex items-center gap-2 bg-[#DB9D30] hover:bg-[#c98b26] text-white text-[13px] font-bold font-poppins px-5 py-2.5 rounded-xl transition shadow-lg shadow-[#DB9D30]/30"
+                >
+                  💬 Send Interest
+                </button>
+              ) : (
+                <div
+                  title="Age or height criteria not matched"
+                  className="flex items-center gap-2 bg-white/20 text-white/50 text-[13px] font-bold font-poppins px-5 py-2.5 rounded-xl cursor-not-allowed select-none"
+                >
+                  🔒 Send Interest
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -314,8 +365,8 @@ export default function ProfileDetailPage() {
               <InfoRow label="Country Preference" value={fmt(profile.countryPreference)} />
             </SectionCard>
 
-            {/* Contact Information — visible only when owner allows it */}
-            {(profile._meta?.phoneVisible && profile.phone) || (profile._meta?.whatsappVisible && profile.whatsappNumber) ? (
+            {/* Contact Information — visible only when owner allows it AND viewer is eligible */}
+            {eligible && ((profile._meta?.phoneVisible && profile.phone) || (profile._meta?.whatsappVisible && profile.whatsappNumber)) ? (
               <SectionCard title="Contact Information" icon="📱">
                 <div className="space-y-1">
                   {profile._meta?.phoneVisible && profile.phone && (
@@ -362,16 +413,28 @@ export default function ProfileDetailPage() {
                 <p className="text-white font-bold font-poppins text-[16px]">
                   Interested in {profile.name}?
                 </p>
-                <p className="text-white/60 font-poppins text-[13px] mt-1">
-                  Send an interest message and start your journey together.
-                </p>
+                {eligible ? (
+                  <p className="text-white/60 font-poppins text-[13px] mt-1">
+                    Send an interest message and start your journey together.
+                  </p>
+                ) : (
+                  <p className="text-amber-300/80 font-poppins text-[12px] mt-1">
+                    🔒 Age or height criteria not matched. Chat is not available for this profile.
+                  </p>
+                )}
               </div>
-              <button
-                onClick={handleChat}
-                className="flex-shrink-0 bg-[#DB9D30] hover:bg-[#c98b26] text-white font-bold font-poppins text-[14px] px-7 py-3 rounded-xl transition shadow-lg"
-              >
-                💬 Send Interest
-              </button>
+              {eligible ? (
+                <button
+                  onClick={handleChat}
+                  className="flex-shrink-0 bg-[#DB9D30] hover:bg-[#c98b26] text-white font-bold font-poppins text-[14px] px-7 py-3 rounded-xl transition shadow-lg"
+                >
+                  💬 Send Interest
+                </button>
+              ) : (
+                <div className="flex-shrink-0 bg-white/10 text-white/40 font-bold font-poppins text-[14px] px-7 py-3 rounded-xl cursor-not-allowed select-none">
+                  🔒 Send Interest
+                </div>
+              )}
             </div>
 
           </div>

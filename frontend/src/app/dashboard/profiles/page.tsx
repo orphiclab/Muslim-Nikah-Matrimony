@@ -5,6 +5,7 @@ import React from 'react';
 import { useRouter } from 'next/navigation';
 import { profileApi, paymentApi, packagesApi, settingsApi } from '@/services/api';
 import { useCurrency } from '@/hooks/useCurrency';
+import { ProfileAvatar } from '@/components/ui/ProfileAvatar';
 
 const statusBadge = (s: string) => {
   const map: Record<string, string> = {
@@ -105,8 +106,8 @@ function ViewProfileModal({ profile, onClose }: { profile: any; onClose: () => v
         <div className="bg-[#1C3B35] rounded-t-3xl px-6 pt-6 pb-5">
           <div className="flex items-start justify-between">
             <div className="flex items-center gap-4">
-              <div className="h-14 w-14 rounded-2xl bg-white/20 flex items-center justify-center flex-shrink-0">
-                <span className="text-xl font-bold text-white">{initial}</span>
+              <div className="h-14 w-14 rounded-2xl overflow-hidden flex-shrink-0 ring-2 ring-white/30">
+                <ProfileAvatar gender={profile.gender} name={profile.name} className="w-full h-full" size={56} />
               </div>
               <div>
                 <h2 className="text-lg font-bold text-white">{profile.name}</h2>
@@ -128,6 +129,7 @@ function ViewProfileModal({ profile, onClose }: { profile: any; onClose: () => v
             <InfoRow icon={<svg className={iconCls} fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>} label="Created By" value={profile.createdBy} />
             <InfoRow icon={<svg className={iconCls} fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>} label="Date of Birth" value={profile.dateOfBirth ? new Date(profile.dateOfBirth).toLocaleDateString('en-US', { day: 'numeric', month: 'long', year: 'numeric' }) : null} />
             <InfoRow icon={<svg className={iconCls} fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path d="M3 6h18M3 12h18M3 18h18"/></svg>} label="Height" value={profile.height ? `${profile.height} cm` : null} />
+            <InfoRow icon={<svg className={iconCls} fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M8 12h8M12 8v8"/></svg>} label="Weight" value={profile.weight ? `${profile.weight} kg` : null} />
             <InfoRow icon={<svg className={iconCls} fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/></svg>} label="Appearance" value={profile.appearance} />
             <InfoRow icon={<svg className={iconCls} fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/></svg>} label="Complexion" value={profile.complexion} />
             <InfoRow icon={<svg className={iconCls} fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945"/></svg>} label="Ethnicity" value={profile.ethnicity} />
@@ -174,6 +176,7 @@ function ViewProfileModal({ profile, onClose }: { profile: any; onClose: () => v
 export default function ProfilesPage() {
   const router = useRouter();
   const [profiles, setProfiles] = useState<any[]>([]);
+  const [payments, setPayments] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [toast, setToast] = useState<{ text: string; ok: boolean } | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<any | null>(null);
@@ -196,6 +199,7 @@ export default function ProfilesPage() {
   const load = () => {
     setLoading(true);
     profileApi.getMyProfiles().then((r) => setProfiles(r.data ?? [])).finally(() => setLoading(false));
+    paymentApi.myPayments().then((r) => setPayments(r.data ?? [])).catch(() => {});
     packagesApi.getActive('BOOST').then((r) => {
       if (r.data && r.data.length > 0) setBoostPlans(r.data);
     }).catch(() => {});
@@ -345,12 +349,8 @@ export default function ProfilesPage() {
                   p.status === 'DRAFT' && p.rejectionReason ? 'bg-red-50' : 'bg-gray-50'
                 }`}>
                   <div className="flex items-center gap-3">
-                    <div className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold ${
-                      isSubExpired(p) ? 'bg-red-200 text-red-700' :
-                      p.status === 'ACTIVE' ? 'bg-[#1C3B35] text-white' :
-                      p.status === 'DRAFT' && p.rejectionReason ? 'bg-red-200 text-red-700' : 'bg-gray-200 text-gray-600'
-                    }`}>
-                      {p.name?.[0]?.toUpperCase()}
+                    <div className="w-10 h-10 rounded-full overflow-hidden flex-shrink-0">
+                      <ProfileAvatar gender={p.gender} name={p.name} className="w-full h-full" size={40} />
                     </div>
                     <div>
                       <p className="font-semibold text-gray-800">{p.name}</p>
@@ -517,62 +517,8 @@ export default function ProfilesPage() {
                     </div>
                   )}
 
-                  {/* Privacy settings — hidden if subscription expired or awaiting admin review */}
-                  {privacy[p.id] && !isSubExpired(p) && p.status !== 'PAYMENT_PENDING' && (
-                    <div className="mt-3 border border-gray-100 rounded-xl bg-gray-50 px-4 py-3 space-y-3">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="text-xs font-semibold text-gray-700">Show Real Name Publicly</p>
-                          <p className="text-[10px] text-gray-400 mt-0.5">When OFF, your nickname is shown instead</p>
-                        </div>
-                        <button
-                          onClick={() => setPrivacy(prev => ({
-                            ...prev,
-                            [p.id]: { ...prev[p.id], showRealName: !prev[p.id].showRealName }
-                          }))}
-                          className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors flex-shrink-0 ${
-                            privacy[p.id].showRealName ? 'bg-[#1C3B35]' : 'bg-gray-300'
-                          }`}>
-                          <span className={`inline-block transform rounded-full bg-white shadow transition-transform ${
-                            privacy[p.id].showRealName ? 'translate-x-6' : 'translate-x-1'
-                          }`} style={{ width: 18, height: 18 }} />
-                        </button>
-                      </div>
 
-                      {!privacy[p.id].showRealName && (
-                        <div>
-                          <label className="block text-[10px] font-semibold text-gray-500 mb-1">Nickname (shown publicly)</label>
-                          <input
-                            type="text"
-                            value={privacy[p.id].nickname}
-                            onChange={e => setPrivacy(prev => ({ ...prev, [p.id]: { ...prev[p.id], nickname: e.target.value } }))}
-                            placeholder="e.g. Sister Mariam, Brother Ali"
-                            className="w-full border border-gray-200 rounded-lg px-3 py-2 text-xs text-gray-700 outline-none focus:border-[#1C3B35] transition bg-white"
-                          />
-                          {!privacy[p.id].nickname.trim() && (
-                            <p className="text-[10px] text-amber-500 mt-1">⚠ Enter a nickname or your name will be hidden completely</p>
-                          )}
-                        </div>
-                      )}
 
-                      <button
-                        onClick={() => savePrivacy(p.id)}
-                        disabled={privacy[p.id].saving}
-                        className="w-full text-xs font-semibold bg-[#1C3B35] text-white py-2 rounded-lg hover:bg-[#15302a] transition disabled:opacity-50 flex items-center justify-center gap-1.5">
-                        {privacy[p.id].saving ? (
-                          <svg className="w-3 h-3 animate-spin" fill="none" viewBox="0 0 24 24">
-                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
-                          </svg>
-                        ) : (
-                          <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
-                            <polyline points="20 6 9 17 4 12" />
-                          </svg>
-                        )}
-                        {privacy[p.id].saving ? 'Saving…' : 'Save Privacy Settings'}
-                      </button>
-                    </div>
-                  )}
                 </div>
 
                 {/* Boost Your Profile (ACTIVE only, not expired) */}
@@ -593,13 +539,40 @@ export default function ProfilesPage() {
                       )}
                     </div>
 
-                    {boost[p.id].boostExpiresAt && new Date(boost[p.id].boostExpiresAt!) > new Date() ? (
-                      <div className="bg-[#DB9D30]/10 rounded-xl px-3 py-2 text-[11px] text-[#8B5E00] font-poppins">
-                        ✦ VIP boost active until{' '}
-                        <strong>{new Date(boost[p.id].boostExpiresAt!).toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' })}</strong>
-                      </div>
-                    ) : (
-                    <div className="grid grid-cols-3 gap-1.5 sm:gap-2">
+                    {(() => {
+                      // Check for a pending boost payment — block re-boosting until admin approves
+                      const pendingBoost = payments.find(
+                        pay => pay.childProfileId === p.id && pay.purpose === 'BOOST' && pay.status === 'PENDING'
+                      );
+
+                      if (pendingBoost) {
+                        return (
+                          <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-4 flex items-start gap-3">
+                            <div className="w-9 h-9 rounded-xl bg-amber-100 flex items-center justify-center shrink-0">
+                              <svg className="w-4 h-4 text-amber-600" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                                <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+                              </svg>
+                            </div>
+                            <div>
+                              <p className="text-xs font-bold text-amber-800">Boost Payment Pending</p>
+                              <p className="text-[11px] text-amber-600 mt-0.5 leading-relaxed">
+                                Your boost payment has been received and is awaiting admin approval. Your profile will be boosted once it's confirmed.
+                              </p>
+                            </div>
+                          </div>
+                        );
+                      }
+
+                      if (boost[p.id].boostExpiresAt && new Date(boost[p.id].boostExpiresAt!) > new Date()) {
+                        return (
+                          <div className="bg-[#DB9D30]/10 rounded-xl px-3 py-2 text-[11px] text-[#8B5E00] font-poppins">
+                            ✦ VIP boost active until{' '}
+                            <strong>{new Date(boost[p.id].boostExpiresAt!).toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' })}</strong>
+                          </div>
+                        );
+                      }
+                      return (
+                        <div className="grid grid-cols-3 gap-1.5 sm:gap-2">
                         {/* Currency toggle */}
                         <div className="col-span-3 flex items-center justify-between mb-1">
                           <p className="text-[10px] text-[#A07830] font-semibold uppercase tracking-wide">Select Currency</p>
@@ -670,8 +643,9 @@ export default function ProfilesPage() {
                             </div>
                           );
                         })}
-                      </div>
-                    )}
+                        </div>
+                      );
+                    })()}
                   </div>
                 )}
 
@@ -764,6 +738,18 @@ export default function ProfilesPage() {
                         </svg>
                         View Details
                       </button>
+
+                      {/* Privacy Settings */}
+                      {!isSubExpired(p) && p.status !== 'PAYMENT_PENDING' && (
+                        <button
+                          onClick={() => router.push(`/dashboard/profiles/privacy/${p.id}`)}
+                          className="text-xs border border-gray-200 text-gray-600 px-3.5 py-2 rounded-lg hover:bg-purple-50 hover:border-purple-300 hover:text-purple-700 transition font-semibold flex items-center gap-1.5">
+                          <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                          </svg>
+                          Privacy
+                        </button>
+                      )}
                     </div>
 
                     {/* Delete */}

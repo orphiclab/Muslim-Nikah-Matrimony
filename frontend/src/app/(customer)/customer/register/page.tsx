@@ -121,7 +121,7 @@ function Step1({ data, onChange }: { data: Record<string, string>; onChange: (e:
         <SelectField label="Height" name="height" options={["4'0\"","4'5\"","4'10\"","5'0\"","5'2\"","5'4\"","5'6\"","5'8\"","5'10\"","6'0\"","6'2\"","6'4\"","6'6\""]} value={data.height || ""} onChange={onChange} />
         <SelectField label="Appearance" name="appearance" options={["Very Fair", "Fair", "Wheatish", "Wheatish Brown", "Dark"]} value={data.appearance || ""} onChange={onChange} />
         <SelectField label="Complexion" name="complexion" options={["Very Fair", "Fair", "Medium", "Olive", "Dark"]} value={data.complexion || ""} onChange={onChange} />
-        <SelectField label="Ethnicity" name="ethnicity" options={["Arab", "South Asian", "African", "South East Asian", "European", "Other"]} value={data.ethnicity || ""} onChange={onChange} />
+        <SelectField label="Ethnicity" name="ethnicity" options={["Muslim", "Sri Lankan Moors", "Indian Moors", "Malays", "Indian Malays", "Arab (Middle Eastern)", "Tamil", "Indian", "Memons", "Turkish", "European", "Other"]} value={data.ethnicity || ""} onChange={onChange} />
         <SelectField label="Dress Code" name="dressCode" options={["Hijab", "Niqab", "Casual Modest", "Islamic Formal", "Traditional"]} value={data.dressCode || ""} onChange={onChange} />
         <SelectField label="Family Status" name="familyStatus" options={["Upper Class", "Upper Middle Class", "Middle Class", "Lower Middle Class"]} value={data.familyStatus || ""} onChange={onChange} />
         <SelectField label="Civil Status" name="civilStatus" options={["Single", "Divorced", "Widowed"]} value={data.civilStatus || ""} onChange={onChange} />
@@ -176,7 +176,7 @@ function Step4({ data, onChange }: { data: Record<string, string>; onChange: (e:
       <div className="mt-6">
         <h3 className="text-sm font-semibold text-gray-700 mb-3">Father's Details</h3>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <SelectField label="Ethnicity" name="fatherEthnicity" options={["Arab","South Asian","African","South East Asian","European","Other"]} value={data.fatherEthnicity || ""} onChange={onChange} />
+          <SelectField label="Ethnicity" name="fatherEthnicity" options={["Muslim","Sri Lankan Moors","Indian Moors","Malays","Indian Malays","Arab (Middle Eastern)","Tamil","Indian","Memons","Turkish","European","Other"]} value={data.fatherEthnicity || ""} onChange={onChange} />
           <SelectField label="Country" name="fatherCountry" options={["Sri Lanka","United Kingdom","Australia","Canada","UAE","Saudi Arabia","Qatar","USA","Malaysia","Other"]} value={data.fatherCountry || ""} onChange={onChange} />
           <SelectField label="Occupation" name="fatherOccupation" options={["Business","Government Employee","Private Sector","Retired","Not Employed","Deceased"]} value={data.fatherOccupation || ""} onChange={onChange} />
           <TextField label="City" name="fatherCity" placeholder="Enter City" value={data.fatherCity || ""} onChange={onChange} />
@@ -186,7 +186,7 @@ function Step4({ data, onChange }: { data: Record<string, string>; onChange: (e:
       <div className="mt-6">
         <h3 className="text-sm font-semibold text-gray-700 mb-3">Mother's Details</h3>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <SelectField label="Ethnicity" name="motherEthnicity" options={["Arab","South Asian","African","South East Asian","European","Other"]} value={data.motherEthnicity || ""} onChange={onChange} />
+          <SelectField label="Ethnicity" name="motherEthnicity" options={["Muslim","Sri Lankan Moors","Indian Moors","Malays","Indian Malays","Arab (Middle Eastern)","Tamil","Indian","Memons","Turkish","European","Other"]} value={data.motherEthnicity || ""} onChange={onChange} />
           <SelectField label="Country" name="motherCountry" options={["Sri Lanka","United Kingdom","Australia","Canada","UAE","Saudi Arabia","Qatar","USA","Malaysia","Other"]} value={data.motherCountry || ""} onChange={onChange} />
           <SelectField label="Occupation" name="motherOccupation" options={["Business","Government Employee","Private Sector","Homemaker","Retired","Not Employed"]} value={data.motherOccupation || ""} onChange={onChange} />
           <TextField label="City" name="motherCity" placeholder="Enter City" value={data.motherCity || ""} onChange={onChange} />

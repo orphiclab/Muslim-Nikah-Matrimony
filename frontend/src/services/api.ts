@@ -150,6 +150,8 @@ export const adminApi = {
 
   payments: (status?: string) => request<any>(`/admin/payments${status ? `?status=${status}` : ''}`),
   users: () => request<any>('/admin/users'),
+  createUser: (body: { email: string; password: string; phone?: string; whatsappNumber?: string; role: string }) =>
+    request<any>('/admin/users', { method: 'POST', body: JSON.stringify(body) }),
   getUser: (id: string) => request<any>(`/admin/users/${id}`),
   updateUser: (id: string, body: { phone?: string; whatsappNumber?: string; role?: string }) =>
     request<any>(`/admin/users/${id}`, { method: 'PUT', body: JSON.stringify(body) }),

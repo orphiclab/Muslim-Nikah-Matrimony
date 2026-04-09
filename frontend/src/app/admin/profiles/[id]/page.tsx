@@ -121,7 +121,7 @@ export default function AdminProfileDetailPage() {
     <div className="font-poppins space-y-6 max-w-5xl mx-auto">
       {/* Breadcrumb */}
       <div className="flex items-center gap-2 text-sm text-gray-400">
-        <Link href="/admin/profiles" className="hover:text-[#1C3B35] transition font-medium">Master File</Link>
+        <Link href="/admin/profiles" className="hover:text-[#1C3B35] transition font-medium">Profiles</Link>
         <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6" /></svg>
         <span className="text-gray-700 font-medium truncate">{profile.name}</span>
       </div>
