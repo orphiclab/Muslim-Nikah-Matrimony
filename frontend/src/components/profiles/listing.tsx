@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import React, { useEffect, useState, useCallback } from 'react';
 import { publicProfilesApi, profileApi } from '@/services/api';
@@ -21,13 +21,13 @@ type UserProfile = {
 
 type Filters = {
   memberId: string;
-  minAge: string; maxAge: string; gender: string;
+  gender: string;
   country: string; city: string; ethnicity: string; civilStatus: string;
   education: string; occupation: string;
 };
 
 const EMPTY_FILTERS: Filters = {
-  memberId: '', minAge: '18', maxAge: '65',
+  memberId: '',
   gender: '', country: '', city: '', ethnicity: '', civilStatus: '', education: '', occupation: '',
 };
 
@@ -167,8 +167,6 @@ export default function ProfilesListing() {
   const load = useCallback((f: Filters) => {
     setLoading(true);
     publicProfilesApi.list({
-      minAge: parseInt(f.minAge) || undefined,
-      maxAge: parseInt(f.maxAge) || undefined,
       gender: f.gender || undefined,
       city: f.city || undefined,
       ethnicity: f.ethnicity || undefined,
@@ -400,36 +398,6 @@ export default function ProfilesListing() {
       </div>
 
       <div className="border-t border-gray-100 pt-3">
-        {/* Age Filter — with profile-based constraints */}
-        <FilterSection label="Age" defaultOpen>
-          <div className="space-y-2">
-            <div className="flex items-center justify-between text-[11px] text-gray-500 font-poppins">
-              <span>Range</span>
-              <span className="font-semibold text-[#1C3B35]">{filters.minAge} – {filters.maxAge}</span>
-            </div>
-            <div className="flex gap-2">
-              <input type="number"
-                min={masterData?.ageRange.min ?? 18}
-                max={(masterData?.ageRange.max ?? 65) - 1}
-                value={filters.minAge}
-                onChange={e => setFilters(f => ({ ...f, minAge: e.target.value }))}
-                className="w-full border border-gray-200 rounded-lg px-2.5 py-1.5 text-[12px] outline-none focus:border-[#1C3B35] font-poppins"
-              />
-              <input type="number"
-                min={(masterData?.ageRange.min ?? 18) + 1}
-                max={masterData?.ageRange.max ?? 65}
-                value={filters.maxAge}
-                onChange={e => setFilters(f => ({ ...f, maxAge: e.target.value }))}
-                className="w-full border border-gray-200 rounded-lg px-2.5 py-1.5 text-[12px] outline-none focus:border-[#1C3B35] font-poppins"
-              />
-            </div>
-            {masterData && (
-              <p className="text-[10px] text-gray-400 font-poppins">
-                Allowed: {masterData.ageRange.min}–{masterData.ageRange.max} years
-              </p>
-            )}
-          </div>
-        </FilterSection>
 
         {!selectedProfile && (
           <FilterSection label="Gender" defaultOpen>

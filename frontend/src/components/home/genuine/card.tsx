@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import React, { useEffect, useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
@@ -67,16 +67,12 @@ function mapApiToCard(p: any): ProfileCardProps {
 
 // ── Filter state ──────────────────────────────────────────────────────────────
 type Filters = {
-    ageMin: string;
-    ageMax: string;
     maritalStatus: string;
     city: string;
     country: string;
 };
 
 const INITIAL_FILTERS: Filters = {
-    ageMin: '',
-    ageMax: '',
     maritalStatus: '',
     city: '',
     country: '',
@@ -98,16 +94,12 @@ const FilterBar = ({
     onReset,
     cities,
     countries,
-    ageMin,
-    ageMax,
 }: {
     filters: Filters;
     onChange: (f: Filters) => void;
     onReset: () => void;
     cities: string[];
     countries: string[];
-    ageMin: number;
-    ageMax: number;
 }) => {
     const set = (key: keyof Filters, val: string) => {
         if (key === 'country') {
@@ -118,41 +110,13 @@ const FilterBar = ({
     };
 
     const hasActive =
-        filters.ageMin || filters.ageMax || filters.maritalStatus || filters.city || filters.country;
+        filters.maritalStatus || filters.city || filters.country;
 
     return (
         <div className="w-full mt-8 mb-2">
             <div className="bg-white/80 backdrop-blur-sm border border-white shadow-lg rounded-2xl px-4 py-4 flex flex-wrap gap-3 items-end justify-center">
 
-                {/* Age range */}
-                <div className="flex flex-col gap-1 min-w-[100px]">
-                    <label className="text-[10px] font-semibold text-[#1C3B35]/70 uppercase tracking-wider font-poppins">Age Range</label>
-                    <div className="flex items-center gap-1.5">
-                        <input
-                            type="number"
-                            min={ageMin}
-                            max={ageMax - 1}
-                            placeholder={String(ageMin)}
-                            value={filters.ageMin}
-                            onChange={e => set('ageMin', e.target.value)}
-                            className="w-[52px] border border-gray-200 rounded-xl px-2 py-2 text-xs font-medium text-gray-700 focus:outline-none focus:ring-2 focus:ring-[#DB9D30]/40 focus:border-[#DB9D30] bg-white transition placeholder-gray-300"
-                        />
-                        <span className="text-gray-300 text-xs font-bold">–</span>
-                        <input
-                            type="number"
-                            min={ageMin + 1}
-                            max={ageMax}
-                            placeholder={String(ageMax)}
-                            value={filters.ageMax}
-                            onChange={e => set('ageMax', e.target.value)}
-                            className="w-[52px] border border-gray-200 rounded-xl px-2 py-2 text-xs font-medium text-gray-700 focus:outline-none focus:ring-2 focus:ring-[#DB9D30]/40 focus:border-[#DB9D30] bg-white transition placeholder-gray-300"
-                        />
-                    </div>
 
-                </div>
-
-                {/* Divider */}
-                <div className="hidden sm:block w-px h-8 bg-gray-200 self-center" />
 
                 {/* Marital Status */}
                 <div className="flex flex-col gap-1 min-w-[140px]">
@@ -469,8 +433,6 @@ const GenuineProfileCards = () => {
     // Load master data for filter dropdowns
     const masterData = loadMasterData();
     const masterCountries = masterData.countries.map(c => c.name).sort();
-    const masterAgeMin = masterData.ageRange.min;
-    const masterAgeMax = masterData.ageRange.max;
 
     // Derive cities: if a country is selected, show only that country's cities; else all
     const selectedCountryData = masterData.countries.find(c => c.name === filters.country);
@@ -485,8 +447,6 @@ const GenuineProfileCards = () => {
     const displayed = useMemo(() => {
         return allProfiles
             .filter(p => {
-                if (filters.ageMin && p.age < Number(filters.ageMin)) return false;
-                if (filters.ageMax && p.age > Number(filters.ageMax)) return false;
                 if (filters.maritalStatus && !p.maritalStatus.toLowerCase().includes(filters.maritalStatus.toLowerCase())) return false;
                 if (filters.city && p.city !== filters.city && !p.city.toLowerCase().includes(filters.city.toLowerCase())) return false;
                 if (filters.country && p.country !== filters.country && !(p.country ?? '').toLowerCase().includes(filters.country.toLowerCase())) return false;
@@ -529,12 +489,10 @@ const GenuineProfileCards = () => {
                 onReset={() => setFilters(INITIAL_FILTERS)}
                 cities={cities}
                 countries={countries}
-                ageMin={masterAgeMin}
-                ageMax={masterAgeMax}
             />
 
             {/* Result count hint */}
-            {(filters.ageMin || filters.ageMax || filters.maritalStatus || filters.city || filters.country) && (
+            {(filters.maritalStatus || filters.city || filters.country) && (
                 <p className="text-center text-xs text-gray-500 font-poppins mt-3 mb-1">
                     Showing <span className="font-semibold text-[#1C3B35]">{displayed.length}</span> profile{displayed.length !== 1 ? 's' : ''} matching your filters
                 </p>

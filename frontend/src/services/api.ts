@@ -1,4 +1,4 @@
-const BASE = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3002/api';
+﻿const BASE = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3002/api';
 
 function getToken(): string | null {
   if (typeof window === 'undefined') return null;
@@ -215,13 +215,11 @@ export const packagesApi = {
 // ─── Public Profiles (no auth) ────────────────────────────────────────────
 export const publicProfilesApi = {
   list: (filters?: {
-    minAge?: number; maxAge?: number; gender?: string;
+    gender?: string;
     city?: string; ethnicity?: string; civilStatus?: string;
     education?: string; occupation?: string; memberId?: string;
   }) => {
     const params = new URLSearchParams();
-    if (filters?.minAge) params.set('minAge', String(filters.minAge));
-    if (filters?.maxAge) params.set('maxAge', String(filters.maxAge));
     if (filters?.gender) params.set('gender', filters.gender);
     if (filters?.city) params.set('city', filters.city);
     if (filters?.ethnicity) params.set('ethnicity', filters.ethnicity);
