@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import React, { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
@@ -341,7 +341,6 @@ export default function ProfileDetailPage() {
             <SectionCard title="Education & Career" icon="🎓">
               <InfoRow label="Education" value={fmt(profile.education)} />
               <InfoRow label="Occupation" value={fmt(profile.occupation)} />
-              {/* <InfoRow label="Annual Income" value={fmt(profile.annualIncome)} /> */}
             </SectionCard>
 
             {/* Family */}
@@ -354,14 +353,6 @@ export default function ProfileDetailPage() {
 
             {/* Partner Preferences */}
             <SectionCard title="Partner Preferences" icon="💑">
-              {/* <InfoRow
-                label="Age Range"
-                value={
-                  profile.minAgePreference && profile.maxAgePreference
-                    ? `${profile.minAgePreference} – ${profile.maxAgePreference} years`
-                    : '–'
-                }
-              /> */}
               <InfoRow label="Country Preference" value={fmt(profile.countryPreference)} />
             </SectionCard>
 

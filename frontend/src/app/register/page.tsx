@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState, useEffect, useRef } from "react";
 import { authApi, profileApi } from "@/services/api";
@@ -562,6 +562,8 @@ function Step5({ data, onChange, lookingFor, setLookingFor, agreedTerms, setAgre
   setLookingFor: (v: string) => void;
   agreedTerms: boolean;
   setAgreedTerms: (v: boolean) => void;
+  countryPrefSelected: string[];
+  setCountryPrefSelected: (v: string[]) => void;
 }) {
   const [masterData, setMasterData] = React.useState<MasterData | null>(null);
   React.useEffect(() => { setMasterData(loadMasterData()); }, []);
@@ -662,6 +664,7 @@ export default function RegisterPage() {
   const [currentStep, setCurrentStep] = useState(1);
   const [formData, setFormData] = useState<Record<string, string>>({});
   const [lookingFor, setLookingFor] = useState("Male");
+  const [countryPrefSelected, setCountryPrefSelected] = useState<string[]>([]);
   const [agreedTerms, setAgreedTerms] = useState(false);
   const [error, setError] = useState("");
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
@@ -947,7 +950,7 @@ export default function RegisterPage() {
           // Step 5 — Additional Details
           ...(formData.about && { aboutUs: formData.about }),
           ...(formData.expectations && { expectations: formData.expectations }),
-          ...(formData.countryPreference && { countryPreference: formData.countryPreference }),
+          ...(countryPrefSelected.length > 0 && { countryPreference: countryPrefSelected.join(',') }),
 
           // Contact from account details
           ...(formData.phone && { phone: formData.phone }),
@@ -1069,7 +1072,7 @@ export default function RegisterPage() {
               {currentStep === 2 && <Step1 data={formData} onChange={handleChange} fieldErrors={fieldErrors} />}
               {currentStep === 3 && <Step3 data={formData} onChange={handleChange} onLocationChange={handleLocationChange} fieldErrors={fieldErrors} />}
               {currentStep === 4 && <Step4 data={formData} onChange={handleChange} onFamilyLocationChange={handleFamilyLocationChange} fieldErrors={fieldErrors} />}
-              {currentStep === 5 && <Step5 data={formData} onChange={handleChange} lookingFor={lookingFor} setLookingFor={setLookingFor} agreedTerms={agreedTerms} setAgreedTerms={setAgreedTerms} />}
+              {currentStep === 5 && <Step5 data={formData} onChange={handleChange} lookingFor={lookingFor} setLookingFor={setLookingFor} agreedTerms={agreedTerms} setAgreedTerms={setAgreedTerms} countryPrefSelected={countryPrefSelected} setCountryPrefSelected={setCountryPrefSelected} />}
             </div>
 
             {/* Navigation Buttons */}
