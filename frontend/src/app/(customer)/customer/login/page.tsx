@@ -183,12 +183,12 @@ export default function LoginPage() {
               </button>
             </form>
 
-            <p className="mt-6 text-center text-xs text-gray-400">
+            {/* <p className="mt-6 text-center text-xs text-gray-400">
               By signing in, you agree to our{" "}
               <Link href="/terms" className="text-[#1B6B4A] hover:underline">Terms</Link>{" "}
               and{" "}
               <Link href="/privacy" className="text-[#1B6B4A] hover:underline">Privacy Policy</Link>.
-            </p>
+            </p> */}
           </div>
         </main>
       </div>

@@ -453,7 +453,7 @@ export default function AdminPaymentsPage() {
               <table className="w-full text-sm">
                 <thead className="bg-gray-50 border-b border-gray-100">
                   <tr>
-                    <SortTh colKey="customer" label="Customer" />
+                    <SortTh colKey="customer" label="Registered Email" />
                     <th className="px-5 py-3.5 text-left text-xs font-semibold text-gray-500 tracking-wide whitespace-nowrap">Profile</th>
                     <SortTh colKey="amount" label="Amount" />
                     <SortTh colKey="method" label="Method" />

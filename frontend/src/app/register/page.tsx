@@ -552,6 +552,9 @@ const stripDigitsOnPaste = (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
   document.execCommand('insertText', false, text);
 };
 
+/** Sentinel for optional “no country filter”; avoids a duplicate empty <option value=""> */
+const LOOKING_COUNTRY_NO_PREF = '__looking_country_no_pref__';
+
 function Step5({ data, onChange, lookingFor, setLookingFor, agreedTerms, setAgreedTerms }: {
   data: Record<string, string>;
   onChange: (e: React.ChangeEvent<HTMLSelectElement | HTMLInputElement | HTMLTextAreaElement>) => void;
@@ -564,8 +567,22 @@ function Step5({ data, onChange, lookingFor, setLookingFor, agreedTerms, setAgre
   React.useEffect(() => { setMasterData(loadMasterData()); }, []);
 
   const countryOptions = masterData
-    ? ['Any Country', ...masterData.countries.map(c => c.name)]
-    : ['Any Country','Sri Lanka','United Kingdom','Australia','Canada','UAE','Saudi Arabia','Qatar','USA','Malaysia','Other'];
+    ? masterData.countries.map((c) => c.name)
+    : ['Sri Lanka', 'United Kingdom', 'Australia', 'Canada', 'UAE', 'Saudi Arabia', 'Qatar', 'USA', 'Malaysia', 'Other'];
+
+  const storedPref = data.countryPreference?.trim();
+  const normalizedPref =
+    !storedPref || storedPref === 'Any Country' ? '' : storedPref;
+  const countryPrefSelectValue = normalizedPref
+    ? normalizedPref
+    : LOOKING_COUNTRY_NO_PREF;
+
+  const handleCountryPreferenceChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const v = e.target.value === LOOKING_COUNTRY_NO_PREF ? '' : e.target.value;
+    onChange({
+      target: { name: 'countryPreference', value: v },
+    } as React.ChangeEvent<HTMLSelectElement>);
+  };
 
   return (
     <div>
@@ -580,13 +597,15 @@ function Step5({ data, onChange, lookingFor, setLookingFor, agreedTerms, setAgre
         <div className="relative">
           <select
             name="countryPreference"
-            value={data.countryPreference || ''}
-            onChange={onChange as React.ChangeEventHandler<HTMLSelectElement>}
+            value={countryPrefSelectValue}
+            onChange={handleCountryPreferenceChange}
             className="w-full appearance-none rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-700 shadow-sm outline-none focus:border-[#1B6B4A] focus:ring-2 focus:ring-[#1B6B4A]/20 transition"
           >
-            <option value="">Any Country</option>
-            {countryOptions.filter(c => c !== 'Any Country').map((c) => (
-              <option key={c} value={c}>{c}</option>
+            <option value={LOOKING_COUNTRY_NO_PREF}>No preference</option>
+            {countryOptions.map((c) => (
+              <option key={c} value={c}>
+                {c}
+              </option>
             ))}
           </select>
           <svg className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>
@@ -838,7 +857,7 @@ export default function RegisterPage() {
           : '';
 
         // Build expectations text
-        const countryPref = formData.countryPreference && formData.countryPreference !== 'Any Country' ? formData.countryPreference : '';
+        const countryPref = formData.countryPreference?.trim() || '';
         let expParts: string[] = [];
         expParts.push(`Looking for a ${gender === 'Female' ? 'righteous, caring and responsible' : 'pious, educated and family-oriented'} Muslim partner`);
         if (countryPref) expParts.push(`preferably from ${countryPref}`);
