@@ -236,7 +236,6 @@ export default function AdminProfileDetailPage() {
             <Field label="Field of Study" value={profile.fieldOfStudy} />
             <Field label="Occupation" value={profile.occupation} />
             <Field label="Profession" value={profile.profession} />
-            <Field label="Annual Income" value={profile.annualIncome} />
           </div>
         </Section>
 
@@ -257,9 +256,6 @@ export default function AdminProfileDetailPage() {
         {/* Preferences */}
         <Section title="Partner Preferences" icon={<svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" /></svg>}>
           <div className="grid grid-cols-2 gap-x-6 gap-y-4">
-            <Field label="Min Age" value={profile.minAgePreference} />
-            <Field label="Max Age" value={profile.maxAgePreference} />
-            <Field label="Min Height" value={profile.minHeightPreference ? `${profile.minHeightPreference} cm` : null} />
             <Field label="Country Pref." value={profile.countryPreference} />
           </div>
         </Section>
