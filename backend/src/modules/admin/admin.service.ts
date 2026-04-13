@@ -400,6 +400,7 @@ export class AdminService {
         showRealName: true, nickname: true,
         boostExpiresAt: true,
         countryPreference: true,
+        createdBy: true,
       } as any,
       orderBy: { createdAt: 'desc' },
     });

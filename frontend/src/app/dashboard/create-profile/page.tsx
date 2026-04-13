@@ -273,8 +273,7 @@ export default function CreateProfilePage() {
     const errs: Record<string, string> = {};
     const minAge = masterData?.ageRange?.min ?? 18;
     if (s === 0) {
-      if (!form.firstName?.trim()) errs.firstName = 'First name is required.';
-      if (!form.lastName?.trim()) errs.lastName = 'Last name is required.';
+      // firstName and lastName are optional — not validated
       if (!form.createdBy) errs.createdBy = 'Please select who is creating this profile.';
       if (!form.gender) errs.gender = 'Please select a gender.';
       if (!form.dateOfBirth) {
@@ -344,8 +343,12 @@ export default function CreateProfilePage() {
     setSaving(true); setApiError('');
     try {
       const heightCm = form.height ? (HEIGHT_TO_CM[form.height] ?? undefined) : undefined;
+      const fullName = [form.firstName?.trim(), form.lastName?.trim()].filter(Boolean).join(' ');
+      // If no name, fall back to memberId from localStorage user, or a placeholder
+      const storedUser = (() => { try { return JSON.parse(localStorage.getItem('mn_user') || '{}'); } catch { return {}; } })();
+      const profileName = fullName || storedUser?.memberId || 'Member';
       const payload: Record<string, any> = {
-        name:               `${form.firstName.trim()} ${form.lastName.trim()}`,
+        name:               profileName,
         gender:             form.gender,
         dateOfBirth:        form.dateOfBirth,
         height:             heightCm,
@@ -457,8 +460,8 @@ export default function CreateProfilePage() {
             {step === 0 && (
               <>
                 <div className={g2}>
-                  <Field label="First Name" name="firstName" value={form.firstName} onChange={handleField} placeholder="Enter your first name" required error={fieldErrors.firstName} />
-                  <Field label="Last Name" name="lastName" value={form.lastName} onChange={handleField} placeholder="Enter your last name" required error={fieldErrors.lastName} />
+                  <Field label="First Name" name="firstName" value={form.firstName} onChange={handleField} placeholder="Enter your first name" optional />
+                  <Field label="Last Name" name="lastName" value={form.lastName} onChange={handleField} placeholder="Enter your last name" optional />
                 </div>
                 <p className="-mt-2 flex items-center gap-1.5 text-[11px] text-gray-400">
                   <svg className="w-3.5 h-3.5 shrink-0 text-[#1C3B35]/50" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>

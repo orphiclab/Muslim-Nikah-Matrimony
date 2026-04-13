@@ -13,6 +13,7 @@ type Profile = {
   city: string; country: string; height: string; education: string;
   occupation: string; ethnicity: string; civilStatus: string; createdAt: string;
   isVip?: boolean;
+  createdBy?: string;
 };
 
 type UserProfile = {
@@ -275,18 +276,26 @@ export default function ProfilesListing() {
 
   const ageHint = null;
 
-  const toCardProps = (p: Profile) => ({
-    name: p.name ?? 'Profile',
-    city: p.city ?? '',
-    isPrivate: true,
-    isVerified: false,
-    age: p.age,
-    height: p.height ? `${p.height} cm` : '–',
-    maritalStatus: p.civilStatus ?? 'Single',
-    education: p.education ?? '–',
-    job: p.occupation ?? '–',
-    joinedMs: Date.now() - new Date(p.createdAt).getTime(),
-  });
+  const toCardProps = (p: Profile) => {
+    // Priority: nickname (any name set by the user) → memberId → fallback
+    // A name that equals the memberId itself means no real name was entered
+    const rawName = (p as any).nickname?.trim() || p.name?.trim() || '';
+    const isPlaceholder = !rawName || rawName === p.memberId || rawName === 'Profile';
+    const displayName = isPlaceholder ? (p.memberId ?? 'Profile') : rawName;
+    return {
+      name: displayName,
+      city: p.city ?? '',
+      isPrivate: true,
+      isVerified: false,
+      age: p.age,
+      height: p.height ? `${p.height} cm` : '–',
+      maritalStatus: p.civilStatus ?? 'Single',
+      education: p.education ?? '–',
+      job: p.occupation ?? '–',
+      joinedMs: Date.now() - new Date(p.createdAt).getTime(),
+      createdBy: p.createdBy ?? undefined,
+    };
+  };
 
   /* ════════════════════════════════════════════════════════════ */
   useEffect(() => {

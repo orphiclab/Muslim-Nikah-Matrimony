@@ -21,6 +21,7 @@ export type ProfileCardProps = {
     profileImage?: string;
     memberId?: string;
     isVip?: boolean;
+    createdBy?: string;
     onChatClick?: (e: React.MouseEvent) => void;
     onViewClick?: (e: React.MouseEvent) => void;
     hideFooter?: boolean;
@@ -60,8 +61,11 @@ function smartJoinedTime(ms: number): string {
 }
 
 function mapApiToCard(p: any): ProfileCardProps {
+    const rawName = p.nickname?.trim() || p.name?.trim() || '';
+    const isPlaceholder = !rawName || rawName === p.memberId || rawName === 'Profile';
+    const displayName = isPlaceholder ? (p.memberId ?? 'Profile') : rawName;
     return {
-        name: p.name ?? 'Profile',
+        name: displayName,
         city: p.city ?? '–',
         country: p.country ?? '',
         gender: p.gender ?? '',
@@ -75,6 +79,7 @@ function mapApiToCard(p: any): ProfileCardProps {
         joinedMs: Date.now() - new Date(p.createdAt ?? 0).getTime(),
         memberId: p.memberId,
         isVip: !!p.isVip,
+        createdBy: p.createdBy ?? undefined,
     };
 }
 
@@ -82,6 +87,7 @@ function mapApiToCard(p: any): ProfileCardProps {
 type Filters = {
     ageMin: string;
     ageMax: string;
+    gender: string;
     maritalStatus: string;
     city: string;
     country: string;
@@ -90,6 +96,7 @@ type Filters = {
 const INITIAL_FILTERS: Filters = {
     ageMin: '',
     ageMax: '',
+    gender: '',
     maritalStatus: '',
     city: '',
     country: '',
@@ -131,12 +138,12 @@ const FilterBar = ({
     };
 
     const hasActive =
-        filters.ageMin || filters.ageMax || filters.maritalStatus || filters.city || filters.country;
+        filters.ageMin || filters.ageMax || filters.gender || filters.maritalStatus || filters.city || filters.country;
 
     return (
         <div className="w-full mt-8 mb-2">
             <div className="rounded-2xl border border-[#dbe6e1] bg-white shadow-sm px-4 py-4 sm:px-5 sm:py-5">
-                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-5">
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-6">
                     {/* Age range */}
                     <div className="flex flex-col gap-1.5">
                         <label className="text-[11px] font-semibold text-[#1C3B35] uppercase tracking-wide font-poppins">Age Range</label>
@@ -161,6 +168,20 @@ const FilterBar = ({
                                 className="h-10 w-full border border-gray-200 rounded-xl px-3 text-sm font-medium text-gray-700 focus:outline-none focus:ring-2 focus:ring-[#1C3B35]/20 focus:border-[#1C3B35] bg-white transition placeholder-gray-300"
                             />
                         </div>
+                    </div>
+
+                    {/* Gender */}
+                    <div className="flex flex-col gap-1.5">
+                        <label className="text-[11px] font-semibold text-[#1C3B35] uppercase tracking-wide font-poppins">Gender</label>
+                        <select
+                            value={filters.gender}
+                            onChange={e => set('gender', e.target.value)}
+                            className="h-10 border border-gray-200 rounded-xl px-3 text-sm font-medium text-gray-700 focus:outline-none focus:ring-2 focus:ring-[#1C3B35]/20 focus:border-[#1C3B35] bg-white transition appearance-none cursor-pointer"
+                        >
+                            <option value="">Any Gender</option>
+                            <option value="MALE">Male</option>
+                            <option value="FEMALE">Female</option>
+                        </select>
                     </div>
 
                     {/* Marital Status */}
@@ -303,6 +324,14 @@ const InfoRow = ({
     </div>
 );
 
+// Created-by label map
+const CREATED_BY_META: Record<string, { label: string; color: string; bg: string; border: string }> = {
+    Self:     { label: 'Self',     color: '#1C3B35', bg: 'rgba(28,59,53,0.07)', border: 'rgba(28,59,53,0.20)' },
+    Parent:   { label: 'Parent',  color: '#7c3aed', bg: 'rgba(124,58,237,0.07)', border: 'rgba(124,58,237,0.25)' },
+    Guardian: { label: 'Guardian',color: '#0369a1', bg: 'rgba(3,105,161,0.07)', border: 'rgba(3,105,161,0.25)' },
+    Sibling:  { label: 'Sibling', color: '#b45309', bg: 'rgba(180,83,9,0.07)',  border: 'rgba(180,83,9,0.25)' },
+};
+
 const GenuineProfileCard = ({
     name,
     city,
@@ -318,11 +347,16 @@ const GenuineProfileCard = ({
     memberId,
     isVip,
     gender,
+    createdBy,
     onChatClick,
     onViewClick,
     hideFooter,
     chatDisabled = false,
 }: ProfileCardProps) => {
+    // "New" tag: profile joined within the last 7 days
+    const isNew = joinedMs < 7 * 24 * 60 * 60 * 1000;
+    const createdByMeta = createdBy ? CREATED_BY_META[createdBy] : null;
+
     return (
         <div className="relative bg-white rounded-[20px] shadow-[0_4px_24px_rgba(0,0,0,0.10)] w-full flex-shrink-0 overflow-hidden pb-5">
 
@@ -347,10 +381,35 @@ const GenuineProfileCard = ({
                             🪪 {memberId}
                         </span>
                     ) : <div />}
-                    <span className="flex items-center gap-1 bg-[#DB9D3030] border border-gray-200 rounded-full px-2.5 py-0.5 text-[10px] sm:text-[11px] font-medium text-[#DB9D30] font-poppins shadow-sm">
-                        <span className="w-1.5 h-1.5 rounded-full bg-[#DB9D30] inline-block" />
-                        {isPrivate ? "Private" : "Public"}
-                    </span>
+
+                    {/* Right-side badges: NEW tag + Created By */}
+                    <div className="flex items-center gap-1.5">
+                        {isNew && (
+                            <span
+                                className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] sm:text-[10px] font-extrabold tracking-widest font-poppins"
+                                style={{
+                                    background: 'linear-gradient(135deg, #22c55e 0%, #16a34a 100%)',
+                                    color: '#fff',
+                                    boxShadow: '0 0 0 2px #bbf7d0',
+                                    animation: 'pulse 2s cubic-bezier(0.4,0,0.6,1) infinite',
+                                }}
+                            >
+                                ✦ NEW
+                            </span>
+                        )}
+                        {createdByMeta && (
+                            <span
+                                className="inline-flex items-center px-2 py-0.5 rounded-full text-[9px] sm:text-[10px] font-semibold font-poppins"
+                                style={{
+                                    background: createdByMeta.bg,
+                                    color: createdByMeta.color,
+                                    border: `1px solid ${createdByMeta.border}`,
+                                }}
+                            >
+                                {createdByMeta.label}
+                            </span>
+                        )}
+                    </div>
                 </div>
 
                 {/* Profile picture */}
@@ -493,6 +552,7 @@ const GenuineProfileCards = () => {
             .filter(p => {
                 if (filters.ageMin && p.age < Number(filters.ageMin)) return false;
                 if (filters.ageMax && p.age > Number(filters.ageMax)) return false;
+                if (filters.gender && (p as any).gender !== filters.gender) return false;
                 if (filters.maritalStatus && !p.maritalStatus.toLowerCase().includes(filters.maritalStatus.toLowerCase())) return false;
                 if (filters.city && p.city !== filters.city && !p.city.toLowerCase().includes(filters.city.toLowerCase())) return false;
                 if (filters.country && p.country !== filters.country && !(p.country ?? '').toLowerCase().includes(filters.country.toLowerCase())) return false;

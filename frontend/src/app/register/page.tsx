@@ -351,8 +351,8 @@ function Step1({
       <h2 className="text-xl font-semibold text-gray-800">Your Personal Details</h2>
       <p className="mt-1 text-sm text-gray-500">Please provide your basic information</p>
       <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <TextField label="First Name" name="firstName" placeholder="Enter your first name" value={data.firstName || ""} onChange={onChange} error={fieldErrors?.firstName} />
-        <TextField label="Last Name" name="lastName" placeholder="Enter your last name" value={data.lastName || ""} onChange={onChange} error={fieldErrors?.lastName} />
+        <TextField label="First Name" name="firstName" placeholder="Enter your first name" value={data.firstName || ""} onChange={onChange} optional />
+        <TextField label="Last Name" name="lastName" placeholder="Enter your last name" value={data.lastName || ""} onChange={onChange} optional />
       </div>
       <p className="mt-1 flex items-center gap-1.5 text-[11px] text-gray-400">
         <svg className="w-3.5 h-3.5 shrink-0 text-[#1B6B4A]/50" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
@@ -774,8 +774,7 @@ export default function RegisterPage() {
     // Step 2 = Personal Details (Step1 component) — all fields required
     if (currentStep === 2) {
       const errs: Record<string, string> = {};
-      if (!formData.firstName?.trim()) errs.firstName = 'First name is required.';
-      if (!formData.lastName?.trim()) errs.lastName = 'Last name is required.';
+      // firstName and lastName are optional — not validated
       if (!formData.createdBy) errs.createdBy = 'Please select who is creating this profile.';
       if (!formData.gender) errs.gender = 'Please select a gender.';
       if (!formData.birthDate) {
@@ -922,10 +921,13 @@ export default function RegisterPage() {
         // Height: DTO expects an integer in cm. The form stores strings like "5'6""
         const heightNum = formData.height ? (HEIGHT_TO_CM[formData.height] ?? undefined) : undefined;
 
+        // If no name provided, use the member ID (returned after registration) or email prefix
+        const profileName = fullName || res.user?.memberId || formData.email.split('@')[0];
+
         // Build profile payload — include every collected field
         const profilePayload: Record<string, any> = {
           // Required
-          name: fullName || formData.email.split('@')[0],
+          name: profileName,
           gender: genderMap[formData.gender] ?? 'MALE',
           dateOfBirth: formData.birthDate || new Date(Date.now() - 20 * 365.25 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
 
