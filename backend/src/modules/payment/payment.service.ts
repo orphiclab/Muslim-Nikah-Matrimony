@@ -2,6 +2,7 @@ import { Injectable, Logger, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { InitiatePaymentDto, VerifyPaymentDto } from './dto/payment.dto';
+import { NotificationService } from '../notification/notification.service';
 
 export { InitiatePaymentDto, VerifyPaymentDto };
 
@@ -12,6 +13,7 @@ export class PaymentService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly events: EventEmitter2,
+    private readonly notifications: NotificationService,
   ) {}
 
   async initiate(userId: string, dto: InitiatePaymentDto) {
@@ -91,6 +93,16 @@ export class PaymentService {
       this.events.emit('PAYMENT_PENDING', { paymentId: payment.id, profileId: profile.id });
       this.logger.log(`BANK_TRANSFER payment initiated: ${payment.id}`);
     }
+
+    // Notify all admins of the new payment
+    const adminIds = await this.notifications.getAdminIds();
+    const purposeLabel = (dto.purpose ?? 'SUBSCRIPTION') === 'BOOST' ? 'Boost' : 'Subscription';
+    await this.notifications.createForMany(adminIds, {
+      type: (dto.purpose ?? 'SUBSCRIPTION') === 'BOOST' ? 'NEW_BOOST_PAYMENT' : 'NEW_SUBSCRIPTION_PAYMENT',
+      title: `New ${purposeLabel} Payment`,
+      body: `A new ${purposeLabel.toLowerCase()} payment has been submitted and requires approval.`,
+      meta: { paymentId: payment.id, profileId: profile.id, amount: dto.amount, method: dto.method },
+    });
 
     return { success: true, data: payment };
   }

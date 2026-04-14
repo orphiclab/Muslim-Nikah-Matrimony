@@ -12,6 +12,7 @@ import { MailService } from './mail.service';
 import * as bcrypt from 'bcrypt';
 import * as crypto from 'crypto';
 import { ActivityLogService } from '../activity-log/activity-log.service';
+import { NotificationService } from '../notification/notification.service';
 
 @Injectable()
 export class AuthService {
@@ -22,6 +23,7 @@ export class AuthService {
     private readonly jwt: JwtService,
     private readonly mail: MailService,
     private readonly activityLog: ActivityLogService,
+    private readonly notifications: NotificationService,
   ) {}
 
   async register(dto: RegisterDto) {
@@ -38,6 +40,15 @@ export class AuthService {
       actorId: user.id, actorEmail: user.email, actorRole: user.role,
       action: 'USER_REGISTERED', category: 'AUTH',
       entityId: user.id, entityLabel: user.email,
+    });
+
+    // Notify all admins
+    const adminIds = await this.notifications.getAdminIds();
+    await this.notifications.createForMany(adminIds, {
+      type: 'NEW_USER_REGISTERED',
+      title: 'New User Registered',
+      body: `A new user has registered: ${user.email}`,
+      meta: { userId: user.id, email: user.email },
     });
 
     const token = this.signToken(user.id, user.email, user.role);

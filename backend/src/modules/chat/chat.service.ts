@@ -3,6 +3,7 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { SendMessageDto } from './dto/chat.dto';
 import { RuleEngineService } from '../rule-engine/rule-engine.service';
+import { NotificationService } from '../notification/notification.service';
 
 @Injectable()
 export class ChatService {
@@ -12,6 +13,7 @@ export class ChatService {
     private readonly prisma: PrismaService,
     private readonly events: EventEmitter2,
     private readonly ruleEngine: RuleEngineService,
+    private readonly notifications: NotificationService,
   ) {}
 
   async send(userId: string, dto: SendMessageDto) {
@@ -68,6 +70,16 @@ export class ChatService {
 
     this.events.emit('MESSAGE_SENT', { messageId: message.id, sender: dto.senderProfileId, receiver: dto.receiverProfileId });
     this.logger.log(`Message SENT: ${message.id}`);
+
+    // Notify the receiver (in-app notification)
+    const senderName = senderProfile.showRealName ? senderProfile.name : (senderProfile.nickname ?? senderProfile.name);
+    await this.notifications.create({
+      userId: receiverProfile.userId,
+      type: 'NEW_MESSAGE',
+      title: `New message from ${senderName}`,
+      body: dto.content.length > 60 ? dto.content.slice(0, 60) + '…' : dto.content,
+      meta: { messageId: message.id, senderProfileId: dto.senderProfileId, senderName },
+    });
 
     return { success: true, data: message };
   }

@@ -72,6 +72,7 @@ model User {
   payments      Payment[]
   sentMessages  ChatMessage[]  @relation("SenderMessages")
   passwordResetTokens PasswordResetToken[]
+  notifications Notification[]
 }
 
 model ChildProfile {
@@ -307,5 +308,23 @@ model ActivityLog {
 
   @@index([category])
   @@index([actorId])
+  @@index([createdAt])
+}
+
+/// In-app notification for users and admins
+model Notification {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  type      String   // e.g. PAYMENT_APPROVED | NEW_MESSAGE | SUBSCRIPTION_EXPIRING_WEEK
+  title     String
+  body      String
+  isRead    Boolean  @default(false)
+  meta      Json?    // optional extra data (paymentId, profileId, reason, etc.)
+
+  createdAt DateTime @default(now())
+
+  @@index([userId, isRead])
   @@index([createdAt])
 }

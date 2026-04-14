@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { RuleEngineService } from '../rule-engine/rule-engine.service';
+import { NotificationService } from '../notification/notification.service';
 
 @Injectable()
 export class VisibilityService {
@@ -9,6 +10,7 @@ export class VisibilityService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly ruleEngine: RuleEngineService,
+    private readonly notifications: NotificationService,
   ) {}
 
   async checkContactVisibility(viewerProfileId: string, targetProfileId: string) {
@@ -50,7 +52,17 @@ export class VisibilityService {
       data: { contactVisible: visible },
     });
 
+    // Notify the profile owner
+    await this.notifications.create({
+      userId,
+      type: 'PROFILE_VISIBILITY_CHANGED',
+      title: 'Profile Visibility Updated',
+      body: `Your contact details for profile "${profile.name}" are now ${visible ? 'visible' : 'hidden'} to other members.`,
+      meta: { profileId, visible },
+    });
+
     this.logger.log(`Contact visibility toggled: profile=${profileId} visible=${visible}`);
     return { success: true, message: `Contact visibility set to ${visible}` };
   }
 }
+

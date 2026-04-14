@@ -5,17 +5,17 @@ const CONTACT_ITEMS = [
   {
     icon: Mail,
     title: "Email Address",
-    detail: "akrammuslim1986@gmail.com",
+    detail: "Info@muslimnikah.lk",
   },
   {
     icon: PhoneCall,
     title: "Contact Info",
-    detail: "+76 3456523334",
+    detail: "+94705687697",
   },
   {
     icon: MapPin,
     title: "Our Address",
-    detail: "123, example, example road, exapmle",
+    detail: "Galle Road, Ratmalana",
   },
 ] as const;
 

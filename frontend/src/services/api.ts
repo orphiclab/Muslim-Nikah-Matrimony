@@ -245,3 +245,12 @@ export const publicProfilesApi = {
 export const settingsApi = {
   get: () => request<any>('/settings'),
 };
+
+// ─── Notifications ─────────────────────────────────────────────────────────
+export const notificationApi = {
+  list: () => request<any>('/notifications'),
+  unreadCount: () => request<any>('/notifications/unread-count'),
+  markRead: (id: string) => request<any>(`/notifications/${id}/read`, { method: 'POST' }),
+  markAllRead: () => request<any>('/notifications/read-all', { method: 'POST' }),
+};
+

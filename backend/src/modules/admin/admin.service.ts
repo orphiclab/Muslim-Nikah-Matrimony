@@ -6,6 +6,7 @@ import { ApprovePaymentDto, RejectPaymentDto, CreatePackageDto, UpdateSiteSettin
 import { PaymentStatus, ProfileStatus } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 import { ActivityLogService } from '../activity-log/activity-log.service';
+import { NotificationService } from '../notification/notification.service';
 
 export { ApprovePaymentDto, RejectPaymentDto, CreatePackageDto, UpdateSiteSettingsDto };
 
@@ -18,6 +19,7 @@ export class AdminService {
     private readonly events: EventEmitter2,
     private readonly paymentService: PaymentService,
     private readonly activityLog: ActivityLogService,
+    private readonly notifications: NotificationService,
   ) {}
 
   // ─── Payments ─────────────────────────────────────────────────────────────
@@ -58,6 +60,17 @@ export class AdminService {
       entityLabel: `Payment ${payment.id.slice(0, 8)} (${payment.purpose})`,
       meta: { durationDays, planName, profileId: payment.childProfileId },
     });
+
+    // Notify the payment owner
+    const purposeLabel = payment.purpose === 'BOOST' ? 'Boost' : 'Subscription';
+    await this.notifications.create({
+      userId: payment.userId,
+      type: payment.purpose === 'BOOST' ? 'BOOST_ACTIVATED' : 'PAYMENT_APPROVED',
+      title: `${purposeLabel} Payment Approved ✓`,
+      body: `Your ${purposeLabel.toLowerCase()} payment has been approved and your profile is now active.`,
+      meta: { paymentId: payment.id, profileId: payment.childProfileId, durationDays },
+    });
+
     return { success: true, message: `Payment approved — profile activated for ${durationDays} days` };
   }
 
@@ -89,6 +102,17 @@ export class AdminService {
       entityLabel: `Payment ${payment.id.slice(0, 8)} (${payment.purpose})`,
       meta: { reason: dto.reason, purpose: payment.purpose, profileId: payment.childProfileId },
     });
+
+    // Notify the payment owner with rejection reason
+    const rPurposeLabel = payment.purpose === 'BOOST' ? 'Boost' : 'Subscription';
+    await this.notifications.create({
+      userId: payment.userId,
+      type: 'PAYMENT_REJECTED',
+      title: `${rPurposeLabel} Payment Rejected`,
+      body: `Your ${rPurposeLabel.toLowerCase()} payment was rejected. Reason: ${dto.reason}`,
+      meta: { paymentId: payment.id, profileId: payment.childProfileId, reason: dto.reason },
+    });
+
     return { success: true, message: 'Payment rejected' };
   }
 

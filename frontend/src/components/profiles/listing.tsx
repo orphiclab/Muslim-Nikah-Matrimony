@@ -17,7 +17,7 @@ type Profile = {
 };
 
 type UserProfile = {
-  id: string; name: string; gender: string; age: number; status: string; height: number | null;
+  id: string; memberId: string; name: string; gender: string; age: number; status: string; height: number | null;
 };
 
 type Filters = {
@@ -146,7 +146,8 @@ export default function ProfilesListing() {
               : 0;
             return {
               id: p.id,
-              name: p.name ?? 'Profile',
+              memberId: p.memberId ?? '',
+              name: p.name?.trim() && p.name.trim() !== 'Profile' ? p.name.trim() : '',
               gender: p.gender ?? '',
               age: p.age ?? computedAge,       // API may or may not return age
               height: (p.height && p.height > 0) ? p.height : null,
@@ -366,7 +367,7 @@ export default function ProfilesListing() {
                 >
                   {userProfiles.map(p => (
                     <option key={p.id} value={p.id}>
-                      {p.name}
+                      {p.name?.trim() || p.memberId || p.id}
                     </option>
                   ))}
                 </select>
@@ -619,7 +620,7 @@ export default function ProfilesListing() {
                   >
                     {userProfiles.map(p => (
                       <option key={p.id} value={p.id}>
-                        {p.name}
+                        {p.name?.trim() || p.memberId || p.id}
                       </option>
                     ))}
                   </select>

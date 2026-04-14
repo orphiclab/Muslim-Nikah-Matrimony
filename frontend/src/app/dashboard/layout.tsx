@@ -4,6 +4,7 @@ import { ReactNode, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { subscriptionApi, profileApi } from '@/services/api';
+import NotificationBell from '@/components/ui/NotificationBell';
 
 const MEMBER_LOGO_SRC = '/images/muslimLogo1.png';
 
@@ -307,12 +308,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
           </div>
 
           <div className="flex shrink-0 items-center gap-3 sm:gap-4">
-            <button type="button" className="relative rounded-xl p-2 text-gray-500 transition hover:bg-gray-50">
-              <svg className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24">
-                <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" /><path d="M13.73 21a2 2 0 0 1-3.46 0" />
-              </svg>
-              <span className="absolute right-1.5 top-1.5 h-1.5 w-1.5 rounded-full bg-red-500" />
-            </button>
+            <NotificationBell />
             <div className="hidden h-6 w-px bg-gray-200 sm:block" />
             <div className="flex items-center gap-2 sm:gap-2.5">
               <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#1C3B35] text-sm font-bold text-white">
