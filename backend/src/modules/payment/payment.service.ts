@@ -3,6 +3,7 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { InitiatePaymentDto, VerifyPaymentDto } from './dto/payment.dto';
 import { NotificationService } from '../notification/notification.service';
+import { MailService } from '../auth/mail.service';
 
 export { InitiatePaymentDto, VerifyPaymentDto };
 
@@ -14,6 +15,7 @@ export class PaymentService {
     private readonly prisma: PrismaService,
     private readonly events: EventEmitter2,
     private readonly notifications: NotificationService,
+    private readonly mail: MailService,
   ) {}
 
   async initiate(userId: string, dto: InitiatePaymentDto) {
@@ -103,6 +105,29 @@ export class PaymentService {
       body: `A new ${purposeLabel.toLowerCase()} payment has been submitted and requires approval.`,
       meta: { paymentId: payment.id, profileId: profile.id, amount: dto.amount, method: dto.method },
     });
+
+    // Send confirmation email to user (fire and forget)
+    const user = await this.prisma.user.findUnique({ where: { id: userId }, select: { email: true } });
+    if (user) {
+      if ((dto.purpose ?? 'SUBSCRIPTION') === 'BOOST') {
+        const days = dto.days ?? 7;
+        this.mail.sendBoostPending(user.email, {
+          profileName: profile.name ?? 'Your Profile',
+          days,
+          amount: dto.amount,
+          currency: dto.currency ?? 'LKR',
+          bankRef: dto.bankRef,
+        }).catch(() => {});
+      } else {
+        this.mail.sendSubscriptionPending(user.email, {
+          profileName: profile.name ?? 'Your Profile',
+          planName: dto.packageId ? 'Membership Plan' : 'Standard Plan',
+          amount: dto.amount,
+          currency: dto.currency ?? 'LKR',
+          bankRef: dto.bankRef,
+        }).catch(() => {});
+      }
+    }
 
     return { success: true, data: payment };
   }

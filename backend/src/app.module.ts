@@ -21,6 +21,7 @@ import { TrafficModule } from './modules/traffic/traffic.module';
 import { ActivityLogModule } from './modules/activity-log/activity-log.module';
 import { NotificationModule } from './modules/notification/notification.module';
 import { envValidationSchema } from './config/env.validation';
+import { MailService } from './modules/auth/mail.service';
 
 @Module({
   controllers: [AppController],
@@ -50,6 +51,6 @@ import { envValidationSchema } from './config/env.validation';
     ActivityLogModule,
     NotificationModule,
   ],
-  providers: [AppService, SubscriptionCron, AppEventListener],
+  providers: [AppService, SubscriptionCron, AppEventListener, MailService],
 })
 export class AppModule {}

@@ -5,11 +5,12 @@ import { PublicPackagesController } from './admin.controller';
 import { PaymentModule } from '../payment/payment.module';
 import { ActivityLogModule } from '../activity-log/activity-log.module';
 import { NotificationModule } from '../notification/notification.module';
+import { MailService } from '../auth/mail.service';
 
 @Module({
   imports: [PaymentModule, ActivityLogModule, NotificationModule],
   controllers: [AdminController, PublicPackagesController],
-  providers: [AdminService],
+  providers: [AdminService, MailService],
 })
 export class AdminModule {}
 

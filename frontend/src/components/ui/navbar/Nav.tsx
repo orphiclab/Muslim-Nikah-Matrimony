@@ -8,7 +8,9 @@ import { useEffect, useState } from 'react'
 // Decode JWT payload and check if token is still valid (not expired)
 function isTokenValid(token: string): boolean {
   try {
-    const payload = JSON.parse(atob(token.split('.')[1]))
+    // JWT uses base64url — must convert -→+ and _→/ before atob()
+    const b64 = token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')
+    const payload = JSON.parse(atob(b64))
     return typeof payload.exp === 'number' && payload.exp * 1000 > Date.now()
   } catch {
     return false

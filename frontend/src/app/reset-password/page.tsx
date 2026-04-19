@@ -52,6 +52,9 @@ function ResetPasswordForm() {
     setLoading(true);
     try {
       await authApi.resetPassword(token, password);
+      // Clear any stale session so the login page doesn't auto-redirect
+      localStorage.removeItem('mn_token');
+      localStorage.removeItem('mn_user');
       setStatus('success');
     } catch (err: any) {
       setError(err.message ?? 'Reset failed. The link may have expired.');

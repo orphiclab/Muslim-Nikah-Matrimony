@@ -7,6 +7,7 @@ import { PaymentStatus, ProfileStatus } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 import { ActivityLogService } from '../activity-log/activity-log.service';
 import { NotificationService } from '../notification/notification.service';
+import { MailService } from '../auth/mail.service';
 
 export { ApprovePaymentDto, RejectPaymentDto, CreatePackageDto, UpdateSiteSettingsDto };
 
@@ -20,6 +21,7 @@ export class AdminService {
     private readonly paymentService: PaymentService,
     private readonly activityLog: ActivityLogService,
     private readonly notifications: NotificationService,
+    private readonly mail: MailService,
   ) {}
 
   // ─── Payments ─────────────────────────────────────────────────────────────
@@ -61,7 +63,7 @@ export class AdminService {
       meta: { durationDays, planName, profileId: payment.childProfileId },
     });
 
-    // Notify the payment owner
+    // Notify the payment owner (in-app)
     const purposeLabel = payment.purpose === 'BOOST' ? 'Boost' : 'Subscription';
     await this.notifications.create({
       userId: payment.userId,
@@ -70,6 +72,32 @@ export class AdminService {
       body: `Your ${purposeLabel.toLowerCase()} payment has been approved and your profile is now active.`,
       meta: { paymentId: payment.id, profileId: payment.childProfileId, durationDays },
     });
+
+    // Send approval email (fire and forget)
+    const user = await this.prisma.user.findUnique({ where: { id: payment.userId }, select: { email: true } });
+    const profile = await this.prisma.childProfile.findUnique({ where: { id: payment.childProfileId }, select: { name: true, subscription: true, boostExpiresAt: true } });
+    if (user && profile) {
+      if (payment.purpose === 'BOOST') {
+        const now = new Date();
+        const endDate = profile.boostExpiresAt ?? new Date(now.getTime() + 7 * 86400000);
+        const days = Math.ceil((endDate.getTime() - now.getTime()) / 86400000);
+        this.mail.sendBoostApproved(user.email, {
+          profileName: profile.name ?? 'Your Profile',
+          days,
+          startDate: now,
+          endDate,
+        }).catch(() => {});
+      } else {
+        const sub = profile.subscription as any;
+        this.mail.sendSubscriptionApproved(user.email, {
+          profileName: profile.name ?? 'Your Profile',
+          planName,
+          startDate: sub?.startDate ?? new Date(),
+          endDate: sub?.endDate ?? new Date(),
+          durationDays,
+        }).catch(() => {});
+      }
+    }
 
     return { success: true, message: `Payment approved — profile activated for ${durationDays} days` };
   }
@@ -103,7 +131,7 @@ export class AdminService {
       meta: { reason: dto.reason, purpose: payment.purpose, profileId: payment.childProfileId },
     });
 
-    // Notify the payment owner with rejection reason
+    // Notify the payment owner with rejection reason (in-app)
     const rPurposeLabel = payment.purpose === 'BOOST' ? 'Boost' : 'Subscription';
     await this.notifications.create({
       userId: payment.userId,
@@ -112,6 +140,24 @@ export class AdminService {
       body: `Your ${rPurposeLabel.toLowerCase()} payment was rejected. Reason: ${dto.reason}`,
       meta: { paymentId: payment.id, profileId: payment.childProfileId, reason: dto.reason },
     });
+
+    // Send rejection email (fire and forget)
+    const rUser = await this.prisma.user.findUnique({ where: { id: payment.userId }, select: { email: true } });
+    const rProfile = await this.prisma.childProfile.findUnique({ where: { id: payment.childProfileId }, select: { name: true } });
+    if (rUser && rProfile) {
+      if (payment.purpose === 'BOOST') {
+        this.mail.sendBoostRejected(rUser.email, {
+          profileName: rProfile.name ?? 'Your Profile',
+          reason: dto.reason,
+        }).catch(() => {});
+      } else {
+        this.mail.sendSubscriptionRejected(rUser.email, {
+          profileName: rProfile.name ?? 'Your Profile',
+          planName: 'Membership Plan',
+          reason: dto.reason,
+        }).catch(() => {});
+      }
+    }
 
     return { success: true, message: 'Payment rejected' };
   }

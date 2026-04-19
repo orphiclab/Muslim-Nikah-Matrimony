@@ -4,6 +4,7 @@ import { EventEmitter2 } from '@nestjs/event-emitter';
 import { CreateChildProfileDto, UpdateChildProfileDto } from './dto/child-profile.dto';
 import { AutoFillService } from '../user/auto-fill.service';
 import { Prisma } from '@prisma/client';
+import { MailService } from '../auth/mail.service';
 
 @Injectable()
 export class ChildProfileService {
@@ -13,6 +14,7 @@ export class ChildProfileService {
     private readonly prisma: PrismaService,
     private readonly events: EventEmitter2,
     private readonly autoFill: AutoFillService,
+    private readonly mail: MailService,
   ) {}
 
   async create(userId: string, dto: CreateChildProfileDto) {
@@ -169,6 +171,20 @@ export class ChildProfileService {
       include: { subscription: true },
     });
     this.logger.log(`Profile STATUS changed to ${status}: ${profileId}`);
+
+    // Send status-change email (fire and forget)
+    const user = await this.prisma.user.findUnique({ where: { id: userId }, select: { email: true } });
+    if (user) {
+      const profileName = profile.name ?? 'Your Profile';
+      if (status === 'ACTIVE') {
+        this.mail.sendProfileStatusActive(user.email, { profileName }).catch(() => {});
+      } else if (status === 'PAUSED') {
+        this.mail.sendProfileStatusPaused(user.email, { profileName }).catch(() => {});
+      } else if (status === 'INACTIVE') {
+        this.mail.sendProfileStatusInactive(user.email, { profileName }).catch(() => {});
+      }
+    }
+
     return { success: true, data: updated };
   }
 

@@ -84,7 +84,9 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
 
     // Check JWT expiry without a library — decode the payload and check exp
     try {
-      const payload = JSON.parse(atob(token.split('.')[1]));
+      // JWT uses base64url — must convert -→+ and _→/ before atob()
+      const b64 = token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/');
+      const payload = JSON.parse(atob(b64));
       if (typeof payload.exp === 'number' && payload.exp * 1000 <= Date.now()) {
         // Token is expired — clear stale session and redirect to login
         localStorage.removeItem('mn_token');

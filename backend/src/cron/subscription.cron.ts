@@ -3,6 +3,7 @@ import { Cron, CronExpression } from '@nestjs/schedule';
 import { PrismaService } from '../prisma/prisma.service';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { NotificationService } from '../modules/notification/notification.service';
+import { MailService } from '../modules/auth/mail.service';
 
 @Injectable()
 export class SubscriptionCron {
@@ -12,6 +13,7 @@ export class SubscriptionCron {
     private readonly prisma: PrismaService,
     private readonly events: EventEmitter2,
     private readonly notifications: NotificationService,
+    private readonly mail: MailService,
   ) {}
 
   @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)
@@ -22,7 +24,7 @@ export class SubscriptionCron {
     // ── 1. Expire overdue subscriptions ──────────────────────────────────
     const expired = await this.prisma.subscription.findMany({
       where: { status: 'ACTIVE', endDate: { lte: now } },
-      include: { childProfile: true },
+      include: { childProfile: { include: { user: { select: { email: true } } } } },
     });
 
     for (const sub of expired) {
@@ -55,11 +57,11 @@ export class SubscriptionCron {
         status: 'ACTIVE',
         endDate: { gte: now, lte: weekFromNow },
       },
-      include: { childProfile: true },
+      include: { childProfile: { include: { user: { select: { email: true } } } } },
     });
 
     for (const sub of expiringSoon7) {
-      // Skip ones already notified (endDate within next 24h — handled below)
+      // Skip ones within next 24h — handled by the 1-day check below
       const dayFromNow = new Date(now.getTime() + 24 * 60 * 60 * 1000);
       if (sub.endDate && sub.endDate <= dayFromNow) continue;
 
@@ -70,6 +72,15 @@ export class SubscriptionCron {
         body: `Your subscription for profile ${sub.childProfile.name} expires in about 7 days. Renew now to stay visible.`,
         meta: { profileId: sub.childProfileId, endDate: sub.endDate },
       });
+
+      // Send 7-day reminder email
+      if (sub.childProfile.user?.email && sub.endDate) {
+        this.mail.sendSubscriptionExpiring7Days(sub.childProfile.user.email, {
+          profileName: sub.childProfile.name ?? 'Your Profile',
+          planName: sub.planName ?? 'Membership Plan',
+          endDate: sub.endDate,
+        }).catch(() => {});
+      }
     }
 
     // ── 3. Send warning 1 day before expiry ──────────────────────────────
@@ -79,7 +90,7 @@ export class SubscriptionCron {
         status: 'ACTIVE',
         endDate: { gte: now, lte: dayFromNow },
       },
-      include: { childProfile: true },
+      include: { childProfile: { include: { user: { select: { email: true } } } } },
     });
 
     for (const sub of expiringSoon1) {
@@ -90,19 +101,56 @@ export class SubscriptionCron {
         body: `Your subscription for profile ${sub.childProfile.name} expires tomorrow. Renew now to avoid interruption.`,
         meta: { profileId: sub.childProfileId, endDate: sub.endDate },
       });
+
+      // Send 1-day urgent reminder email
+      if (sub.childProfile.user?.email && sub.endDate) {
+        this.mail.sendSubscriptionExpiring1Day(sub.childProfile.user.email, {
+          profileName: sub.childProfile.name ?? 'Your Profile',
+          planName: sub.planName ?? 'Membership Plan',
+          endDate: sub.endDate,
+        }).catch(() => {});
+      }
     }
 
-    // ── 4. Boost expiry warning (1 day before) ────────────────────────────
-    const boostDayFromNow = new Date(now.getTime() + 24 * 60 * 60 * 1000);
-    const boostExpiring = await this.prisma.childProfile.findMany({
+    // ── 4. Boost expiry warning (2 days before) ────────────────────────────
+    const twoDaysFromNow = new Date(now.getTime() + 2 * 24 * 60 * 60 * 1000);
+    const dayFromNowBoost = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+    const boostExpiring2 = await this.prisma.childProfile.findMany({
       where: {
-        boostExpiresAt: { gte: now, lte: boostDayFromNow },
+        boostExpiresAt: { gte: dayFromNowBoost, lte: twoDaysFromNow },
+        status: 'ACTIVE',
+      },
+      select: { id: true, name: true, userId: true, boostExpiresAt: true, user: { select: { email: true } } },
+    });
+
+    for (const profile of boostExpiring2) {
+      await this.notifications.create({
+        userId: profile.userId,
+        type: 'BOOST_EXPIRING_DAY',
+        title: 'Boost Expiring in 2 Days',
+        body: `Your profile boost for ${profile.name} expires in 2 days. Boost again to stay at the top.`,
+        meta: { profileId: profile.id, boostExpiresAt: profile.boostExpiresAt },
+      });
+
+      // Send 2-day boost reminder email
+      if (profile.user?.email && profile.boostExpiresAt) {
+        this.mail.sendBoostExpiring2Days(profile.user.email, {
+          profileName: profile.name ?? 'Your Profile',
+          endDate: profile.boostExpiresAt,
+        }).catch(() => {});
+      }
+    }
+
+    // ── 5. Boost expiry warning (1 day before) ────────────────────────────
+    const boostExpiring1 = await this.prisma.childProfile.findMany({
+      where: {
+        boostExpiresAt: { gte: now, lte: dayFromNowBoost },
         status: 'ACTIVE',
       },
       select: { id: true, name: true, userId: true, boostExpiresAt: true },
     });
 
-    for (const profile of boostExpiring) {
+    for (const profile of boostExpiring1) {
       await this.notifications.create({
         userId: profile.userId,
         type: 'BOOST_EXPIRING_DAY',
@@ -115,4 +163,3 @@ export class SubscriptionCron {
     this.logger.log('Subscription expiry cron complete.');
   }
 }
-

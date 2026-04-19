@@ -42,6 +42,9 @@ export class AuthService {
       entityId: user.id, entityLabel: user.email,
     });
 
+    // Welcome email (fire and forget)
+    this.mail.sendWelcome(user.email, user.email).catch(() => {});
+
     // Notify all admins
     const adminIds = await this.notifications.getAdminIds();
     await this.notifications.createForMany(adminIds, {
