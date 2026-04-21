@@ -267,6 +267,19 @@ model SiteSettings {
   updatedAt           DateTime @updatedAt
 }
 
+/// SMS OTP for phone verification during registration
+model SmsOtp {
+  id        String   @id @default(cuid())
+  phone     String
+  code      String
+  verified  Boolean  @default(false)
+  attempts  Int      @default(0)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([phone])
+}
+
 /// Password reset tokens — one per request, expires in 1 hour
 model PasswordResetToken {
   id        String   @id @default(cuid())

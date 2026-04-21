@@ -22,6 +22,7 @@ import { ActivityLogModule } from './modules/activity-log/activity-log.module';
 import { NotificationModule } from './modules/notification/notification.module';
 import { envValidationSchema } from './config/env.validation';
 import { MailService } from './modules/auth/mail.service';
+import { SmsService } from './modules/auth/sms.service';
 
 @Module({
   controllers: [AppController],
@@ -51,6 +52,6 @@ import { MailService } from './modules/auth/mail.service';
     ActivityLogModule,
     NotificationModule,
   ],
-  providers: [AppService, SubscriptionCron, AppEventListener, MailService],
+  providers: [AppService, SubscriptionCron, AppEventListener, MailService, SmsService],
 })
 export class AppModule {}

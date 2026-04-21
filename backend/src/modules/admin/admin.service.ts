@@ -8,6 +8,7 @@ import * as bcrypt from 'bcrypt';
 import { ActivityLogService } from '../activity-log/activity-log.service';
 import { NotificationService } from '../notification/notification.service';
 import { MailService } from '../auth/mail.service';
+import { SmsService } from '../auth/sms.service';
 
 export { ApprovePaymentDto, RejectPaymentDto, CreatePackageDto, UpdateSiteSettingsDto };
 
@@ -22,6 +23,7 @@ export class AdminService {
     private readonly activityLog: ActivityLogService,
     private readonly notifications: NotificationService,
     private readonly mail: MailService,
+    private readonly sms: SmsService,
   ) {}
 
   // ─── Payments ─────────────────────────────────────────────────────────────
@@ -74,7 +76,7 @@ export class AdminService {
     });
 
     // Send approval email (fire and forget)
-    const user = await this.prisma.user.findUnique({ where: { id: payment.userId }, select: { email: true } });
+    const user = await this.prisma.user.findUnique({ where: { id: payment.userId }, select: { email: true, phone: true, whatsappNumber: true } });
     const profile = await this.prisma.childProfile.findUnique({ where: { id: payment.childProfileId }, select: { name: true, subscription: true, boostExpiresAt: true } });
     if (user && profile) {
       if (payment.purpose === 'BOOST') {
@@ -87,6 +89,14 @@ export class AdminService {
           startDate: now,
           endDate,
         }).catch(() => {});
+        // SMS: boost approved
+        const smsPhone = user.phone || user.whatsappNumber;
+        if (smsPhone) {
+          const expiryStr = endDate.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+          this.sms.sendSms(smsPhone,
+            `Your profile boost is now LIVE 🚀 Expires on: ${expiryStr}. Get ready for more visibility!`
+          ).catch(() => {});
+        }
       } else {
         const sub = profile.subscription as any;
         this.mail.sendSubscriptionApproved(user.email, {
@@ -96,6 +106,15 @@ export class AdminService {
           endDate: sub?.endDate ?? new Date(),
           durationDays,
         }).catch(() => {});
+        // SMS: subscription approved
+        const smsPhone = user.phone || user.whatsappNumber;
+        if (smsPhone) {
+          const endDate = sub?.endDate ? new Date(sub.endDate) : new Date();
+          const expiryStr = endDate.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+          this.sms.sendSms(smsPhone,
+            `Good news ${profile.name ?? 'there'}! Your ${planName} is now ACTIVE. Valid till: ${expiryStr}.`
+          ).catch(() => {});
+        }
       }
     }
 
@@ -142,7 +161,7 @@ export class AdminService {
     });
 
     // Send rejection email (fire and forget)
-    const rUser = await this.prisma.user.findUnique({ where: { id: payment.userId }, select: { email: true } });
+    const rUser = await this.prisma.user.findUnique({ where: { id: payment.userId }, select: { email: true, phone: true, whatsappNumber: true } });
     const rProfile = await this.prisma.childProfile.findUnique({ where: { id: payment.childProfileId }, select: { name: true } });
     if (rUser && rProfile) {
       if (payment.purpose === 'BOOST') {
@@ -156,6 +175,14 @@ export class AdminService {
           planName: 'Membership Plan',
           reason: dto.reason,
         }).catch(() => {});
+      }
+      // SMS: rejection (subscription or boost)
+      const rSmsPhone = rUser.phone || rUser.whatsappNumber;
+      if (rSmsPhone) {
+        const purposeLabel = payment.purpose === 'BOOST' ? 'boost' : 'subscription';
+        this.sms.sendSms(rSmsPhone,
+          `Hi ${rProfile.name ?? 'there'}, your ${purposeLabel} request was rejected. Reason: ${dto.reason ?? 'N/A'}.`
+        ).catch(() => {});
       }
     }
 

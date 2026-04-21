@@ -9,6 +9,7 @@ import { JwtService } from '@nestjs/jwt';
 import { PrismaService } from '../../prisma/prisma.service';
 import { RegisterDto, LoginDto } from './dto/auth.dto';
 import { MailService } from './mail.service';
+import { SmsService } from './sms.service';
 import * as bcrypt from 'bcrypt';
 import * as crypto from 'crypto';
 import { ActivityLogService } from '../activity-log/activity-log.service';
@@ -22,6 +23,7 @@ export class AuthService {
     private readonly prisma: PrismaService,
     private readonly jwt: JwtService,
     private readonly mail: MailService,
+    private readonly sms: SmsService,
     private readonly activityLog: ActivityLogService,
     private readonly notifications: NotificationService,
   ) {}
@@ -44,6 +46,14 @@ export class AuthService {
 
     // Welcome email (fire and forget)
     this.mail.sendWelcome(user.email, user.email).catch(() => {});
+
+    // Welcome SMS — sent to phone or whatsapp number if provided (fire and forget)
+    const smsPhone = dto.phone || dto.whatsappNumber;
+    if (smsPhone) {
+      const displayName = user.email.split('@')[0];
+      const welcomeMsg = `Hi ${displayName} welcome to Muslim Nikah Matrimony \u2764\uFE0F`;
+      this.sms.sendSms(smsPhone, welcomeMsg).catch(() => {});
+    }
 
     // Notify all admins
     const adminIds = await this.notifications.getAdminIds();

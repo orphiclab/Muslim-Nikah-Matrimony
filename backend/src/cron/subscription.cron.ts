@@ -4,6 +4,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { NotificationService } from '../modules/notification/notification.service';
 import { MailService } from '../modules/auth/mail.service';
+import { SmsService } from '../modules/auth/sms.service';
 
 @Injectable()
 export class SubscriptionCron {
@@ -14,6 +15,7 @@ export class SubscriptionCron {
     private readonly events: EventEmitter2,
     private readonly notifications: NotificationService,
     private readonly mail: MailService,
+    private readonly sms: SmsService,
   ) {}
 
   @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)
@@ -24,7 +26,11 @@ export class SubscriptionCron {
     // ── 1. Expire overdue subscriptions ──────────────────────────────────
     const expired = await this.prisma.subscription.findMany({
       where: { status: 'ACTIVE', endDate: { lte: now } },
-      include: { childProfile: { include: { user: { select: { email: true } } } } },
+      include: {
+        childProfile: {
+          include: { user: { select: { email: true, phone: true, whatsappNumber: true } } },
+        },
+      },
     });
 
     for (const sub of expired) {
@@ -57,7 +63,11 @@ export class SubscriptionCron {
         status: 'ACTIVE',
         endDate: { gte: now, lte: weekFromNow },
       },
-      include: { childProfile: { include: { user: { select: { email: true } } } } },
+      include: {
+        childProfile: {
+          include: { user: { select: { email: true, phone: true, whatsappNumber: true } } },
+        },
+      },
     });
 
     for (const sub of expiringSoon7) {
@@ -73,13 +83,21 @@ export class SubscriptionCron {
         meta: { profileId: sub.childProfileId, endDate: sub.endDate },
       });
 
-      // Send 7-day reminder email
+      // Email reminder
       if (sub.childProfile.user?.email && sub.endDate) {
         this.mail.sendSubscriptionExpiring7Days(sub.childProfile.user.email, {
           profileName: sub.childProfile.name ?? 'Your Profile',
           planName: sub.planName ?? 'Membership Plan',
           endDate: sub.endDate,
         }).catch(() => {});
+      }
+
+      // SMS: 7-day reminder
+      const smsPhone7 = sub.childProfile.user?.phone || sub.childProfile.user?.whatsappNumber;
+      if (smsPhone7) {
+        this.sms.sendSms(smsPhone7,
+          `Hi ${sub.childProfile.name ?? 'there'}, your subscription will expire in 7 days. Renew now to continue connecting.`
+        ).catch(() => {});
       }
     }
 
@@ -90,7 +108,11 @@ export class SubscriptionCron {
         status: 'ACTIVE',
         endDate: { gte: now, lte: dayFromNow },
       },
-      include: { childProfile: { include: { user: { select: { email: true } } } } },
+      include: {
+        childProfile: {
+          include: { user: { select: { email: true, phone: true, whatsappNumber: true } } },
+        },
+      },
     });
 
     for (const sub of expiringSoon1) {
@@ -102,13 +124,21 @@ export class SubscriptionCron {
         meta: { profileId: sub.childProfileId, endDate: sub.endDate },
       });
 
-      // Send 1-day urgent reminder email
+      // Email reminder
       if (sub.childProfile.user?.email && sub.endDate) {
         this.mail.sendSubscriptionExpiring1Day(sub.childProfile.user.email, {
           profileName: sub.childProfile.name ?? 'Your Profile',
           planName: sub.planName ?? 'Membership Plan',
           endDate: sub.endDate,
         }).catch(() => {});
+      }
+
+      // SMS: 1-day urgent reminder
+      const smsPhone1 = sub.childProfile.user?.phone || sub.childProfile.user?.whatsappNumber;
+      if (smsPhone1) {
+        this.sms.sendSms(smsPhone1,
+          `\u26a0\ufe0f Reminder: Hi ${sub.childProfile.name ?? 'there'}, your subscription expires TOMORROW. Renew now to avoid interruption.`
+        ).catch(() => {});
       }
     }
 
@@ -120,7 +150,10 @@ export class SubscriptionCron {
         boostExpiresAt: { gte: dayFromNowBoost, lte: twoDaysFromNow },
         status: 'ACTIVE',
       },
-      select: { id: true, name: true, userId: true, boostExpiresAt: true, user: { select: { email: true } } },
+      select: {
+        id: true, name: true, userId: true, boostExpiresAt: true,
+        user: { select: { email: true, phone: true, whatsappNumber: true } },
+      },
     });
 
     for (const profile of boostExpiring2) {
@@ -132,12 +165,20 @@ export class SubscriptionCron {
         meta: { profileId: profile.id, boostExpiresAt: profile.boostExpiresAt },
       });
 
-      // Send 2-day boost reminder email
+      // Email reminder
       if (profile.user?.email && profile.boostExpiresAt) {
         this.mail.sendBoostExpiring2Days(profile.user.email, {
           profileName: profile.name ?? 'Your Profile',
           endDate: profile.boostExpiresAt,
         }).catch(() => {});
+      }
+
+      // SMS: 2-day boost reminder
+      const smsPhoneB2 = profile.user?.phone || profile.user?.whatsappNumber;
+      if (smsPhoneB2) {
+        this.sms.sendSms(smsPhoneB2,
+          `Hi ${profile.name ?? 'there'}, your profile boost expires in 2 days. Renew to stay on top!`
+        ).catch(() => {});
       }
     }
 
@@ -147,7 +188,10 @@ export class SubscriptionCron {
         boostExpiresAt: { gte: now, lte: dayFromNowBoost },
         status: 'ACTIVE',
       },
-      select: { id: true, name: true, userId: true, boostExpiresAt: true },
+      select: {
+        id: true, name: true, userId: true, boostExpiresAt: true,
+        user: { select: { phone: true, whatsappNumber: true } },
+      },
     });
 
     for (const profile of boostExpiring1) {
@@ -158,6 +202,14 @@ export class SubscriptionCron {
         body: `Your profile boost for ${profile.name} expires tomorrow. Boost again to stay at the top.`,
         meta: { profileId: profile.id, boostExpiresAt: profile.boostExpiresAt },
       });
+
+      // SMS: 1-day boost reminder
+      const smsPhoneB1 = profile.user?.phone || profile.user?.whatsappNumber;
+      if (smsPhoneB1) {
+        this.sms.sendSms(smsPhoneB1,
+          `\u26a0\ufe0f Hi ${profile.name ?? 'there'}, your profile boost expires TOMORROW. Renew to stay on top!`
+        ).catch(() => {});
+      }
     }
 
     this.logger.log('Subscription expiry cron complete.');

@@ -4,6 +4,7 @@ import { EventEmitter2 } from '@nestjs/event-emitter';
 import { InitiatePaymentDto, VerifyPaymentDto } from './dto/payment.dto';
 import { NotificationService } from '../notification/notification.service';
 import { MailService } from '../auth/mail.service';
+import { SmsService } from '../auth/sms.service';
 
 export { InitiatePaymentDto, VerifyPaymentDto };
 
@@ -16,6 +17,7 @@ export class PaymentService {
     private readonly events: EventEmitter2,
     private readonly notifications: NotificationService,
     private readonly mail: MailService,
+    private readonly sms: SmsService,
   ) {}
 
   async initiate(userId: string, dto: InitiatePaymentDto) {
@@ -107,7 +109,7 @@ export class PaymentService {
     });
 
     // Send confirmation email to user (fire and forget)
-    const user = await this.prisma.user.findUnique({ where: { id: userId }, select: { email: true } });
+    const user = await this.prisma.user.findUnique({ where: { id: userId }, select: { email: true, phone: true, whatsappNumber: true } });
     if (user) {
       if ((dto.purpose ?? 'SUBSCRIPTION') === 'BOOST') {
         const days = dto.days ?? 7;
@@ -127,6 +129,18 @@ export class PaymentService {
           bankRef: dto.bankRef,
         }).catch(() => {});
       }
+    }
+
+    // Welcome SMS — pending subscription or boost (fire and forget)
+    const smsPhone = user?.phone || user?.whatsappNumber;
+    if (user && smsPhone) {
+      const profileName = profile.name ?? 'Your Profile';
+      const purposeLabel = (dto.purpose ?? 'SUBSCRIPTION') === 'BOOST' ? 'boost' : 'subscription';
+      const amountFmt = `${dto.currency ?? 'LKR'} ${dto.amount}`;
+      const msg = (dto.purpose ?? 'SUBSCRIPTION') === 'BOOST'
+        ? `Hi ${profileName}, your profile boost request (${amountFmt}) is under review. We'll notify you once approved.`
+        : `Hi ${profileName}, your subscription (${amountFmt}) is under review. We'll notify you once approved.`;
+      this.sms.sendSms(smsPhone, msg).catch(() => {});
     }
 
     return { success: true, data: payment };
