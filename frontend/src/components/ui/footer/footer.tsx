@@ -105,6 +105,18 @@ const Footer = () => {
             <Link href="#" className="hover:text-white transition-colors">Cookies</Link>
           </div>
         </div>
+
+        <p className="mt-3 text-center text-xs md:text-sm font-poppins text-white/55">
+          Designed by{" "}
+          <a
+            href="https://growthswitch.co/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-white/70 hover:text-[#DB9D30] transition-colors  underline underline-offset-2"
+          >
+            Growth Switch
+          </a>
+        </p>
       </div>
     </footer>
   );
