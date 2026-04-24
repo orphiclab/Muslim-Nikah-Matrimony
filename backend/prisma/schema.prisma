@@ -341,3 +341,54 @@ model Notification {
   @@index([userId, isRead])
   @@index([createdAt])
 }
+
+/// SMS Campaign — bulk / scheduled message sent to a group of users
+model SmsCampaign {
+  id            String            @id @default(uuid())
+  name          String
+  message       String
+  status        String            @default("DRAFT")   // DRAFT | SCHEDULED | SENDING | COMPLETED | FAILED
+  recipientType String            @default("ALL")     // ALL | FILTERED | SELECTED
+  recipientFilter Json?                               // filter snapshot (gender, country, packageStatus…)
+  scheduledAt   DateTime?
+  sentAt        DateTime?
+  totalRecipients Int             @default(0)
+  sentCount     Int               @default(0)
+  failedCount   Int               @default(0)
+  createdBy     String?                               // admin userId
+  templateId    String?
+  template      SmsTemplate?      @relation(fields: [templateId], references: [id])
+  logs          SmsCampaignLog[]
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+
+  @@index([status])
+  @@index([createdAt])
+}
+
+/// Per-recipient delivery record for each campaign
+model SmsCampaignLog {
+  id          String       @id @default(uuid())
+  campaignId  String
+  campaign    SmsCampaign  @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  userId      String
+  phone       String
+  status      String       @default("PENDING")  // PENDING | SENT | FAILED
+  errorMsg    String?
+  sentAt      DateTime?
+  createdAt   DateTime     @default(now())
+
+  @@index([campaignId])
+  @@index([userId])
+}
+
+/// Reusable SMS message templates
+model SmsTemplate {
+  id          String        @id @default(uuid())
+  name        String        @unique
+  message     String
+  category    String        @default("GENERAL")  // GENERAL | WELCOME | REMINDER | PROMOTIONAL
+  campaigns   SmsCampaign[]
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+}

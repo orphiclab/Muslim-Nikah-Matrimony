@@ -23,6 +23,7 @@ import { NotificationModule } from './modules/notification/notification.module';
 import { envValidationSchema } from './config/env.validation';
 import { MailService } from './modules/auth/mail.service';
 import { SmsService } from './modules/auth/sms.service';
+import { SmsCampaignModule } from './modules/sms-campaign/sms-campaign.module';
 
 @Module({
   controllers: [AppController],
@@ -51,6 +52,7 @@ import { SmsService } from './modules/auth/sms.service';
     TrafficModule,
     ActivityLogModule,
     NotificationModule,
+    SmsCampaignModule,
   ],
   providers: [AppService, SubscriptionCron, AppEventListener, MailService, SmsService],
 })
