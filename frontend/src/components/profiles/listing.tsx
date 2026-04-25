@@ -6,6 +6,7 @@ import { GenuineProfileCard } from '@/components/home/genuine/card';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { loadMasterData, MasterData } from '@/app/admin/master-file/data';
+import { ProfileAvatar } from '@/components/ui/ProfileAvatar';
 
 /* ─── Types ─────────────────────────────────────────────────────── */
 type Profile = {
@@ -118,16 +119,6 @@ function SearchingAsDropdown({
 
   const genderLabel = (g: string) => g === 'MALE' ? 'Male' : 'Female';
 
-  const GenderAvatar = ({ g, size = 'md' }: { g: string; size?: 'sm' | 'md' }) => {
-    const c = genderColor(g);
-    const sz = size === 'sm' ? 'w-7 h-7 text-[10px]' : 'w-9 h-9 text-xs';
-    return (
-      <span className={`${sz} ${c.bg} ${c.text} rounded-full flex items-center justify-center font-bold shrink-0`}>
-        {g === 'MALE' ? '♂' : '♀'}
-      </span>
-    );
-  };
-
   if (!selected) return null;
   const sc = genderColor(selected.gender);
 
@@ -143,7 +134,9 @@ function SearchingAsDropdown({
             : 'border-[#1C3B35]/25 bg-[#1C3B35]/4 hover:border-[#1C3B35]/50 hover:bg-[#1C3B35]/8'
         } ${compact ? 'px-2.5 py-1.5' : 'px-3 py-2.5'}`}
       >
-        <GenderAvatar g={selected.gender} size={compact ? 'sm' : 'md'} />
+        <div className="shrink-0 rounded-full overflow-hidden" style={{ width: compact ? 28 : 36, height: compact ? 28 : 36 }}>
+          <ProfileAvatar gender={selected.gender} name={selected.name} size={compact ? 28 : 36} className="w-full h-full" />
+        </div>
         <div className="flex-1 min-w-0 text-left">
           <p className={`font-mono font-bold text-[#1C3B35] truncate leading-tight ${
             compact ? 'text-[11px]' : 'text-[12px]'
@@ -188,11 +181,9 @@ function SearchingAsDropdown({
                   }`}
                 >
                   {/* Avatar */}
-                  <span className={`w-8 h-8 rounded-full flex items-center justify-center text-[11px] font-bold shrink-0 ${
-                    isActive ? 'bg-white/20 text-white' : `${c.bg} ${c.text}`
-                  }`}>
-                    {p.gender === 'MALE' ? '♂' : '♀'}
-                  </span>
+                  <div className={`w-8 h-8 rounded-full overflow-hidden shrink-0 ${isActive ? 'ring-2 ring-white/40' : ''}`}>
+                    <ProfileAvatar gender={p.gender} name={p.name} size={32} className="w-full h-full" />
+                  </div>
                   {/* Info */}
                   <div className="flex-1 min-w-0 text-left">
                     <p className={`text-[12px] font-mono font-bold truncate leading-tight ${

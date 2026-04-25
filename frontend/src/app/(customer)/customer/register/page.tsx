@@ -236,7 +236,7 @@ function Step5({ data, onChange, lookingFor, setLookingFor, agreedTerms, setAgre
       </div>
 
       <div className="mt-4 flex flex-col gap-1">
-        <label className="text-sm font-medium text-gray-600">Your Expectations</label>
+        <label className="text-sm font-medium text-gray-600">Tell us more about Expectations</label>
         <textarea
           name="expectations"
           value={data.expectations || ""}

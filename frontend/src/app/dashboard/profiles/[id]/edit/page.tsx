@@ -399,21 +399,27 @@ export default function EditProfilePage() {
       if (payload.weight) payload.weight = Number(payload.weight);
       if (payload.siblings) payload.siblings = Number(payload.siblings);
 
-      // Strip empty strings → undefined for optional fields (but NEVER touch name or gender)
-      const KEEP_AS_STRING = new Set(['name', 'gender']);
+      // Fields that must always be sent (even as empty string) so backend can
+      // detect clears and apply them correctly.
+      // Do NOT strip these to undefined.
+      const ALWAYS_SEND = new Set(['name', 'gender', 'countryPreference', 'dateOfBirth',
+        'aboutUs', 'expectations']);
+
+      // Strip empty strings → undefined for truly optional fields only
       Object.keys(payload).forEach(k => {
-        if (!KEEP_AS_STRING.has(k) && payload[k] === '') payload[k] = undefined;
+        if (!ALWAYS_SEND.has(k) && payload[k] === '') payload[k] = undefined;
       });
 
-      await profileApi.update(id, payload);
+      await profileApi.submitEditRequest(id, payload);
       setSuccess(true);
-      setTimeout(() => router.push(`/dashboard/profiles/${id}`), 1000);
+      setTimeout(() => router.push(`/dashboard/profiles/${id}`), 1500);
     } catch (e: any) {
-      setError(e.message ?? 'Failed to save profile');
+      setError(e.message ?? 'Failed to submit edit request');
     } finally {
       setSaving(false);
     }
   };
+
 
   if (loading) return (
     <div className="flex items-center justify-center h-64 gap-3 text-gray-400 font-poppins">
@@ -470,6 +476,17 @@ export default function EditProfilePage() {
         </div>
       </div>
 
+      {/* ── Under-review info banner */}
+      <div className="flex items-start gap-3 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3">
+        <svg className="w-4 h-4 text-amber-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+          <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+        </svg>
+        <div>
+          <p className="text-xs font-semibold text-amber-700">Changes require admin approval</p>
+          <p className="text-xs text-amber-600 mt-0.5">Your updated profile will be reviewed by our team before going live. You'll receive an SMS once it's approved.</p>
+        </div>
+      </div>
+
       {/* Feedback */}
       {error && (
         <div className="bg-red-50 border border-red-200 text-red-700 text-sm rounded-xl px-4 py-3">{error}</div>
@@ -477,13 +494,12 @@ export default function EditProfilePage() {
       {success && (
         <div className="bg-green-50 border border-green-200 text-green-700 text-sm rounded-xl px-4 py-3 flex items-center gap-2">
           <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
-          Profile saved! Redirecting…
+          Edit request submitted! Our team will review and approve it shortly.
         </div>
       )}
 
       {/* ── Personal Details ──────────────────────────────────────────── */}
       <SectionCard title="Personal Details">
-        <Field label="Full Name" name="name" value={form.name} onChange={set} />
         <Field label="Date of Birth" name="dateOfBirth" value={form.dateOfBirth} onChange={set} type="date" />
         <Field label="Height (cm)" name="height" value={form.height} onChange={set} type="number" />
         <Field label="Weight (kg)" name="weight" value={form.weight} onChange={set} type="number" />
@@ -560,14 +576,14 @@ export default function EditProfilePage() {
                 <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                 <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
               </svg>
-              Saving…
+              Submitting…
             </>
           ) : (
             <>
               <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
               </svg>
-              Save Changes
+              Submit for Review
             </>
           )}
         </button>

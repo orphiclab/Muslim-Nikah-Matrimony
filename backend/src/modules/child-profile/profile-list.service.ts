@@ -79,8 +79,8 @@ export class ProfileListService {
     return { success: true, data: sanitized, total: sanitized.length };
   }
 
-  /** Public profile detail — no auth needed. Atomically increments viewCount. */
-  async getPublicProfile(profileId: string) {
+  /** Public profile detail — no auth needed. Atomically increments viewCount and records viewer. */
+  async getPublicProfile(profileId: string, viewerProfileId?: string) {
     const profile = await this.prisma.childProfile.update({
       where: { id: profileId },
       data: { viewCount: { increment: 1 } } as any,
@@ -90,6 +90,9 @@ export class ProfileListService {
     if (!profile || profile.status !== 'ACTIVE') {
       throw new NotFoundException({ success: false, message: 'Profile not found', error_code: 'NOT_FOUND' });
     }
+
+    // Record a ProfileView entry (fire-and-forget)
+    this.recordView(profileId, viewerProfileId ?? null).catch(() => {});
 
     const age = Math.floor((Date.now() - new Date(profile.dateOfBirth).getTime()) / (1000 * 60 * 60 * 24 * 365.25));
     const isVip = !!(profile.boostExpiresAt && new Date(profile.boostExpiresAt as any) > new Date());
@@ -115,12 +118,24 @@ export class ProfileListService {
         children: p.children,
         country: p.country,
         city: p.city,
+        state: p.state,
+        residencyStatus: p.residencyStatus,
         education: p.education,
+        fieldOfStudy: p.fieldOfStudy,
         occupation: p.occupation,
+        profession: p.profession,
         annualIncome: p.annualIncome,
+        // Full family details
         familyStatus: p.familyStatus,
+        createdBy: p.createdBy,
+        fatherEthnicity: p.fatherEthnicity,
+        fatherCountry: p.fatherCountry,
         fatherOccupation: p.fatherOccupation,
+        fatherCity: p.fatherCity,
+        motherEthnicity: p.motherEthnicity,
+        motherCountry: p.motherCountry,
         motherOccupation: p.motherOccupation,
+        motherCity: p.motherCity,
         siblings: p.siblings,
         minAgePreference: p.minAgePreference,
         maxAgePreference: p.maxAgePreference,
@@ -142,4 +157,49 @@ export class ProfileListService {
       },
     };
   }
+
+  private async recordView(profileId: string, viewerProfileId: string | null) {
+    let viewerName: string | null = null;
+    let viewerMemberId: string | null = null;
+    let viewerGender: string | null = null;
+    let viewerCountry: string | null = null;
+
+    if (viewerProfileId && viewerProfileId !== profileId) {
+      const viewer = await this.prisma.childProfile.findUnique({
+        where: { id: viewerProfileId },
+        select: { name: true, memberId: true, gender: true, country: true, showRealName: true, nickname: true },
+      });
+      if (viewer) {
+        viewerName = (!viewer.showRealName && viewer.nickname) ? viewer.nickname : viewer.name;
+        viewerMemberId = viewer.memberId;
+        viewerGender = viewer.gender;
+        viewerCountry = viewer.country ?? null;
+      }
+    }
+
+    await (this.prisma as any).profileView.create({
+      data: {
+        profileId,
+        viewerProfileId: viewerProfileId ?? null,
+        viewerName,
+        viewerMemberId,
+        viewerGender,
+        viewerCountry,
+      },
+    });
+  }
+
+  /** Owner: get all views for their profile (auth-protected in controller) */
+  async getProfileViews(profileId: string, limit = 50) {
+    const views = await (this.prisma as any).profileView.findMany({
+      where: { profileId },
+      orderBy: { viewedAt: 'desc' },
+      take: limit,
+    });
+
+    const total = await (this.prisma as any).profileView.count({ where: { profileId } });
+
+    return { success: true, data: views, total };
+  }
 }
+
