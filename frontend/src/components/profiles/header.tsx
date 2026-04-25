@@ -2,6 +2,7 @@
 
 import React, { useRef } from 'react';
 import Image from 'next/image';
+import Link from 'next/link';
 import { gsap } from 'gsap';
 import { SplitText } from 'gsap/SplitText';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
@@ -62,6 +63,20 @@ const ProfilesHeader = () => {
         <p className="paragraph font-poppins text-white max-w-4xl">
           Begin a meaningful journey guided by faith, trust, and sincere intentions. Our platform is designed to help you find a compatible life partner while honoring values, family involvement, and spiritual connection—leading you towards a truly blessed and lasting match.
         </p>
+        <div className="flex items-center justify-center gap-4 flex-wrap pt-2">
+          <Link
+            href="/register"
+            className="bg-[#DB9D30] hover:bg-[#c98b26] text-white font-semibold px-7 py-3 rounded-full text-[15px] font-poppins transition-all duration-200 shadow-md hover:shadow-lg active:scale-[0.98]"
+          >
+            Register Now
+          </Link>
+          <Link
+            href="/packages"
+            className="border border-white/60 text-[#DB9D30] font-semibold px-7 py-3 rounded-full text-[15px] font-poppins hover:bg-white/10 transition-all duration-200"
+          >
+            View All Plans
+          </Link>
+        </div>
       </div>
     </section>
   );

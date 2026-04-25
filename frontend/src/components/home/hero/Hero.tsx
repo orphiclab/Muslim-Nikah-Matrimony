@@ -68,7 +68,7 @@ const Hero = () => {
                  
                   className="text-base px-4 py-2 sm:px-6 sm:py-3 md:px-8 md:py-3  font-medium font-poppins"
                 >
-                  Create Profile
+                  Register Now
                 </MainButton>
               </Link>
               <Link

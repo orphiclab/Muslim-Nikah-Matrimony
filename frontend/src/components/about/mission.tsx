@@ -29,7 +29,7 @@ const MissionSection = () => {
                   className="text-base px-4 py-3 sm:px-8 sm:py-3  font-medium font-poppins"
                   type="button"
                 >
-                  Create Profile
+                  Register Now
                 </MainButton>
               </Link>
 

@@ -131,12 +131,41 @@ export class AdminController {
   @Delete('packages/:id')
   deletePackage(@Param('id') id: string) { return this.service.deletePackage(id); }
 
-  // ─── Site Settings ────────────────────────────────────────────
+  // ─── Site Settings ──────────────────────────────
   @Get('settings')
   getSiteSettings() { return this.service.getSiteSettings(); }
 
   @Put('settings')
   updateSiteSettings(@Body() dto: UpdateSiteSettingsDto) {
     return this.service.updateSiteSettings(dto);
+  }
+
+  // ─── Profile Edit Requests ─────────────────────────
+  @Get('edit-requests')
+  getEditRequests(@Query('status') status?: string) {
+    return this.service.getEditRequests(status);
+  }
+
+  @Get('edit-requests/:id')
+  getEditRequest(@Param('id') id: string) {
+    return this.service.getEditRequest(id);
+  }
+
+  @Post('edit-requests/:id/approve')
+  approveEditRequest(
+    @CurrentUser() user: any,
+    @Param('id') id: string,
+    @Body() body: { adminNote?: string },
+  ) {
+    return this.service.approveEditRequest(user.userId, id, body.adminNote);
+  }
+
+  @Post('edit-requests/:id/reject')
+  rejectEditRequest(
+    @CurrentUser() user: any,
+    @Param('id') id: string,
+    @Body() body: { adminNote: string },
+  ) {
+    return this.service.rejectEditRequest(user.userId, id, body.adminNote);
   }
 }

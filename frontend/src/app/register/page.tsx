@@ -351,14 +351,6 @@ function Step1({
       <h2 className="text-xl font-semibold text-gray-800">Your Personal Details</h2>
       <p className="mt-1 text-sm text-gray-500">Please provide your basic information</p>
       <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <TextField label="First Name" name="firstName" placeholder="Enter your first name" value={data.firstName || ""} onChange={onChange} optional />
-        <TextField label="Last Name" name="lastName" placeholder="Enter your last name" value={data.lastName || ""} onChange={onChange} optional />
-      </div>
-      <p className="mt-1 flex items-center gap-1.5 text-[11px] text-gray-400">
-        <svg className="w-3.5 h-3.5 shrink-0 text-[#1B6B4A]/50" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-        You can hide your real name and use a nickname from&nbsp;<span className="text-[#1B6B4A] font-medium">User Settings</span> after registration.
-      </p>
-      <div className="mt-0 grid grid-cols-1 gap-4 sm:grid-cols-2">
         <SelectField label="Created By" name="createdBy" options={["Self", "Parent", "Guardian", "Sibling"]} value={data.createdBy || ""} onChange={onChange} error={fieldErrors?.createdBy} />
         <SelectField label="Gender" name="gender" options={["Male", "Female"]} value={data.gender || ""} onChange={onChange} error={fieldErrors?.gender} />
         <div className="flex flex-col gap-1">
@@ -690,7 +682,7 @@ function MultiCountrySelect({
 }
 
 
-function Step5({ data, onChange, lookingFor, setLookingFor, agreedTerms, setAgreedTerms, countryPrefSelected, setCountryPrefSelected }: {
+function Step5({ data, onChange, lookingFor, setLookingFor, agreedTerms, setAgreedTerms, countryPrefSelected, setCountryPrefSelected, minAgePref, setMinAgePref, maxAgePref, setMaxAgePref }: {
   data: Record<string, string>;
   onChange: (e: React.ChangeEvent<HTMLSelectElement | HTMLInputElement | HTMLTextAreaElement>) => void;
   lookingFor: string;
@@ -699,6 +691,10 @@ function Step5({ data, onChange, lookingFor, setLookingFor, agreedTerms, setAgre
   setAgreedTerms: (v: boolean) => void;
   countryPrefSelected: string[];
   setCountryPrefSelected: (v: string[]) => void;
+  minAgePref: string;
+  setMinAgePref: (v: string) => void;
+  maxAgePref: string;
+  setMaxAgePref: (v: string) => void;
 }) {
   const [masterData, setMasterData] = React.useState<MasterData | null>(null);
   React.useEffect(() => { setMasterData(loadMasterData()); }, []);
@@ -722,6 +718,39 @@ function Step5({ data, onChange, lookingFor, setLookingFor, agreedTerms, setAgre
         <p className="text-xs text-gray-400 mt-1">Only profiles from selected countries will be shown to you in browse results.</p>
       </div>
 
+      {/* ── Preferred Age Range ───────────────────────────── */}
+      <div className="mt-4">
+        <label className="block text-sm font-medium text-gray-700 mb-1">
+          Preferred Age Range <span className="text-gray-400 font-normal">(Optional)</span>
+        </label>
+        <div className="flex items-center gap-3">
+          <div className="flex-1">
+            <label className="block text-xs text-gray-400 mb-0.5">Min Age</label>
+            <input
+              type="number"
+              min={18} max={80}
+              placeholder="e.g. 22"
+              value={minAgePref}
+              onChange={e => setMinAgePref(e.target.value)}
+              className="w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-700 shadow-sm outline-none focus:border-[#1B6B4A] focus:ring-2 focus:ring-[#1B6B4A]/20 transition"
+            />
+          </div>
+          <span className="text-gray-400 text-sm mt-5">–</span>
+          <div className="flex-1">
+            <label className="block text-xs text-gray-400 mb-0.5">Max Age</label>
+            <input
+              type="number"
+              min={18} max={80}
+              placeholder="e.g. 35"
+              value={maxAgePref}
+              onChange={e => setMaxAgePref(e.target.value)}
+              className="w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-700 shadow-sm outline-none focus:border-[#1B6B4A] focus:ring-2 focus:ring-[#1B6B4A]/20 transition"
+            />
+          </div>
+        </div>
+        <p className="text-xs text-gray-400 mt-1">Only profiles within this age range will be shown to you in browse results.</p>
+      </div>
+
       <div className="mt-4 flex flex-col gap-1">
         <label className="text-sm font-medium text-gray-600">Additional Information</label>
         <textarea
@@ -737,7 +766,7 @@ function Step5({ data, onChange, lookingFor, setLookingFor, agreedTerms, setAgre
       </div>
 
       <div className="mt-4 flex flex-col gap-1">
-        <label className="text-sm font-medium text-gray-600">Your Expectations</label>
+        <label className="text-sm font-medium text-gray-600">Tell us more about Expectations</label>
         <textarea
           name="expectations"
           value={data.expectations || ""}
@@ -772,6 +801,8 @@ export default function RegisterPage() {
   const [formData, setFormData] = useState<Record<string, string>>({});
   const [lookingFor, setLookingFor] = useState("Male");
   const [countryPrefSelected, setCountryPrefSelected] = useState<string[]>([]);
+  const [minAgePref, setMinAgePref] = useState('');
+  const [maxAgePref, setMaxAgePref] = useState('');
   const [agreedTerms, setAgreedTerms] = useState(false);
   const [error, setError] = useState("");
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
@@ -1063,6 +1094,8 @@ export default function RegisterPage() {
           ...(formData.about && { aboutUs: formData.about }),
           ...(formData.expectations && { expectations: formData.expectations }),
           ...(countryPrefSelected.length > 0 && { countryPreference: countryPrefSelected.join(',') }),
+          ...(minAgePref && { minAgePreference: parseInt(minAgePref) }),
+          ...(maxAgePref && { maxAgePreference: parseInt(maxAgePref) }),
 
           // Contact from account details
           ...(formData.phone && { phone: formData.phone }),
@@ -1184,7 +1217,7 @@ export default function RegisterPage() {
               {currentStep === 2 && <Step1 data={formData} onChange={handleChange} fieldErrors={fieldErrors} minAge={minAge} />}
               {currentStep === 3 && <Step3 data={formData} onChange={handleChange} onLocationChange={handleLocationChange} fieldErrors={fieldErrors} />}
               {currentStep === 4 && <Step4 data={formData} onChange={handleChange} onFamilyLocationChange={handleFamilyLocationChange} fieldErrors={fieldErrors} />}
-              {currentStep === 5 && <Step5 data={formData} onChange={handleChange} lookingFor={lookingFor} setLookingFor={setLookingFor} agreedTerms={agreedTerms} setAgreedTerms={setAgreedTerms} countryPrefSelected={countryPrefSelected} setCountryPrefSelected={setCountryPrefSelected} />}
+              {currentStep === 5 && <Step5 data={formData} onChange={handleChange} lookingFor={lookingFor} setLookingFor={setLookingFor} agreedTerms={agreedTerms} setAgreedTerms={setAgreedTerms} countryPrefSelected={countryPrefSelected} setCountryPrefSelected={setCountryPrefSelected} minAgePref={minAgePref} setMinAgePref={setMinAgePref} maxAgePref={maxAgePref} setMaxAgePref={setMaxAgePref} />}
             </div>
 
             {/* Navigation Buttons */}

@@ -240,7 +240,23 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
           })}
         </div>
 
-        <div className="shrink-0 pt-8">
+        <div className="shrink-0 pt-8 flex flex-col gap-3">
+          {/* Go to Website */}
+          <Link
+            href="/"
+            onClick={onNavigate}
+            className="flex w-full items-center gap-4 rounded-2xl py-1 text-left transition-colors outline-none hover:opacity-90 focus-visible:ring-2 focus-visible:ring-black/15 focus-visible:ring-offset-2"
+          >
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#EAF2EE] text-[#1C3B35]">
+              <svg className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24" aria-hidden>
+                <circle cx="12" cy="12" r="10" />
+                <line x1="2" y1="12" x2="22" y2="12" />
+                <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
+              </svg>
+            </span>
+            <span className="text-lg font-medium text-[#1C3B35]">Go to Website</span>
+          </Link>
+
           <button
             type="button"
             onClick={() => {
@@ -311,6 +327,19 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
 
           <div className="flex shrink-0 items-center gap-3 sm:gap-4">
             <NotificationBell />
+            {/* Go to Website — header */}
+            <Link
+              href="/"
+              title="Go to Website"
+              className="inline-flex items-center gap-1.5 rounded-xl bg-[#EAF2EE] px-3 py-2 text-sm font-semibold text-[#1C3B35] shadow-sm transition-all hover:bg-[#1C3B35] hover:text-white hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1C3B35]/35 focus-visible:ring-offset-2 active:scale-[0.98]"
+            >
+              <svg className="h-4 w-4 shrink-0" fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24" aria-hidden>
+                <circle cx="12" cy="12" r="10" />
+                <line x1="2" y1="12" x2="22" y2="12" />
+                <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
+              </svg>
+              <span className="hidden sm:inline">Website</span>
+            </Link>
             <div className="hidden h-6 w-px bg-gray-200 sm:block" />
             <div className="flex items-center gap-2 sm:gap-2.5">
               <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#1C3B35] text-sm font-bold text-white">

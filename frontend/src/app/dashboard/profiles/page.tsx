@@ -357,11 +357,22 @@ export default function ProfilesPage() {
                       {p.memberId && <p className="text-xs text-gray-400 font-mono">{p.memberId}</p>}
                     </div>
                   </div>
-                  <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${
-                    isSubExpired(p) ? 'bg-red-100 text-red-700' : statusBadge(p.status)
-                  }`}>
-                    {isSubExpired(p) ? 'EXPIRED' : p.status.replace('_', ' ')}
-                  </span>
+                  <div className="flex items-center gap-2 flex-shrink-0">
+                    {/* View count badge */}
+                    {(p.viewCount ?? 0) > 0 && (
+                      <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-gray-400 bg-gray-100 px-2 py-1 rounded-full">
+                        <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                          <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
+                        </svg>
+                        {p.viewCount}
+                      </span>
+                    )}
+                    <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${
+                      isSubExpired(p) ? 'bg-red-100 text-red-700' : statusBadge(p.status)
+                    }`}>
+                      {isSubExpired(p) ? 'EXPIRED' : p.status.replace('_', ' ')}
+                    </span>
+                  </div>
                 </div>
 
                 {/* Card body */}

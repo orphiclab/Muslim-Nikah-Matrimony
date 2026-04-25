@@ -580,16 +580,18 @@ export default function SelectPlanPage() {
                     <div className="space-y-3">
                       <input
                         type="text"
-                        placeholder="Enter bank reference / slip number *"
+                        placeholder="Email / Mobile Number"
                         value={bankRef}
                         onChange={(e) => setBankRef(e.target.value)}
                         className="w-full rounded-lg bg-white/15 border border-white/20 px-3 py-2.5 text-white placeholder-white/40 text-sm focus:outline-none focus:border-[#F5C518]"
                       />
-                      <textarea
-                        placeholder="Remark / note (optional) — e.g. your name or transaction note"
-                        rows={2}
-                        className="w-full rounded-lg bg-white/15 border border-white/20 px-3 py-2.5 text-white placeholder-white/40 text-sm focus:outline-none focus:border-[#F5C518] resize-none"
-                      />
+                      <p className="flex items-start gap-1.5 text-[11px] text-white/50 leading-relaxed -mt-1">
+                        <svg className="w-3 h-3 shrink-0 mt-0.5 text-[#F5C518]/70" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                          <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+                        </svg>
+                        When making a deposit or bank transfer, please include your registered email address or mobile number so we can identify your payment.
+                      </p>
+
                       <button
                         onClick={handleBankTransfer}
                         disabled={submitting || !bankRef.trim() || profilesLoading}

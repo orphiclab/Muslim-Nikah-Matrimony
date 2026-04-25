@@ -1,11 +1,12 @@
 'use client';
 
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { publicProfilesApi, profileApi } from '@/services/api';
 import { GenuineProfileCard } from '@/components/home/genuine/card';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { loadMasterData, MasterData } from '@/app/admin/master-file/data';
+import { ProfileAvatar } from '@/components/ui/ProfileAvatar';
 
 /* ─── Types ─────────────────────────────────────────────────────── */
 type Profile = {
@@ -89,6 +90,126 @@ function TextFilter({ placeholder, value, onChange }: {
       onChange={e => onChange(e.target.value)}
       className="w-full border border-gray-200 rounded-lg px-2.5 py-1.5 text-[12px] outline-none focus:border-[#1C3B35] font-poppins"
     />
+  );
+}
+
+/* ─── Premium "Searching as" custom dropdown ──────────────────── */
+function SearchingAsDropdown({
+  profiles, selected, onSelect, compact = false,
+}: {
+  profiles: UserProfile[];
+  selected: UserProfile | null;
+  onSelect: (p: UserProfile) => void;
+  compact?: boolean;
+}) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
+
+  const genderColor = (g: string) =>
+    g === 'MALE' ? { bg: 'bg-blue-100', text: 'text-blue-600', dot: 'bg-blue-400' }
+                 : { bg: 'bg-pink-100', text: 'text-pink-600', dot: 'bg-pink-400' };
+
+  const genderLabel = (g: string) => g === 'MALE' ? 'Male' : 'Female';
+
+  if (!selected) return null;
+  const sc = genderColor(selected.gender);
+
+  return (
+    <div ref={ref} className="relative">
+      {/* Trigger */}
+      <button
+        type="button"
+        onClick={() => setOpen(o => !o)}
+        className={`w-full flex items-center gap-2.5 rounded-xl border transition-all ${
+          open
+            ? 'border-[#1C3B35] bg-white shadow-md ring-2 ring-[#1C3B35]/10'
+            : 'border-[#1C3B35]/25 bg-[#1C3B35]/4 hover:border-[#1C3B35]/50 hover:bg-[#1C3B35]/8'
+        } ${compact ? 'px-2.5 py-1.5' : 'px-3 py-2.5'}`}
+      >
+        <div className="shrink-0 rounded-full overflow-hidden" style={{ width: compact ? 28 : 36, height: compact ? 28 : 36 }}>
+          <ProfileAvatar gender={selected.gender} name={selected.name} size={compact ? 28 : 36} className="w-full h-full" />
+        </div>
+        <div className="flex-1 min-w-0 text-left">
+          <p className={`font-mono font-bold text-[#1C3B35] truncate leading-tight ${
+            compact ? 'text-[11px]' : 'text-[12px]'
+          }`}>
+            {selected.memberId || selected.name || 'Profile'}
+          </p>
+          <p className={`leading-none mt-0.5 ${
+            compact ? 'text-[9px]' : 'text-[10px]'
+          } ${sc.text}`}>
+            {genderLabel(selected.gender)}{selected.age ? ` · ${selected.age} yrs` : ''}
+          </p>
+        </div>
+        <svg
+          className={`shrink-0 w-3.5 h-3.5 text-[#1C3B35]/50 transition-transform duration-200 ${
+            open ? 'rotate-180' : ''
+          }`}
+          fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24"
+        >
+          <polyline points="6 9 12 15 18 9" />
+        </svg>
+      </button>
+
+      {/* Dropdown panel */}
+      {open && (
+        <div className="absolute z-[300] left-0 right-0 mt-1.5 bg-white rounded-2xl border border-gray-100 shadow-xl overflow-hidden">
+          <p className="px-3 pt-2.5 pb-1.5 text-[9px] font-bold uppercase tracking-widest text-gray-400 font-poppins">
+            Switch Profile
+          </p>
+          <div className="pb-2">
+            {profiles.map(p => {
+              const c = genderColor(p.gender);
+              const isActive = p.id === selected.id;
+              return (
+                <button
+                  key={p.id}
+                  type="button"
+                  onClick={() => { onSelect(p); setOpen(false); }}
+                  className={`w-full flex items-center gap-2.5 px-3 py-2 transition-colors ${
+                    isActive
+                      ? 'bg-[#1C3B35] text-white'
+                      : 'hover:bg-gray-50 text-gray-700'
+                  }`}
+                >
+                  {/* Avatar */}
+                  <div className={`w-8 h-8 rounded-full overflow-hidden shrink-0 ${isActive ? 'ring-2 ring-white/40' : ''}`}>
+                    <ProfileAvatar gender={p.gender} name={p.name} size={32} className="w-full h-full" />
+                  </div>
+                  {/* Info */}
+                  <div className="flex-1 min-w-0 text-left">
+                    <p className={`text-[12px] font-mono font-bold truncate leading-tight ${
+                      isActive ? 'text-white' : 'text-[#1C3B35]'
+                    }`}>
+                      {p.memberId || p.name || 'Profile'}
+                    </p>
+                    <p className={`text-[10px] leading-none mt-0.5 ${
+                      isActive ? 'text-white/70' : c.text
+                    }`}>
+                      {genderLabel(p.gender)}{p.age ? ` · ${p.age} yrs` : ''}
+                    </p>
+                  </div>
+                  {/* Checkmark */}
+                  {isActive && (
+                    <svg className="w-4 h-4 text-white shrink-0" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
+                      <polyline points="20 6 9 17 4 12" />
+                    </svg>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -351,30 +472,16 @@ export default function ProfilesListing() {
               <label className="block text-[11px] font-semibold text-[#1C3B35] font-poppins mb-1.5 uppercase tracking-wide">
                 Searching as
               </label>
-              <div className="relative">
-                <select
-                  value={selectedProfile?.id ?? ''}
-                  onChange={e => {
-                    const found = userProfiles.find(p => p.id === e.target.value);
-                    if (found) {
-                      setSelectedProfile(found);
-                      const opp = found.gender === 'MALE' ? 'FEMALE' : 'MALE';
-                      const smart: Filters = { ...EMPTY_FILTERS, gender: opp };
-                      setFilters(smart); setApplied(smart); setPage(1);
-                    }
-                  }}
-                  className="w-full border border-[#1C3B35]/30 bg-[#1C3B35]/5 rounded-xl px-3 py-2 text-[12px] font-semibold text-[#1C3B35] font-poppins outline-none focus:border-[#1C3B35] appearance-none pr-7 cursor-pointer"
-                >
-                  {userProfiles.map(p => (
-                    <option key={p.id} value={p.id}>
-                      {p.name?.trim() || p.memberId || p.id}
-                    </option>
-                  ))}
-                </select>
-                  <span className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-[#1C3B35]/60">
-                    <Chevron open={false} />
-                  </span>
-              </div>
+              <SearchingAsDropdown
+                profiles={userProfiles}
+                selected={selectedProfile}
+                onSelect={found => {
+                  setSelectedProfile(found);
+                  const opp = found.gender === 'MALE' ? 'FEMALE' : 'MALE';
+                  const smart: Filters = { ...EMPTY_FILTERS, gender: opp };
+                  setFilters(smart); setApplied(smart); setPage(1);
+                }}
+              />
 
               {/* Smart filter info badge */}
               {selectedProfile && (
@@ -603,27 +710,19 @@ export default function ProfilesListing() {
             <div className="lg:hidden mb-4 space-y-2">
               {/* Mobile profile selector */}
               {isLoggedIn && userProfiles.length > 0 && (
-                <div className="bg-white border border-gray-200 rounded-xl px-3 py-2 flex items-center gap-2">
-                  <span className="text-[11px] font-semibold text-[#1C3B35] font-poppins whitespace-nowrap">Searching as:</span>
-                  <select
-                    value={selectedProfile?.id ?? ''}
-                    onChange={e => {
-                      const found = userProfiles.find(p => p.id === e.target.value);
-                      if (found) {
-                        setSelectedProfile(found);
-                        const opp = found.gender === 'MALE' ? 'FEMALE' : 'MALE';
-                        const smart: Filters = { ...EMPTY_FILTERS, gender: opp };
-                        setFilters(smart); setApplied(smart); setPage(1);
-                      }
+                <div className="bg-white border border-gray-100 rounded-2xl px-3 py-2.5 shadow-sm">
+                  <p className="text-[9px] font-bold uppercase tracking-widest text-gray-400 font-poppins mb-1.5">Searching as</p>
+                  <SearchingAsDropdown
+                    profiles={userProfiles}
+                    selected={selectedProfile}
+                    compact
+                    onSelect={found => {
+                      setSelectedProfile(found);
+                      const opp = found.gender === 'MALE' ? 'FEMALE' : 'MALE';
+                      const smart: Filters = { ...EMPTY_FILTERS, gender: opp };
+                      setFilters(smart); setApplied(smart); setPage(1);
                     }}
-                    className="flex-1 border-0 bg-transparent text-[12px] font-semibold text-[#1C3B35] font-poppins outline-none"
-                  >
-                    {userProfiles.map(p => (
-                      <option key={p.id} value={p.id}>
-                        {p.name?.trim() || p.memberId || p.id}
-                      </option>
-                    ))}
-                  </select>
+                  />
                 </div>
               )}
 

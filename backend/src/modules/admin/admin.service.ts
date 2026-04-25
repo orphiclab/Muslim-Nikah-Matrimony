@@ -9,6 +9,7 @@ import { ActivityLogService } from '../activity-log/activity-log.service';
 import { NotificationService } from '../notification/notification.service';
 import { MailService } from '../auth/mail.service';
 import { SmsService } from '../auth/sms.service';
+import { ProfileEditRequestService } from '../child-profile/profile-edit-request.service';
 
 export { ApprovePaymentDto, RejectPaymentDto, CreatePackageDto, UpdateSiteSettingsDto };
 
@@ -24,6 +25,7 @@ export class AdminService {
     private readonly notifications: NotificationService,
     private readonly mail: MailService,
     private readonly sms: SmsService,
+    private readonly editRequestService: ProfileEditRequestService,
   ) {}
 
   // ─── Payments ─────────────────────────────────────────────────────────────
@@ -237,6 +239,23 @@ export class AdminService {
   async createUser(dto: { email: string; password: string; phone?: string; whatsappNumber?: string; role: string }) {
     const existing = await this.prisma.user.findUnique({ where: { email: dto.email } });
     if (existing) throw new ConflictException('A user with this email already exists.');
+
+    // ── Phone uniqueness check ────────────────────────────────────────────
+    if (dto.phone || dto.whatsappNumber) {
+      const orConditions: any[] = [];
+      if (dto.phone)          orConditions.push({ phone: dto.phone });
+      if (dto.whatsappNumber) orConditions.push({ whatsappNumber: dto.whatsappNumber });
+      const phoneConflict = await this.prisma.user.findFirst({
+        where: { OR: orConditions },
+        select: { phone: true, whatsappNumber: true },
+      });
+      if (phoneConflict) {
+        const taken: string[] = [];
+        if (dto.phone && phoneConflict.phone === dto.phone) taken.push('Phone number');
+        if (dto.whatsappNumber && phoneConflict.whatsappNumber === dto.whatsappNumber) taken.push('WhatsApp number');
+        throw new ConflictException(`${taken.join(' and ')} is already registered to another account.`);
+      }
+    }
     const hashedPassword = await bcrypt.hash(dto.password, 10);
     const user = await this.prisma.user.create({
       data: {
@@ -261,6 +280,24 @@ export class AdminService {
   async updateUser(id: string, dto: { phone?: string; whatsappNumber?: string; role?: string }) {
     const user = await this.prisma.user.findUnique({ where: { id } });
     if (!user) throw new NotFoundException('User not found');
+
+    // ── Phone uniqueness check (exclude the user being updated) ──────────
+    const orConditions: any[] = [];
+    if (dto.phone !== undefined && dto.phone !== '')          orConditions.push({ phone: dto.phone });
+    if (dto.whatsappNumber !== undefined && dto.whatsappNumber !== '') orConditions.push({ whatsappNumber: dto.whatsappNumber });
+
+    if (orConditions.length > 0) {
+      const phoneConflict = await this.prisma.user.findFirst({
+        where: { OR: orConditions, NOT: { id } },
+        select: { phone: true, whatsappNumber: true },
+      });
+      if (phoneConflict) {
+        const taken: string[] = [];
+        if (dto.phone && phoneConflict.phone === dto.phone) taken.push('Phone number');
+        if (dto.whatsappNumber && phoneConflict.whatsappNumber === dto.whatsappNumber) taken.push('WhatsApp number');
+        throw new ConflictException(`${taken.join(' and ')} is already registered to another account.`);
+      }
+    }
     const data: any = {};
     if (dto.phone !== undefined) data.phone = dto.phone;
     if (dto.whatsappNumber !== undefined) data.whatsappNumber = dto.whatsappNumber;
@@ -700,5 +737,22 @@ export class AdminService {
     if (!existing) throw new NotFoundException('Package not found');
     await this.prisma.package.delete({ where: { id } });
     return { success: true, message: 'Package deleted' };
+  }
+
+  // ─── Edit Requests ────────────────────────────────────────────────────────
+  getEditRequests(status?: string) {
+    return this.editRequestService.getEditRequests(status);
+  }
+
+  getEditRequest(requestId: string) {
+    return this.editRequestService.getEditRequest(requestId);
+  }
+
+  approveEditRequest(adminId: string, requestId: string, adminNote?: string) {
+    return this.editRequestService.approveEditRequest(adminId, requestId, adminNote);
+  }
+
+  rejectEditRequest(adminId: string, requestId: string, adminNote: string) {
+    return this.editRequestService.rejectEditRequest(adminId, requestId, adminNote);
   }
 }

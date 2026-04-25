@@ -26,15 +26,6 @@ const navItems = [
     ),
   },
   {
-    href: '/admin/users', label: 'Users', exact: false,
-    icon: (
-      <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24">
-        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" />
-        <path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" />
-      </svg>
-    ),
-  },
-  {
     href: '/admin/profiles', label: 'Profiles', exact: false,
     icon: (
       <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24">
@@ -171,6 +162,8 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
   const [checking, setChecking] = useState(true);
   const smsCampaignOpen = pathname.startsWith('/admin/sms-campaign');
   const [smsExpanded, setSmsExpanded] = useState(smsCampaignOpen);
+  const usersOpen = pathname.startsWith('/admin/users') || pathname.startsWith('/admin/edit-requests');
+  const [usersExpanded, setUsersExpanded] = useState(usersOpen);
 
   useEffect(() => {
     const token = localStorage.getItem('mn_token');
@@ -265,6 +258,89 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
                 </Link>
               );
             })}
+
+            {/* ── Users collapsible group ── */}
+            <div>
+              <button
+                type="button"
+                onClick={() => setUsersExpanded((v) => !v)}
+                className="flex w-full items-center gap-3 rounded-2xl py-1 transition-colors outline-none hover:opacity-90 focus-visible:ring-2 focus-visible:ring-black/15 focus-visible:ring-offset-2"
+              >
+                <span
+                  className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full transition-colors ${
+                    usersOpen ? 'bg-black text-white' : 'bg-gray-100 text-gray-400'
+                  }`}
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24">
+                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" />
+                    <path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" />
+                  </svg>
+                </span>
+                <span
+                  className={`flex-1 text-left text-lg leading-tight ${
+                    usersOpen ? 'font-semibold text-[#121514]' : 'font-medium text-[#7B7B7B]'
+                  }`}
+                >
+                  Users
+                </span>
+                <svg
+                  className={`w-4 h-4 text-gray-400 transition-transform duration-200 ${
+                    usersExpanded ? 'rotate-90' : ''
+                  }`}
+                  fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"
+                >
+                  <polyline points="9 18 15 12 9 6" />
+                </svg>
+              </button>
+
+              {usersExpanded && (
+                <div className="mt-2 ml-3 flex flex-col gap-1 border-l-2 border-gray-100 pl-4">
+                  {[
+                    {
+                      href: '/admin/users',
+                      label: 'Manage Users',
+                      icon: (
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24">
+                          <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" />
+                          <path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" />
+                        </svg>
+                      ),
+                    },
+                    {
+                      href: '/admin/edit-requests',
+                      label: 'Edit Requests',
+                      icon: (
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                        </svg>
+                      ),
+                    },
+                  ].map((sub) => {
+                    const subActive = pathname.startsWith(sub.href);
+                    return (
+                      <Link
+                        key={sub.href}
+                        href={sub.href}
+                        className={`flex items-center gap-2.5 rounded-xl px-2 py-2 text-sm transition-colors outline-none focus-visible:ring-2 focus-visible:ring-black/15 ${
+                          subActive
+                            ? 'bg-gray-100 font-semibold text-[#121514]'
+                            : 'font-medium text-[#7B7B7B] hover:bg-gray-50 hover:text-[#121514]'
+                        }`}
+                      >
+                        <span
+                          className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full ${
+                            subActive ? 'bg-black text-white' : 'bg-gray-100 text-gray-400'
+                          }`}
+                        >
+                          {sub.icon}
+                        </span>
+                        {sub.label}
+                      </Link>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
 
             {/* ── SMS Campaign collapsible group ── */}
             <div>

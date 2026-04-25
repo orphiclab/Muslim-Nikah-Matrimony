@@ -79,7 +79,7 @@ export default function ProfileDetailPage() {
   const [profile, setProfile] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [viewerProfile, setViewerProfile] = useState<{ gender: string; age: number; height: number } | null>(null);
+  const [viewerProfile, setViewerProfile] = useState<{ id: string; gender: string; age: number; height: number } | null>(null);
 
   // ── Auth guard — redirect to login if not logged in ──
   useEffect(() => {
@@ -100,6 +100,7 @@ export default function ProfileDetailPage() {
           ? Math.floor((Date.now() - dob.getTime()) / (365.25 * 24 * 60 * 60 * 1000))
           : 0;
         setViewerProfile({
+          id: active.id,
           gender: active.gender ?? '',
           age: active.age ?? computedAge,
           height: active.height ?? 0,
@@ -108,15 +109,32 @@ export default function ProfileDetailPage() {
     }).catch(() => {});
   }, []);
 
+  // Fetch the public profile — wait briefly for viewer identity, then fetch once.
+  const hasFetched = React.useRef(false);
   useEffect(() => {
     if (!id) return;
     if (typeof window !== 'undefined' && !localStorage.getItem('mn_token')) return;
-    publicProfilesApi
-      .getById(id)
-      .then((r) => setProfile(r.data))
-      .catch(() => setError('Profile not found or no longer active.'))
-      .finally(() => setLoading(false));
-  }, [id]);
+    if (hasFetched.current) return;
+
+    const doFetch = (vpId?: string) => {
+      if (hasFetched.current) return;
+      hasFetched.current = true;
+      publicProfilesApi
+        .getById(id, vpId)
+        .then((r) => setProfile(r.data))
+        .catch(() => setError('Profile not found or no longer active.'))
+        .finally(() => setLoading(false));
+    };
+
+    if (viewerProfile) {
+      doFetch(viewerProfile.id);
+    } else {
+      // Wait up to 400ms for viewer profile to load, then fetch anyway
+      const t = setTimeout(() => doFetch(undefined), 400);
+      return () => clearTimeout(t);
+    }
+  }, [id, viewerProfile]);
+
 
   // ── Eligibility: can the viewer chat/see contact of this profile? ──
   const canInteract = (): boolean => {
@@ -339,20 +357,45 @@ export default function ProfileDetailPage() {
 
             {/* Education & Career */}
             <SectionCard title="Education & Career" icon="🎓">
-              <InfoRow label="Education" value={fmt(profile.education)} />
-              <InfoRow label="Occupation" value={fmt(profile.occupation)} />
+              <InfoRow label="Education"       value={fmt(profile.education)} />
+              {profile.fieldOfStudy && <InfoRow label="Field of Study"  value={fmt(profile.fieldOfStudy)} />}
+              <InfoRow label="Occupation"      value={fmt(profile.occupation)} />
+              {profile.profession   && <InfoRow label="Profession / Job Title" value={fmt(profile.profession)} />}
+              {profile.residencyStatus && <InfoRow label="Residency Status" value={fmt(profile.residencyStatus)} />}
+              {profile.state        && <InfoRow label="State / Province" value={fmt(profile.state)} />}
             </SectionCard>
 
-            {/* Family */}
+            {/* Family Background */}
             <SectionCard title="Family Background" icon="👨‍👩‍👧‍👦">
-              <InfoRow label="Family Status" value={fmt(profile.familyStatus)} />
-              <InfoRow label="Father's Occupation" value={fmt(profile.fatherOccupation)} />
-              <InfoRow label="Mother's Occupation" value={fmt(profile.motherOccupation)} />
-              <InfoRow label="Siblings" value={profile.siblings != null ? String(profile.siblings) : '–'} />
+              {profile.createdBy    && <InfoRow label="Profile Created By" value={fmt(profile.createdBy)} />}
+              <InfoRow label="Family Status"       value={fmt(profile.familyStatus)} />
+              <InfoRow label="Siblings"            value={profile.siblings != null ? String(profile.siblings) : '–'} />
             </SectionCard>
+
+            {/* Father's Details */}
+            {(profile.fatherEthnicity || profile.fatherCountry || profile.fatherCity || profile.fatherOccupation) && (
+              <SectionCard title="Father's Details" icon="👨">
+                <InfoRow label="Ethnicity"   value={fmt(profile.fatherEthnicity)} />
+                <InfoRow label="Country"     value={fmt(profile.fatherCountry)} />
+                <InfoRow label="City"        value={fmt(profile.fatherCity)} />
+                <InfoRow label="Occupation"  value={fmt(profile.fatherOccupation)} />
+              </SectionCard>
+            )}
+
+            {/* Mother's Details */}
+            {(profile.motherEthnicity || profile.motherCountry || profile.motherCity || profile.motherOccupation) && (
+              <SectionCard title="Mother's Details" icon="👩">
+                <InfoRow label="Ethnicity"   value={fmt(profile.motherEthnicity)} />
+                <InfoRow label="Country"     value={fmt(profile.motherCountry)} />
+                <InfoRow label="City"        value={fmt(profile.motherCity)} />
+                <InfoRow label="Occupation"  value={fmt(profile.motherOccupation)} />
+              </SectionCard>
+            )}
 
             {/* Partner Preferences */}
             <SectionCard title="Partner Preferences" icon="💑">
+              {profile.minAgePreference && <InfoRow label="Preferred Min Age" value={`${profile.minAgePreference} yrs`} />}
+              {profile.maxAgePreference && <InfoRow label="Preferred Max Age" value={`${profile.maxAgePreference} yrs`} />}
               <InfoRow label="Country Preference" value={fmt(profile.countryPreference)} />
             </SectionCard>
 

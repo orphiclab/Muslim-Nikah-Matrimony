@@ -98,6 +98,37 @@ export class RuleEngineService {
       }
     }
 
+    // ── Bidirectional Age Preference ───────────────────────────────────────
+    // Rule 3: If viewer has minAgePreference/maxAgePreference, target age must be within range.
+    if ((viewer.minAgePreference || viewer.maxAgePreference) && target.dateOfBirth) {
+      const targetAge = this.getAge(target.dateOfBirth);
+      if (viewer.minAgePreference && targetAge < viewer.minAgePreference) {
+        const reason = `Viewer prefers min age ${viewer.minAgePreference} but target is ${targetAge}`;
+        this.logger.debug(`canViewProfile DENIED: ${reason}`);
+        return { allowed: false, reason };
+      }
+      if (viewer.maxAgePreference && targetAge > viewer.maxAgePreference) {
+        const reason = `Viewer prefers max age ${viewer.maxAgePreference} but target is ${targetAge}`;
+        this.logger.debug(`canViewProfile DENIED: ${reason}`);
+        return { allowed: false, reason };
+      }
+    }
+
+    // Rule 4: If target has minAgePreference/maxAgePreference, viewer age must be within range.
+    if ((target.minAgePreference || target.maxAgePreference) && viewer.dateOfBirth) {
+      const viewerAge = this.getAge(viewer.dateOfBirth);
+      if (target.minAgePreference && viewerAge < target.minAgePreference) {
+        const reason = `Target prefers min age ${target.minAgePreference} but viewer is ${viewerAge}`;
+        this.logger.debug(`canViewProfile DENIED: ${reason}`);
+        return { allowed: false, reason };
+      }
+      if (target.maxAgePreference && viewerAge > target.maxAgePreference) {
+        const reason = `Target prefers max age ${target.maxAgePreference} but viewer is ${viewerAge}`;
+        this.logger.debug(`canViewProfile DENIED: ${reason}`);
+        return { allowed: false, reason };
+      }
+    }
+
     this.logger.debug(`canViewProfile ALLOWED: viewer=${viewer.id} → target=${target.id}`);
     return { allowed: true };
   }

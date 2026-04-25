@@ -91,6 +91,7 @@ type Filters = {
     maritalStatus: string;
     city: string;
     country: string;
+    memberId: string;
 };
 
 const INITIAL_FILTERS: Filters = {
@@ -100,6 +101,7 @@ const INITIAL_FILTERS: Filters = {
     maritalStatus: '',
     city: '',
     country: '',
+    memberId: '',
 };
 
 const MARITAL_OPTIONS = [
@@ -138,12 +140,24 @@ const FilterBar = ({
     };
 
     const hasActive =
-        filters.ageMin || filters.ageMax || filters.gender || filters.maritalStatus || filters.city || filters.country;
+        filters.ageMin || filters.ageMax || filters.gender || filters.maritalStatus || filters.city || filters.country || filters.memberId;
 
     return (
         <div className="w-full mt-8 mb-2">
             <div className="rounded-2xl border border-[#dbe6e1] bg-white shadow-sm px-4 py-4 sm:px-5 sm:py-5">
-                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-6">
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-7">
+                    {/* User ID / Member ID search */}
+                    <div className="flex flex-col gap-1.5">
+                        <label className="text-[11px] font-semibold text-[#1C3B35] uppercase tracking-wide font-poppins">User ID</label>
+                        <input
+                            type="text"
+                            placeholder="e.g. MN-000003"
+                            value={filters.memberId}
+                            onChange={e => set('memberId', e.target.value)}
+                            className="h-10 w-full border border-gray-200 rounded-xl px-3 text-sm font-medium text-gray-700 focus:outline-none focus:ring-2 focus:ring-[#1C3B35]/20 focus:border-[#1C3B35] bg-white transition placeholder-gray-300"
+                        />
+                    </div>
+
                     {/* Age range */}
                     <div className="flex flex-col gap-1.5">
                         <label className="text-[11px] font-semibold text-[#1C3B35] uppercase tracking-wide font-poppins">Age Range</label>
@@ -556,6 +570,7 @@ const GenuineProfileCards = () => {
                 if (filters.maritalStatus && !p.maritalStatus.toLowerCase().includes(filters.maritalStatus.toLowerCase())) return false;
                 if (filters.city && p.city !== filters.city && !p.city.toLowerCase().includes(filters.city.toLowerCase())) return false;
                 if (filters.country && p.country !== filters.country && !(p.country ?? '').toLowerCase().includes(filters.country.toLowerCase())) return false;
+                if (filters.memberId && !(p.memberId ?? '').toLowerCase().includes(filters.memberId.toLowerCase())) return false;
                 return true;
             })
             .slice(0, 8);
@@ -600,7 +615,7 @@ const GenuineProfileCards = () => {
             />
 
             {/* Result count hint */}
-            {(filters.ageMin || filters.ageMax || filters.maritalStatus || filters.city || filters.country) && (
+            {(filters.ageMin || filters.ageMax || filters.maritalStatus || filters.city || filters.country || filters.memberId) && (
                 <p className="text-center text-xs text-gray-500 font-poppins mt-3 mb-1">
                     Showing <span className="font-semibold text-[#1C3B35]">{displayed.length}</span> profile{displayed.length !== 1 ? 's' : ''} matching your filters
                 </p>

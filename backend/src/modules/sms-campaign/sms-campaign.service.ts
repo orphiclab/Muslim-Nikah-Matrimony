@@ -48,6 +48,7 @@ export class SmsCampaignService {
     gender?: string;
     country?: string;
     lastActiveDays?: number;
+    search?: string; // Member ID partial search
     page?: number;
     limit?: number;
   }) {
@@ -64,6 +65,13 @@ export class SmsCampaignService {
     if (filters.lastActiveDays) {
       const cutoff = new Date(now.getTime() - filters.lastActiveDays * 86400000);
       userWhere.updatedAt = { gte: cutoff };
+    }
+
+    // Member ID search — filter at DB level via childProfiles
+    if (filters.search) {
+      userWhere.childProfiles = {
+        some: { memberId: { contains: filters.search, mode: 'insensitive' } },
+      };
     }
 
     const [users, total] = await Promise.all([

@@ -25,6 +25,7 @@ enum ProfileStatus {
   PAUSED
   INACTIVE
   EXPIRED
+  EDIT_PENDING
 }
 
 enum SubscriptionStatus {
@@ -152,6 +153,54 @@ model ChildProfile {
   payments            Payment[]
   sentMessages        ChatMessage[]  @relation("ProfileSentMessages")
   receivedMessages    ChatMessage[]  @relation("ProfileReceivedMessages")
+  editRequests        ProfileEditRequest[]
+  profileViews        ProfileView[]  @relation("ProfileViewTarget")
+  viewsGiven          ProfileView[]  @relation("ProfileViewGiver")
+}
+
+/// Records each time a profile is viewed via the public profile page
+model ProfileView {
+  id              String       @id @default(uuid())
+
+  // The profile being viewed
+  profileId       String
+  profile         ChildProfile @relation("ProfileViewTarget", fields: [profileId], references: [id], onDelete: Cascade)
+
+  // The viewer (null = anonymous / not logged in)
+  viewerProfileId String?
+  viewerProfile   ChildProfile? @relation("ProfileViewGiver", fields: [viewerProfileId], references: [id], onDelete: SetNull)
+
+  // Viewer display info (snapshot at time of view, in case profile is later deleted)
+  viewerName      String?
+  viewerMemberId  String?
+  viewerGender    String?
+  viewerCountry   String?
+
+  viewedAt        DateTime     @default(now())
+
+  @@index([profileId, viewedAt])
+  @@index([viewerProfileId])
+}
+
+/// Pending profile edit — stored when user submits edits; applied only after admin approval
+model ProfileEditRequest {
+  id              String       @id @default(uuid())
+  profileId       String
+  profile         ChildProfile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  previousData    Json         // snapshot of profile fields before the edit
+  newData         Json         // the proposed new values
+
+  status          String       @default("PENDING")  // PENDING | APPROVED | REJECTED
+  adminNote       String?
+  reviewedBy      String?      // admin userId
+  reviewedAt      DateTime?
+
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  @@index([profileId])
+  @@index([status])
 }
 
 model Subscription {

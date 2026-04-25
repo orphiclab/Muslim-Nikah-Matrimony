@@ -280,7 +280,7 @@ function generateBio(form: any): { about: string; expectations: string } {
   const dressCode = form.dressCode || '';
 
   const aboutParts: string[] = [];
-  if (firstName) aboutParts.push(`${firstName} is a sincere and practising Muslim${ethnicity ? ` of ${ethnicity} background` : ''}`);
+  aboutParts.push(`A sincere and practising Muslim${ethnicity ? ` of ${ethnicity} background` : ''}`);
   if (location) aboutParts.push(`currently living in ${location}`);
   if (occupation && profession) aboutParts.push(`working as a ${profession} (${occupation})`);
   else if (occupation) aboutParts.push(`currently ${occupation.toLowerCase()}`);
@@ -316,7 +316,7 @@ export default function CreateProfilePage() {
   useEffect(() => { setMasterData(loadMasterData()); }, []);
   const [form, setForm] = useState<any>({
     // Personal
-    firstName: '', lastName: '', createdBy: '', gender: 'MALE',
+    createdBy: '', gender: 'MALE',
     dob_day: '', dob_month: '', dob_year: '', dateOfBirth: '',
     height: '', weight: '', appearance: '', complexion: '', ethnicity: '',
     dressCode: '', familyStatus: '', civilStatus: '', children: '',
@@ -329,6 +329,7 @@ export default function CreateProfilePage() {
     brothers: '', sisters: '',
     // Additional Details
     countryPreference: '',
+    minAgePref: '', maxAgePref: '',
     about: '', expectations: '',
   });
   const [saving, setSaving] = useState(false);
@@ -447,10 +448,8 @@ export default function CreateProfilePage() {
     setSaving(true); setApiError('');
     try {
       const heightCm = form.height ? (HEIGHT_TO_CM[form.height] ?? undefined) : undefined;
-      const fullName = [form.firstName?.trim(), form.lastName?.trim()].filter(Boolean).join(' ');
-      // If no name, fall back to memberId from localStorage user, or a placeholder
       const storedUser = (() => { try { return JSON.parse(localStorage.getItem('mn_user') || '{}'); } catch { return {}; } })();
-      const profileName = fullName || storedUser?.memberId || 'Member';
+      const profileName = storedUser?.memberId || 'Member';
       const payload: Record<string, any> = {
         name:               profileName,
         gender:             form.gender,
@@ -482,6 +481,8 @@ export default function CreateProfilePage() {
         motherCity:         form.motherCity     || undefined,
         siblings:           (parseInt(form.brothers||'0') + parseInt(form.sisters||'0')) || undefined,
         countryPreference:  (form.countryPreference && form.countryPreference !== 'Any Country') ? form.countryPreference : undefined,
+        minAgePreference:   form.minAgePref ? parseInt(form.minAgePref) : undefined,
+        maxAgePreference:   form.maxAgePref ? parseInt(form.maxAgePref) : undefined,
         aboutUs:            form.about         || undefined,
         expectations:       form.expectations  || undefined,
       };
@@ -563,14 +564,6 @@ export default function CreateProfilePage() {
             {/* ── Step 0: Personal Details ──────────────────────────────── */}
             {step === 0 && (
               <>
-                <div className={g2}>
-                  <Field label="First Name" name="firstName" value={form.firstName} onChange={handleField} placeholder="Enter your first name" optional />
-                  <Field label="Last Name" name="lastName" value={form.lastName} onChange={handleField} placeholder="Enter your last name" optional />
-                </div>
-                <p className="-mt-2 flex items-center gap-1.5 text-[11px] text-gray-400">
-                  <svg className="w-3.5 h-3.5 shrink-0 text-[#1C3B35]/50" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-                  You can hide your real name and use a nickname from&nbsp;<a href="/dashboard/settings" className="text-[#1C3B35] font-medium underline underline-offset-2 hover:opacity-80 transition">User Settings</a>.
-                </p>
                 <div className={g2}>
                   <Select label="Created By" name="createdBy" value={form.createdBy} onChange={handleField} options={CREATED_BY_OPTS} required error={fieldErrors.createdBy} />
                   <Select label="Gender" name="gender" value={form.gender} onChange={handleField}
@@ -708,6 +701,39 @@ export default function CreateProfilePage() {
                 />
                 <p className="text-[11px] text-gray-400 -mt-2">Only profiles from selected countries will appear in your browse results.</p>
 
+                {/* Preferred Age Range */}
+                <div>
+                  <label className="block text-[13px] font-semibold text-[#1C3B35] mb-1">
+                    Preferred Age Range <span className="text-gray-400 font-normal text-[11px]">(Optional)</span>
+                  </label>
+                  <div className="flex items-center gap-3">
+                    <div className="flex-1">
+                      <label className="block text-[11px] text-gray-400 mb-0.5">Min Age</label>
+                      <input
+                        type="number" name="minAgePref"
+                        min={18} max={80}
+                        placeholder="e.g. 22"
+                        value={form.minAgePref}
+                        onChange={handleField}
+                        className="w-full rounded-xl border border-gray-200 px-3 py-2 text-[13px] outline-none focus:border-[#1C3B35] focus:ring-2 focus:ring-[#1C3B35]/15 transition"
+                      />
+                    </div>
+                    <span className="text-gray-400 text-sm mt-5">–</span>
+                    <div className="flex-1">
+                      <label className="block text-[11px] text-gray-400 mb-0.5">Max Age</label>
+                      <input
+                        type="number" name="maxAgePref"
+                        min={18} max={80}
+                        placeholder="e.g. 35"
+                        value={form.maxAgePref}
+                        onChange={handleField}
+                        className="w-full rounded-xl border border-gray-200 px-3 py-2 text-[13px] outline-none focus:border-[#1C3B35] focus:ring-2 focus:ring-[#1C3B35]/15 transition"
+                      />
+                    </div>
+                  </div>
+                  <p className="text-[11px] text-gray-400 mt-1">Only profiles within this age range will appear in your browse results.</p>
+                </div>
+
                 {/* Additional Information */}
                 <Textarea
                   label="Additional Information"
@@ -721,7 +747,7 @@ export default function CreateProfilePage() {
 
                 {/* Your Expectations */}
                 <Textarea
-                  label="Your Expectations"
+                  label="Tell us more about Expectations"
                   name="expectations"
                   value={form.expectations}
                   onChange={handleField}
@@ -737,7 +763,6 @@ export default function CreateProfilePage() {
               <>
                 <div className="rounded-xl border border-gray-100 overflow-hidden">
                   {([
-                    ['First Name', form.firstName], ['Last Name', form.lastName],
                     ['Created By', form.createdBy], ['Gender', form.gender === 'MALE' ? 'Male' : 'Female'],
                     ['Date of Birth', form.dateOfBirth], ['Height', form.height],
                     ['Appearance', form.appearance], ['Complexion', form.complexion],
@@ -754,6 +779,7 @@ export default function CreateProfilePage() {
                     ["Mother's Occupation", form.motherOccupation], ["Mother's City", form.motherCity],
                     ['Brothers', form.brothers], ['Sisters', form.sisters],
                     ['Looking Country', form.countryPreference],
+                    ['Preferred Age', form.minAgePref || form.maxAgePref ? `${form.minAgePref || '?'} – ${form.maxAgePref || '?'} yrs` : ''],
                     ['About Me', form.about ? form.about.substring(0, 60) + (form.about.length > 60 ? '…' : '') : ''],
                     ['Expectations', form.expectations ? form.expectations.substring(0, 60) + (form.expectations.length > 60 ? '…' : '') : ''],
                   ] as [string, string][]).filter(([, v]) => v).map(([k, v], i) => (

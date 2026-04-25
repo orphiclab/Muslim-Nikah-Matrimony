@@ -55,7 +55,7 @@ const ReadySection = ({
               className="text-[14px] sm:text-base font-poppins"
               type="button"
             >
-              Create Profile
+              Register Now
             </MainButton>
           </Link>
 

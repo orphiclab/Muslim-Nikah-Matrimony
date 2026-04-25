@@ -79,6 +79,12 @@ export const profileApi = {
     request<any>('/profile/create', { method: 'POST', body: JSON.stringify(body) }),
   update: (id: string, body: any) =>
     request<any>(`/profile/update/${id}`, { method: 'PUT', body: JSON.stringify(body) }),
+  submitEditRequest: (profileId: string, newData: any) =>
+    request<any>(`/profile/edit-request/${profileId}`, { method: 'POST', body: JSON.stringify(newData) }),
+  getMyPendingEditRequest: (profileId: string) =>
+    request<any>(`/profile/edit-request/${profileId}/pending`),
+  getProfileViews: (profileId: string, limit = 50) =>
+    request<any>(`/profile/views/${profileId}?limit=${limit}`),
   getMyProfiles: () => request<any>('/profile/my'),
   getOne: (id: string) => request<any>(`/profile/${id}`),
   getVisibleProfiles: (viewerProfileId: string) =>
@@ -207,6 +213,15 @@ export const adminApi = {
     bank2Branch?: string;
   }) =>
     request<any>('/admin/settings', { method: 'PUT', body: JSON.stringify(body) }),
+
+  // Profile Edit Requests
+  getEditRequests: (status?: string) =>
+    request<any>(`/admin/edit-requests${status ? `?status=${status}` : ''}`),
+  getEditRequest: (id: string) => request<any>(`/admin/edit-requests/${id}`),
+  approveEditRequest: (id: string, adminNote?: string) =>
+    request<any>(`/admin/edit-requests/${id}/approve`, { method: 'POST', body: JSON.stringify({ adminNote }) }),
+  rejectEditRequest: (id: string, adminNote: string) =>
+    request<any>(`/admin/edit-requests/${id}/reject`, { method: 'POST', body: JSON.stringify({ adminNote }) }),
 };
 
 // ─── Public Packages (no auth) ────────────────────────────────────────────
@@ -240,7 +255,8 @@ export const publicProfilesApi = {
     return request<any>(`/profiles/public${qs ? `?${qs}` : ''}`);
   },
 
-  getById: (id: string) => request<any>(`/profile/public/${id}`),
+  getById: (id: string, viewerProfileId?: string) =>
+    request<any>(`/profile/public/${id}${viewerProfileId ? `?viewerProfileId=${viewerProfileId}` : ''}`),
 };
 
 // ─── Public Site Settings ──────────────────────────────────────────────────

@@ -1,4 +1,4 @@
-import { Injectable, Logger, BadRequestException, UnauthorizedException } from '@nestjs/common';
+import { Injectable, Logger, BadRequestException, UnauthorizedException, ConflictException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import * as bcrypt from 'bcrypt';
 
@@ -16,10 +16,29 @@ export class UserService {
   }
 
   async updateMe(userId: string, data: { phone?: string; whatsappNumber?: string; phoneVisible?: boolean; whatsappVisible?: boolean }) {
-    const updated = await this.prisma.user.update({
-      where: { id: userId },
-      data,
-    });
+    // ── Phone number uniqueness check ──────────────────────────────────────
+    const orConditions: any[] = [];
+    if (data.phone)          orConditions.push({ phone: data.phone });
+    if (data.whatsappNumber) orConditions.push({ whatsappNumber: data.whatsappNumber });
+
+    if (orConditions.length > 0) {
+      const conflict = await this.prisma.user.findFirst({
+        where: { OR: orConditions, NOT: { id: userId } },
+        select: { id: true, phone: true, whatsappNumber: true },
+      });
+      if (conflict) {
+        const takenFields: string[] = [];
+        if (data.phone && conflict.phone === data.phone) takenFields.push('Phone number');
+        if (data.whatsappNumber && conflict.whatsappNumber === data.whatsappNumber) takenFields.push('WhatsApp number');
+        throw new ConflictException({
+          success: false,
+          message: `${takenFields.join(' and ')} is already registered to another account.`,
+          error_code: 'PHONE_TAKEN',
+        });
+      }
+    }
+
+    const updated = await this.prisma.user.update({ where: { id: userId }, data });
     const { password: _, ...safe } = updated;
     return { success: true, data: safe };
   }

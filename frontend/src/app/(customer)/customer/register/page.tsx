@@ -137,8 +137,6 @@ function Step2({ data, onChange }: { data: Record<string, string>; onChange: (e:
       <h2 className="text-xl font-semibold text-gray-800">Account Details</h2>
       <p className="mt-1 text-sm text-gray-500">Set up your login credentials</p>
       <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <TextField label="First Name" name="firstName" placeholder="Enter your first name" value={data.firstName || ""} onChange={onChange} />
-        <TextField label="Last Name" name="lastName" placeholder="Enter your last name" value={data.lastName || ""} onChange={onChange} />
         <TextField label="Email Address" name="email" type="email" placeholder="Enter your email" value={data.email || ""} onChange={onChange} />
         <TextField label="Phone Number" name="phone" type="tel" placeholder="+94 xxx xxx xxx" value={data.phone || ""} onChange={onChange} />
         <TextField label="Password" name="password" type="password" placeholder="Create a password" value={data.password || ""} onChange={onChange} />
@@ -238,7 +236,7 @@ function Step5({ data, onChange, lookingFor, setLookingFor, agreedTerms, setAgre
       </div>
 
       <div className="mt-4 flex flex-col gap-1">
-        <label className="text-sm font-medium text-gray-600">Your Expectations</label>
+        <label className="text-sm font-medium text-gray-600">Tell us more about Expectations</label>
         <textarea
           name="expectations"
           value={data.expectations || ""}
@@ -359,7 +357,7 @@ export default function RegisterPage() {
       localStorage.setItem("mn_user", JSON.stringify(regData.user));
 
       // Step 2: Create child profile with the personal details
-      const name = [formData.firstName, formData.lastName].filter(Boolean).join(" ") || "Profile";
+      const name = 'Profile';
       const gender = formData.gender?.toUpperCase() === "FEMALE" ? "FEMALE" : "MALE";
       const dateOfBirth = formData.birthDate || new Date(Date.now() - 25 * 365.25 * 24 * 60 * 60 * 1000).toISOString().split("T")[0];
 
