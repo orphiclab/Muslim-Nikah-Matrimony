@@ -5,7 +5,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { Eye, EyeOff, Lock, Mail } from "lucide-react";
 import { authApi } from "@/services/api";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 
 export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
@@ -13,6 +13,8 @@ export default function LoginPage() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const redirectTo = searchParams.get('redirect') || null;
 
   // Redirect already-logged-in users straight to dashboard
   // but ONLY if their JWT is still valid (not expired)
@@ -31,7 +33,8 @@ export default function LoginPage() {
           return;
         }
         const parsed = JSON.parse(user ?? '{}');
-        router.replace(parsed.role === 'ADMIN' ? '/admin' : '/dashboard/parent');
+        const dest = redirectTo || (parsed.role === 'ADMIN' ? '/admin' : '/dashboard/parent');
+        router.replace(dest);
       } catch {
         // Malformed token — clear and show login
         localStorage.removeItem('mn_token');
@@ -54,8 +57,9 @@ export default function LoginPage() {
       localStorage.setItem("mn_user", JSON.stringify(res.user));
       window.dispatchEvent(new Event('mn_auth_change'));
 
-      // Dashboard layout handles subscription/plan gating automatically
-      router.push(res.user.role === 'ADMIN' ? '/admin' : '/dashboard/parent');
+      // If there's a redirect param, go there; otherwise default dashboard
+      const dest = redirectTo || (res.user.role === 'ADMIN' ? '/admin' : '/dashboard/parent');
+      router.push(dest);
     } catch (e: any) {
       setError(e.message ?? "Login failed. Check your credentials.");
     } finally {

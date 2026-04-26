@@ -167,6 +167,10 @@ export const adminApi = {
     request<any>(`/admin/users/${id}/password`, { method: 'PUT', body: JSON.stringify({ newPassword }) }),
   profiles: (status?: string) => request<any>(`/admin/profiles${status ? `?status=${status}` : ''}`),
   getProfile: (id: string) => request<any>(`/admin/profiles/${id}`),
+  updateProfileStatus: (id: string, status: string, reason?: string) =>
+    request<any>(`/admin/profiles/${id}/status`, { method: 'PATCH', body: JSON.stringify({ status, reason }) }),
+  adminUpdateProfile: (id: string, body: Record<string, any>) =>
+    request<any>(`/admin/profiles/${id}`, { method: 'PUT', body: JSON.stringify(body) }),
 
   // Analytics (both names for compatibility)
   analytics: () => request<any>('/admin/analytics'),

@@ -1,4 +1,4 @@
-import { Controller, Post, Get, Put, Delete, Body, Query, Param, UseGuards } from '@nestjs/common';
+import { Controller, Post, Get, Put, Patch, Delete, Body, Query, Param, UseGuards } from '@nestjs/common';
 import { AdminService, ApprovePaymentDto, RejectPaymentDto, CreatePackageDto, UpdateSiteSettingsDto } from './admin.service';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard, Roles } from '../../common/guards/roles.guard';
@@ -94,6 +94,24 @@ export class AdminController {
 
   @Get('profiles/:id')
   getProfile(@Param('id') id: string) { return this.service.getProfile(id); }
+
+  @Patch('profiles/:id/status')
+  updateProfileStatus(
+    @CurrentUser() user: any,
+    @Param('id') id: string,
+    @Body() body: { status: string; reason?: string },
+  ) {
+    return this.service.updateProfileStatus(user.userId, id, body.status, body.reason);
+  }
+
+  @Put('profiles/:id')
+  adminUpdateProfile(
+    @CurrentUser() user: any,
+    @Param('id') id: string,
+    @Body() dto: Record<string, any>,
+  ) {
+    return this.service.adminUpdateProfile(user.userId, id, dto);
+  }
 
   @Get('analytics')
   analytics() { return this.service.getAnalytics(); }

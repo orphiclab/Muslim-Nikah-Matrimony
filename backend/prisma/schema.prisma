@@ -24,6 +24,7 @@ enum ProfileStatus {
   ACTIVE
   PAUSED
   INACTIVE
+  SUSPENDED
   EXPIRED
   EDIT_PENDING
 }
@@ -99,12 +100,15 @@ model ChildProfile {
   country             String?
   city                String?
   state               String?
+  residentCountry     String?
+  residentCity        String?
   residencyStatus     String?
   education           String?
   occupation          String?
   fieldOfStudy        String?
   profession          String?
   annualIncome        String?
+  extraQualification  String?
 
   // Family
   familyStatus        String?

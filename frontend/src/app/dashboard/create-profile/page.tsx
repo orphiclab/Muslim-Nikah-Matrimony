@@ -22,7 +22,6 @@ const COMPLEXIONS = ['Very Fair','Fair','Medium','Olive','Dark'];
 const DRESS_CODES = ['Hijab','Niqab','Casual Modest','Islamic Formal','Traditional'];
 const FAMILY_STATUSES = ['Upper Class','Upper Middle Class','Middle Class','Lower Middle Class'];
 const CIVIL_STATUSES = ['Never Married','Widowed','Divorced','Separated','Other'];
-const CHILDREN_OPTS = ['No','Yes - 1','Yes - 2','Yes - 3','Yes - 3+'];
 const CREATED_BY_OPTS = ['Self','Parent','Guardian','Sibling'];
 // Generate every-inch heights from 4'0" to 8'0" with cm equivalents
 function buildHeights() {
@@ -319,9 +318,10 @@ export default function CreateProfilePage() {
     createdBy: '', gender: 'MALE',
     dob_day: '', dob_month: '', dob_year: '', dateOfBirth: '',
     height: '', weight: '', appearance: '', complexion: '', ethnicity: '',
-    dressCode: '', familyStatus: '', civilStatus: '', children: '',
+    dressCode: '', familyStatus: '', civilStatus: '',
     // Location & Edu
-    country: '', state: '', city: '', residencyStatus: '',
+    country: '', city: '', residencyStatus: '',
+    residentCountry: '', residentCity: '',
     education: '', fieldOfStudy: '', occupation: '', profession: '',
     // Family
     fatherEthnicity: '', fatherCountry: '', fatherOccupation: '', fatherCity: '',
@@ -330,7 +330,7 @@ export default function CreateProfilePage() {
     // Additional Details
     countryPreference: '',
     minAgePref: '', maxAgePref: '',
-    about: '', expectations: '',
+    about: '', expectations: '', extraQualification: '',
   });
   const [saving, setSaving] = useState(false);
   const [countryPrefList, setCountryPrefList] = useState<string[]>([]);
@@ -358,6 +358,17 @@ export default function CreateProfilePage() {
       return next;
     });
     setFieldErrors((prev: any) => { const n = { ...prev }; delete n[field]; return n; });
+  };
+
+  // Resident Country / City cascade handler
+  const handleResidentLocationChange = (field: 'country' | 'city', value: string) => {
+    const key = field === 'country' ? 'residentCountry' : 'residentCity';
+    setForm((f: any) => {
+      const next = { ...f, [key]: value };
+      if (field === 'country') { next.residentCity = ''; }
+      return next;
+    });
+    setFieldErrors((prev: any) => { const n = { ...prev }; delete n[key]; return n; });
   };
 
   const handleDob = (field: 'dob_day' | 'dob_month' | 'dob_year', value: string) => {
@@ -399,6 +410,8 @@ export default function CreateProfilePage() {
     if (s === 1) {
       if (!form.country) errs.country = 'Please select a country.';
       if (!form.city) errs.city = 'Please select a city.';
+      if (!form.residentCountry) errs.residentCountry = 'Please select a resident country.';
+      if (!form.residentCity) errs.residentCity = 'Please select a resident city.';
       if (!form.residencyStatus) errs.residencyStatus = 'Please select a residency status.';
       if (!form.education) errs.education = 'Please select an education level.';
       if (!form.occupation) errs.occupation = 'Please select an occupation.';
@@ -434,6 +447,8 @@ export default function CreateProfilePage() {
     }
 
     setStep(nextStep);
+    // Scroll to top so the new step starts at the top on mobile
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const handleCreate = async () => {
@@ -461,9 +476,10 @@ export default function CreateProfilePage() {
         ethnicity:          form.ethnicity      || undefined,
         dressCode:          form.dressCode      || undefined,
         civilStatus:        form.civilStatus    || undefined,
-        children:           form.children       || undefined,
         country:            form.country        || undefined,
         city:               form.city           || undefined,
+        residentCountry:    form.residentCountry|| undefined,
+        residentCity:       form.residentCity   || undefined,
         residencyStatus:    form.residencyStatus|| undefined,
         education:          form.education      || undefined,
         fieldOfStudy:       form.fieldOfStudy   || undefined,
@@ -485,6 +501,7 @@ export default function CreateProfilePage() {
         maxAgePreference:   form.maxAgePref ? parseInt(form.maxAgePref) : undefined,
         aboutUs:            form.about         || undefined,
         expectations:       form.expectations  || undefined,
+        extraQualification: form.extraQualification || undefined,
       };
       Object.keys(payload).forEach(k => payload[k] === undefined && delete payload[k]);
       const res = await profileApi.create(payload);
@@ -592,7 +609,6 @@ export default function CreateProfilePage() {
                 </div>
                 <div className={g2}>
                   <Select label="Civil Status" name="civilStatus" value={form.civilStatus} onChange={handleField} options={CIVIL_STATUSES} required error={fieldErrors.civilStatus} />
-                  <Select label="Children" name="children" value={form.children} onChange={handleField} options={CHILDREN_OPTS} optional />
                 </div>
               </>
             )}
@@ -600,6 +616,7 @@ export default function CreateProfilePage() {
             {/* ── Step 1: Location & Education ─────────────────────────── */}
             {step === 1 && (
               <>
+                {/* Country | City */}
                 <div className={g2}>
                   <CascadeLocation
                     country={form.country || ''}
@@ -608,7 +625,23 @@ export default function CreateProfilePage() {
                     errors={{ country: fieldErrors.country, city: fieldErrors.city }}
                     required
                   />
+                </div>
+                {/* Resident Country | Resident City */}
+                <div className={g2}>
+                  <CascadeLocation
+                    country={form.residentCountry || ''}
+                    city={form.residentCity || ''}
+                    onChange={handleResidentLocationChange}
+                    errors={{ country: fieldErrors.residentCountry, city: fieldErrors.residentCity }}
+                    required
+                    countryLabel="Resident Country"
+                    cityLabel="Resident City"
+                  />
+                </div>
+                {/* Residency Status | spacer */}
+                <div className={g2}>
                   <Select label="Residency Status" name="residencyStatus" value={form.residencyStatus} onChange={handleField} options={RESIDENCY_STATUSES} required error={fieldErrors.residencyStatus} />
+                  <div className="hidden sm:block" />
                 </div>
                 <div className={g2}>
                   <Select label="Education" name="education" value={form.education} onChange={handleField} options={EDUCATIONS} required error={fieldErrors.education} />
@@ -632,7 +665,6 @@ export default function CreateProfilePage() {
                     required error={fieldErrors.fatherCountry} />
                 </div>
                 <div className={g2}>
-                  <Select label="Occupation" name="fatherOccupation" value={form.fatherOccupation} onChange={handleField} options={FATHER_OCCUPATIONS} required error={fieldErrors.fatherOccupation} />
                   <Select
                     label="City"
                     name="fatherCity"
@@ -645,6 +677,7 @@ export default function CreateProfilePage() {
                     required
                     error={fieldErrors.fatherCity}
                   />
+                  <Select label="Occupation" name="fatherOccupation" value={form.fatherOccupation} onChange={handleField} options={FATHER_OCCUPATIONS} required error={fieldErrors.fatherOccupation} />
                 </div>
 
                 <div className="border-t border-gray-100 pt-3">
@@ -657,7 +690,6 @@ export default function CreateProfilePage() {
                     required error={fieldErrors.motherCountry} />
                 </div>
                 <div className={g2}>
-                  <Select label="Occupation" name="motherOccupation" value={form.motherOccupation} onChange={handleField} options={MOTHER_OCCUPATIONS} required error={fieldErrors.motherOccupation} />
                   <Select
                     label="City"
                     name="motherCity"
@@ -670,6 +702,7 @@ export default function CreateProfilePage() {
                     required
                     error={fieldErrors.motherCity}
                   />
+                  <Select label="Occupation" name="motherOccupation" value={form.motherOccupation} onChange={handleField} options={MOTHER_OCCUPATIONS} required error={fieldErrors.motherOccupation} />
                 </div>
 
                 <div className="border-t border-gray-100 pt-3">
@@ -755,6 +788,17 @@ export default function CreateProfilePage() {
                   rows={4}
                   optional
                 />
+
+                {/* Extra Qualification */}
+                <Textarea
+                  label="Extra Qualification"
+                  name="extraQualification"
+                  value={form.extraQualification}
+                  onChange={handleField}
+                  placeholder="Any additional qualifications, certifications or skills..."
+                  rows={3}
+                  optional
+                />
               </>
             )}
 
@@ -768,8 +812,8 @@ export default function CreateProfilePage() {
                     ['Appearance', form.appearance], ['Complexion', form.complexion],
                     ['Ethnicity', form.ethnicity], ['Dress Code', form.dressCode],
                     ['Family Status', form.familyStatus], ['Civil Status', form.civilStatus],
-                    ['Children', form.children],
-                    ['Country', form.country], ['State', form.state], ['City', form.city],
+                    ['Country', form.country], ['City', form.city],
+                    ['Resident Country', form.residentCountry], ['Resident City', form.residentCity],
                     ['Residency Status', form.residencyStatus], ['Education', form.education],
                     ['Field of Study', form.fieldOfStudy], ['Occupation', form.occupation],
                     ['Profession', form.profession],
@@ -801,7 +845,7 @@ export default function CreateProfilePage() {
           {/* Footer navigation */}
           <div className="px-4 sm:px-6 py-4 border-t border-gray-100 flex flex-col-reverse sm:flex-row justify-between gap-3 bg-gray-50/50">
             <button
-              onClick={() => { setStep(s => Math.max(0, s - 1)); setFieldErrors({}); }}
+              onClick={() => { setStep(s => Math.max(0, s - 1)); setFieldErrors({}); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
               disabled={step === 0}
               className="w-full sm:w-auto px-5 py-2.5 border border-gray-200 text-gray-600 text-sm font-semibold rounded-xl hover:bg-gray-100 transition disabled:opacity-30"
             >← Back</button>

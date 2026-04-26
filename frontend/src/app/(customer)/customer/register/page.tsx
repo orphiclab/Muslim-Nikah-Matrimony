@@ -1,9 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Check, ChevronDown, Calendar } from "lucide-react";
+import { loadMasterData, type MasterData } from "@/app/admin/master-file/data";
 
 const STEPS = [
   { id: 1, label: "Personal Details" },
@@ -125,7 +126,6 @@ function Step1({ data, onChange }: { data: Record<string, string>; onChange: (e:
         <SelectField label="Dress Code" name="dressCode" options={["Hijab", "Niqab", "Casual Modest", "Islamic Formal", "Traditional"]} value={data.dressCode || ""} onChange={onChange} />
         <SelectField label="Family Status" name="familyStatus" options={["Upper Class", "Upper Middle Class", "Middle Class", "Lower Middle Class"]} value={data.familyStatus || ""} onChange={onChange} />
         <SelectField label="Civil Status" name="civilStatus" options={["Single", "Divorced", "Widowed"]} value={data.civilStatus || ""} onChange={onChange} />
-        <SelectField label="Children" name="children" options={["No", "Yes - 1", "Yes - 2", "Yes - 3", "Yes - 3+"]} value={data.children || ""} onChange={onChange} />
       </div>
     </div>
   );
@@ -146,16 +146,70 @@ function Step2({ data, onChange }: { data: Record<string, string>; onChange: (e:
   );
 }
 
-function Step3({ data, onChange }: { data: Record<string, string>; onChange: (e: React.ChangeEvent<HTMLSelectElement | HTMLInputElement>) => void }) {
+function Step3({
+  data,
+  onChange,
+  masterData,
+}: {
+  data: Record<string, string>;
+  onChange: (e: React.ChangeEvent<HTMLSelectElement | HTMLInputElement>) => void;
+  masterData: MasterData;
+}) {
+  // Derive city lists from masterfile
+  const countryNames = masterData.countries.map((c) => c.name);
+
+  const residentCountryObj = masterData.countries.find(
+    (c) => c.name === data.residentCountry
+  );
+  const residentCityOptions = residentCountryObj
+    ? residentCountryObj.cities.map((ci) => ci.name)
+    : [];
+
   return (
     <div>
-      <h2 className="text-xl font-semibold text-gray-800">Location & Education</h2>
+      <h2 className="text-xl font-semibold text-gray-800">Location &amp; Education</h2>
       <p className="mt-1 text-sm text-gray-500">Tell us where you are based and your qualifications</p>
       <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
         <SelectField label="Country" name="country" options={["Sri Lanka", "United Kingdom", "Australia", "Canada", "UAE", "Saudi Arabia", "Qatar", "USA", "Malaysia", "Other"]} value={data.country || ""} onChange={onChange} />
         <SelectField label="State / Province" name="state" options={["Western Province", "Central Province", "Southern Province", "Northern Province", "Eastern Province", "Other"]} value={data.state || ""} onChange={onChange} />
         <TextField label="City" name="city" placeholder="Enter your city" value={data.city || ""} onChange={onChange} />
         <SelectField label="Residency Status" name="residencyStatus" options={["Citizen", "Permanent Resident", "Work Visa", "Student Visa", "Other"]} value={data.residencyStatus || ""} onChange={onChange} />
+
+        {/* ── Resident Country & City (from masterfile) ── */}
+        <SelectField
+          label="Resident Country"
+          name="residentCountry"
+          options={countryNames}
+          value={data.residentCountry || ""}
+          onChange={onChange}
+        />
+        <div className="flex flex-col gap-1">
+          <label className="text-sm font-medium text-gray-600">
+            Resident City
+          </label>
+          <div className="relative">
+            <select
+              name="residentCity"
+              value={data.residentCity || ""}
+              onChange={onChange}
+              disabled={residentCityOptions.length === 0}
+              className="w-full appearance-none rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-700 shadow-sm outline-none focus:border-[#1B6B4A] focus:ring-2 focus:ring-[#1B6B4A]/20 transition disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <option value="">
+                {residentCityOptions.length === 0
+                  ? "Select Resident Country first"
+                  : "Select Resident City"}
+              </option>
+              {residentCityOptions.map((city) => (
+                <option key={city} value={city}>
+                  {city}
+                </option>
+              ))}
+            </select>
+            <ChevronDown className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+          </div>
+        </div>
+
         <SelectField label="Education" name="education" options={["High School","Diploma","Bachelor's Degree","Master's Degree","Doctorate (PhD)","Other"]} value={data.education || ""} onChange={onChange} />
         <TextField label="Field of Study" name="fieldOfStudy" placeholder="e.g. Computer Science" value={data.fieldOfStudy || ""} onChange={onChange} />
         <SelectField label="Occupation" name="occupation" options={["Employed","Self Employed","Business Owner","Student","Not Employed"]} value={data.occupation || ""} onChange={onChange} />
@@ -301,6 +355,11 @@ export default function RegisterPage() {
   const [currentStep, setCurrentStep] = useState(1);
   const [formData, setFormData] = useState<Record<string, string>>({});
   const [lookingFor, setLookingFor] = useState("Male");
+  const [masterData, setMasterData] = useState<MasterData>(loadMasterData());
+
+  useEffect(() => {
+    setMasterData(loadMasterData());
+  }, []);
   const [agreedTerms, setAgreedTerms] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -454,7 +513,7 @@ export default function RegisterPage() {
           <div className="flex-1">
             {currentStep === 1 && <Step1 data={formData} onChange={handleChange} />}
             {currentStep === 2 && <Step2 data={formData} onChange={handleChange} />}
-            {currentStep === 3 && <Step3 data={formData} onChange={handleChange} />}
+            {currentStep === 3 && <Step3 data={formData} onChange={handleChange} masterData={masterData} />}
             {currentStep === 4 && <Step4 data={formData} onChange={handleChange} />}
             {currentStep === 5 && <Step5 data={formData} onChange={handleChange} lookingFor={lookingFor} setLookingFor={setLookingFor} agreedTerms={agreedTerms} setAgreedTerms={setAgreedTerms} />}
           </div>

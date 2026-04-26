@@ -369,7 +369,6 @@ function Step1({
         <SelectField label="Dress Code" name="dressCode" options={["Hijab", "Niqab", "Casual Modest", "Islamic Formal", "Traditional"]} value={data.dressCode || ""} onChange={onChange} error={fieldErrors?.dressCode} />
         <SelectField label="Family Status" name="familyStatus" options={["Upper Class", "Upper Middle Class", "Middle Class", "Lower Middle Class"]} value={data.familyStatus || ""} onChange={onChange} error={fieldErrors?.familyStatus} />
         <SelectField label="Civil Status" name="civilStatus" options={["Never Married", "Widowed", "Divorced", "Separated", "Other"]} value={data.civilStatus || ""} onChange={onChange} error={fieldErrors?.civilStatus} />
-        <SelectField label="Children" name="children" options={["No", "Yes - 1", "Yes - 2", "Yes - 3", "Yes - 3+"]} value={data.children || ""} onChange={onChange} optional />
       </div>
     </div>
   );
@@ -399,11 +398,12 @@ function Step2({
 }
 
 function Step3({
-  data, onChange, onLocationChange, fieldErrors,
+  data, onChange, onLocationChange, onResidentLocationChange, fieldErrors,
 }: {
   data: Record<string, string>;
   onChange: (e: React.ChangeEvent<HTMLSelectElement | HTMLInputElement>) => void;
   onLocationChange: (field: 'country' | 'city', value: string) => void;
+  onResidentLocationChange: (field: 'residentCountry' | 'residentCity', value: string) => void;
   fieldErrors?: Record<string, string>;
 }) {
   return (
@@ -418,7 +418,27 @@ function Step3({
           errors={{ country: fieldErrors?.country, city: fieldErrors?.city }}
           required
         />
+
+        {/* ── Resident Country & City (from masterfile) ── */}
+        <CascadeLocation
+          country={data.residentCountry || ''}
+          city={data.residentCity || ''}
+          onChange={(field, value) =>
+            onResidentLocationChange(
+              field === 'country' ? 'residentCountry' : 'residentCity',
+              value
+            )
+          }
+          errors={{ country: fieldErrors?.residentCountry, city: fieldErrors?.residentCity }}
+          required={true}
+          countryLabel="Resident Country"
+          cityLabel="Resident City"
+        />
+
+        {/* Residency Status after Resident Country/City, spacer keeps grid aligned */}
         <SelectField label="Residency Status" name="residencyStatus" options={["Citizen", "Permanent Resident", "Work Visa", "Student Visa", "Other"]} value={data.residencyStatus || ""} onChange={onChange} error={fieldErrors?.residencyStatus} />
+        <div className="hidden sm:block" />
+
         <SelectField label="Education" name="education" options={["High School","Diploma","Bachelor's Degree","Master's Degree","Doctorate (PhD)","Other"]} value={data.education || ""} onChange={onChange} error={fieldErrors?.education} />
         <TextField label="Field of Study" name="fieldOfStudy" placeholder="e.g. Computer Science" value={data.fieldOfStudy || ""} onChange={onChange} optional />
         <SelectField label="Occupation" name="occupation" options={["Employed","Self Employed","Business Owner","Student","Not Employed"]} value={data.occupation || ""} onChange={onChange} error={fieldErrors?.occupation} />
@@ -471,7 +491,6 @@ function Step4({
             </select>
             {fieldErrors?.fatherCountry && <p className="text-xs text-red-500 mt-0.5">{fieldErrors.fatherCountry}</p>}
           </div>
-          <SelectField label="Occupation" name="fatherOccupation" options={["Business","Government Employee","Private Sector","Retired","Not Employed","Deceased"]} value={data.fatherOccupation || ""} onChange={onChange} error={fieldErrors?.fatherOccupation} />
           <div className="flex flex-col gap-1">
             <label className={`text-sm font-medium ${data.fatherCountry ? 'text-gray-600' : 'text-gray-300'}`}>City</label>
             <select
@@ -485,6 +504,7 @@ function Step4({
             </select>
             {fieldErrors?.fatherCity && <p className="text-xs text-red-500 mt-0.5">{fieldErrors.fatherCity}</p>}
           </div>
+          <SelectField label="Occupation" name="fatherOccupation" options={["Business","Government Employee","Private Sector","Retired","Not Employed","Deceased"]} value={data.fatherOccupation || ""} onChange={onChange} error={fieldErrors?.fatherOccupation} />
         </div>
       </div>
 
@@ -504,7 +524,6 @@ function Step4({
             </select>
             {fieldErrors?.motherCountry && <p className="text-xs text-red-500 mt-0.5">{fieldErrors.motherCountry}</p>}
           </div>
-          <SelectField label="Occupation" name="motherOccupation" options={["Business","Government Employee","Private Sector","Homemaker","Retired","Not Employed"]} value={data.motherOccupation || ""} onChange={onChange} error={fieldErrors?.motherOccupation} />
           <div className="flex flex-col gap-1">
             <label className={`text-sm font-medium ${data.motherCountry ? 'text-gray-600' : 'text-gray-300'}`}>City</label>
             <select
@@ -518,6 +537,7 @@ function Step4({
             </select>
             {fieldErrors?.motherCity && <p className="text-xs text-red-500 mt-0.5">{fieldErrors.motherCity}</p>}
           </div>
+          <SelectField label="Occupation" name="motherOccupation" options={["Business","Government Employee","Private Sector","Homemaker","Retired","Not Employed"]} value={data.motherOccupation || ""} onChange={onChange} error={fieldErrors?.motherOccupation} />
         </div>
       </div>
 
@@ -779,6 +799,20 @@ function Step5({ data, onChange, lookingFor, setLookingFor, agreedTerms, setAgre
         />
       </div>
 
+      <div className="mt-4 flex flex-col gap-1">
+        <label className="text-sm font-medium text-gray-600">
+          Extra Qualification <span className="text-gray-400 text-xs font-normal">(optional)</span>
+        </label>
+        <textarea
+          name="extraQualification"
+          value={data.extraQualification || ""}
+          onChange={onChange as React.ChangeEventHandler<HTMLTextAreaElement>}
+          rows={3}
+          placeholder="Any additional qualifications, certifications or skills..."
+          className="w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-700 shadow-sm outline-none focus:border-[#1B6B4A] focus:ring-2 focus:ring-[#1B6B4A]/20 transition resize-none"
+        />
+      </div>
+
       <label className="mt-5 flex items-center gap-2 cursor-pointer">
         <input
           type="checkbox"
@@ -840,6 +874,15 @@ export default function RegisterPage() {
       return next;
     });
     setFieldErrors((prev) => { const n = { ...prev }; delete n[field]; return n; });
+  };
+
+  // Resident Country / City cascade handler
+  const handleResidentLocationChange = (field: 'residentCountry' | 'residentCity', value: string) => {
+    setFormData((prev) => {
+      const next = { ...prev, [field]: value };
+      if (field === 'residentCountry') { next.residentCity = ''; }
+      return next;
+    });
   };
 
   // Cascading family location handler (father/mother country → clears city)
@@ -925,15 +968,16 @@ export default function RegisterPage() {
       }
       setFieldErrors({});
     }
-    // Step 3 = Location & Education — 6 required, 2 optional
+    // Step 3 = Location & Education
     if (currentStep === 3) {
       const errs: Record<string, string> = {};
       if (!formData.country) errs.country = 'Please select a country.';
       if (!formData.city) errs.city = 'Please select a city.';
+      if (!formData.residentCountry) errs.residentCountry = 'Please select a resident country.';
+      if (!formData.residentCity) errs.residentCity = 'Please select a resident city.';
       if (!formData.residencyStatus) errs.residencyStatus = 'Please select a residency status.';
       if (!formData.education) errs.education = 'Please select an education level.';
       if (!formData.occupation) errs.occupation = 'Please select an occupation.';
-      // fieldOfStudy and profession are optional — not validated
       if (Object.keys(errs).length > 0) {
         setFieldErrors(errs);
         return;
@@ -1017,11 +1061,16 @@ export default function RegisterPage() {
       }
 
       setCurrentStep(nextStep);
+      // Scroll to top so the new step is visible from the beginning on mobile
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     }
   };
 
   const handleBack = () => {
-    if (currentStep > 1) setCurrentStep((s) => s - 1);
+    if (currentStep > 1) {
+      setCurrentStep((s) => s - 1);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
   };
 
   const handleSubmit = async () => {
@@ -1071,12 +1120,12 @@ export default function RegisterPage() {
           ...(formData.dressCode && { dressCode: formData.dressCode }),
           ...(formData.familyStatus && { familyStatus: formData.familyStatus }),
           ...(formData.civilStatus && { civilStatus: formData.civilStatus }),
-          ...(formData.children && { children: formData.children }),
 
           // Step 3 — Location & Education
           ...(formData.country && { country: formData.country }),
-          ...(formData.state && { state: formData.state }),
           ...(formData.city && { city: formData.city }),
+          ...(formData.residentCountry && { residentCountry: formData.residentCountry }),
+          ...(formData.residentCity && { residentCity: formData.residentCity }),
           ...(formData.residencyStatus && { residencyStatus: formData.residencyStatus }),
           ...(formData.education && { education: formData.education }),
           ...(formData.fieldOfStudy && { fieldOfStudy: formData.fieldOfStudy }),
@@ -1093,6 +1142,7 @@ export default function RegisterPage() {
           // Step 5 — Additional Details
           ...(formData.about && { aboutUs: formData.about }),
           ...(formData.expectations && { expectations: formData.expectations }),
+          ...(formData.extraQualification && { extraQualification: formData.extraQualification }),
           ...(countryPrefSelected.length > 0 && { countryPreference: countryPrefSelected.join(',') }),
           ...(minAgePref && { minAgePreference: parseInt(minAgePref) }),
           ...(maxAgePref && { maxAgePreference: parseInt(maxAgePref) }),
@@ -1215,7 +1265,7 @@ export default function RegisterPage() {
             <div className="flex-1">
               {currentStep === 1 && <Step2 data={formData} onChange={handleChange} onPhoneChange={handlePhoneChange} fieldErrors={fieldErrors} />}
               {currentStep === 2 && <Step1 data={formData} onChange={handleChange} fieldErrors={fieldErrors} minAge={minAge} />}
-              {currentStep === 3 && <Step3 data={formData} onChange={handleChange} onLocationChange={handleLocationChange} fieldErrors={fieldErrors} />}
+              {currentStep === 3 && <Step3 data={formData} onChange={handleChange} onLocationChange={handleLocationChange} onResidentLocationChange={handleResidentLocationChange} fieldErrors={fieldErrors} />}
               {currentStep === 4 && <Step4 data={formData} onChange={handleChange} onFamilyLocationChange={handleFamilyLocationChange} fieldErrors={fieldErrors} />}
               {currentStep === 5 && <Step5 data={formData} onChange={handleChange} lookingFor={lookingFor} setLookingFor={setLookingFor} agreedTerms={agreedTerms} setAgreedTerms={setAgreedTerms} countryPrefSelected={countryPrefSelected} setCountryPrefSelected={setCountryPrefSelected} minAgePref={minAgePref} setMinAgePref={setMinAgePref} maxAgePref={maxAgePref} setMaxAgePref={setMaxAgePref} />}
             </div>

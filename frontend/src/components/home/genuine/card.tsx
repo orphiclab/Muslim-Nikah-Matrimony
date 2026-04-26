@@ -20,11 +20,13 @@ export type ProfileCardProps = {
     joinedMs: number;
     profileImage?: string;
     memberId?: string;
+    profileId?: string;
     isVip?: boolean;
     createdBy?: string;
     onChatClick?: (e: React.MouseEvent) => void;
     onViewClick?: (e: React.MouseEvent) => void;
     hideFooter?: boolean;
+    hideChatButton?: boolean;
     chatDisabled?: boolean;
 };
 
@@ -78,6 +80,7 @@ function mapApiToCard(p: any): ProfileCardProps {
         job: p.occupation ?? '–',
         joinedMs: Date.now() - new Date(p.createdAt ?? 0).getTime(),
         memberId: p.memberId,
+        profileId: p.id ?? p._id,
         isVip: !!p.isVip,
         createdBy: p.createdBy ?? undefined,
     };
@@ -365,6 +368,7 @@ const GenuineProfileCard = ({
     onChatClick,
     onViewClick,
     hideFooter,
+    hideChatButton = false,
     chatDisabled = false,
 }: ProfileCardProps) => {
     // "New" tag: profile joined within the last 7 days
@@ -477,20 +481,35 @@ const GenuineProfileCard = ({
                             Joined {smartJoinedTime(joinedMs)}
                         </p>
                         <div className="flex gap-2 w-full">
-                            <button onClick={onViewClick} className="flex-1 bg-white hover:bg-gray-50 border border-gray-200 text-[#1C3B35] transition-all duration-150 text-[12px] sm:text-[13px] lg:text-[14px] font-medium font-poppins py-2 rounded-xl shadow-sm">
-                                View
-                            </button>
-                            {chatDisabled ? (
-                                <div
-                                    title="Age or height criteria not matched"
-                                    className="flex-[1.5] bg-gray-200 text-gray-400 text-[12px] sm:text-[13px] lg:text-[14px] font-medium font-poppins py-2 rounded-xl flex items-center justify-center gap-1 cursor-not-allowed select-none"
+                            {hideChatButton ? (
+                                /* Home page: View Profile only */
+                                <button
+                                    onClick={onViewClick}
+                                    className="w-full bg-[#1B6B4A] hover:bg-[#155a3d] active:scale-[0.98] transition-all duration-150 text-white text-[12px] sm:text-[13px] lg:text-[14px] font-semibold font-poppins py-2.5 rounded-xl shadow-sm flex items-center justify-center gap-1.5"
                                 >
-                                    <span className="text-xs">🔒</span> Chat
-                                </div>
-                            ) : (
-                                <button onClick={onChatClick} className="flex-[1.5] bg-[#1B6B4A] hover:bg-[#155a3d] active:scale-[0.98] transition-all duration-150 text-white text-[12px] sm:text-[13px] lg:text-[14px] font-medium font-poppins py-2 rounded-xl shadow-sm flex items-center justify-center gap-1">
-                                    <span className="text-xs sm:text-sm">💬</span> Chat
+                                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
+                                    </svg>
+                                    View Profile
                                 </button>
+                            ) : (
+                                <>
+                                    <button onClick={onViewClick} className="flex-1 bg-white hover:bg-gray-50 border border-gray-200 text-[#1C3B35] transition-all duration-150 text-[12px] sm:text-[13px] lg:text-[14px] font-medium font-poppins py-2 rounded-xl shadow-sm">
+                                        View
+                                    </button>
+                                    {chatDisabled ? (
+                                        <div
+                                            title="Age or height criteria not matched"
+                                            className="flex-[1.5] bg-gray-200 text-gray-400 text-[12px] sm:text-[13px] lg:text-[14px] font-medium font-poppins py-2 rounded-xl flex items-center justify-center gap-1 cursor-not-allowed select-none"
+                                        >
+                                            <span className="text-xs">🔒</span> Chat
+                                        </div>
+                                    ) : (
+                                        <button onClick={onChatClick} className="flex-[1.5] bg-[#1B6B4A] hover:bg-[#155a3d] active:scale-[0.98] transition-all duration-150 text-white text-[12px] sm:text-[13px] lg:text-[14px] font-medium font-poppins py-2 rounded-xl shadow-sm flex items-center justify-center gap-1">
+                                            <span className="text-xs sm:text-sm">💬</span> Chat
+                                        </button>
+                                    )}
+                                </>
                             )}
                         </div>
                     </>
@@ -582,10 +601,16 @@ const GenuineProfileCards = () => {
         router.push(token ? '/dashboard/chat' : '/login');
     };
 
-    const handleViewClick = (e: React.MouseEvent) => {
+    const handleViewClick = (profileId?: string) => (e: React.MouseEvent) => {
         e.preventDefault();
         const token = typeof window !== 'undefined' ? localStorage.getItem('mn_token') : null;
-        router.push(token ? '/profiles' : '/login');
+        const dest = profileId ? `/profiles/${profileId}` : '/profiles';
+        if (token) {
+            router.push(dest);
+        } else {
+            // Encode destination so login page redirects back here after sign-in
+            router.push(`/login?redirect=${encodeURIComponent(dest)}`);
+        }
     };
 
     if (loading) {
@@ -635,8 +660,8 @@ const GenuineProfileCards = () => {
                             key={idx}
                             {...profile}
                             onChatClick={handleChatClick}
-                            onViewClick={handleViewClick}
-                            hideFooter
+                            onViewClick={handleViewClick(profile.profileId)}
+                            hideChatButton
                         />
                     ))
                 )}

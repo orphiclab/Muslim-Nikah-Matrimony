@@ -54,9 +54,11 @@ interface CascadeLocationProps {
   onChange: (field: 'country' | 'city', value: string) => void;
   errors?: { country?: string; city?: string };
   required?: boolean;
+  countryLabel?: string;
+  cityLabel?: string;
 }
 
-export function CascadeLocation({ country, city, onChange, errors = {}, required = true }: CascadeLocationProps) {
+export function CascadeLocation({ country, city, onChange, errors = {}, required = true, countryLabel = 'Country', cityLabel = 'City' }: CascadeLocationProps) {
   const [countries, setCountries] = useState<Country[]>([]);
 
   useEffect(() => { setCountries(loadCountries()); }, []);
@@ -74,7 +76,7 @@ export function CascadeLocation({ country, city, onChange, errors = {}, required
       {/* Country */}
       <div>
         <label className="block text-xs font-semibold text-gray-500 mb-1.5">
-          Country {required && <span className="text-red-400">*</span>}
+          {countryLabel} {required && <span className="text-red-400">*</span>}
         </label>
         <select value={country} onChange={e => handleCountry(e.target.value)} className={selectCls(errors.country)}>
           <option value="">Select Country</option>
@@ -86,7 +88,7 @@ export function CascadeLocation({ country, city, onChange, errors = {}, required
       {/* City */}
       <div>
         <label className="block text-xs font-semibold text-gray-500 mb-1.5">
-          City {required && <span className="text-red-400">*</span>}
+          {cityLabel} {required && <span className="text-red-400">*</span>}
         </label>
         <select
           value={city}

@@ -75,6 +75,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
   const router = useRouter();
   const [checking, setChecking] = useState(true);
   const [user, setUser] = useState<any>(null);
+  const [profiles, setProfiles] = useState<any[]>([]);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [totalUnread, setTotalUnread] = useState(0);
 
@@ -111,6 +112,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
     profileApi.getMyProfiles()
       .then((profRes) => {
         const profiles: any[] = profRes.data ?? [];
+        setProfiles(profiles);
         // If user has ANY profile (in any status), let them into the dashboard
         if (profiles.length > 0) {
           setChecking(false);
@@ -369,7 +371,31 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
         </header>
 
         <main className="flex-1 overflow-auto">
-          <div className="mx-auto max-w-7xl px-4 py-5 sm:px-6 lg:px-8 lg:py-7">{children}</div>
+          <div className="mx-auto max-w-7xl px-4 py-5 sm:px-6 lg:px-8 lg:py-7">
+            {/* Suspended profile banner */}
+            {profiles.filter(p => p.status === 'SUSPENDED').map(p => (
+              <div key={p.id} className="mb-5 flex items-start gap-3 rounded-2xl border border-red-200 bg-red-50 px-5 py-4">
+                <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-red-100 text-red-600">
+                  <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                    <circle cx="12" cy="12" r="10"/>
+                    <line x1="12" y1="8" x2="12" y2="12"/>
+                    <line x1="12" y1="16" x2="12.01" y2="16"/>
+                  </svg>
+                </span>
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-bold text-red-700">
+                    Profile Suspended — {p.memberId} {p.name ? `(${p.name})` : ''}
+                  </p>
+                  <p className="mt-0.5 text-xs text-red-600">
+                    This profile has been suspended by the admin and is not visible to other members.
+                    {p.rejectionReason ? ` Reason: ${p.rejectionReason}` : ''}
+                    {' '}Please contact support for more information.
+                  </p>
+                </div>
+              </div>
+            ))}
+            {children}
+          </div>
         </main>
       </div>
     </div>

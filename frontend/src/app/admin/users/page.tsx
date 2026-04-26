@@ -24,6 +24,7 @@ export default function AdminUsersPage() {
   const [sortKey, setSortKey] = useState<'email' | 'phone' | 'role' | 'profiles' | 'joined'>('joined');
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
   const [openAction, setOpenAction] = useState<string | null>(null);
+  const [dropdownPos, setDropdownPos] = useState<{ top: number; right: number } | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<User | null>(null);
   const [changePwUser, setChangePwUser] = useState<User | null>(null);
   const [newPw, setNewPw] = useState('');
@@ -44,15 +45,21 @@ export default function AdminUsersPage() {
       .finally(() => setLoading(false));
   }, []);
 
-  // Close dropdown on outside click
+  // Close dropdown on outside click or scroll
   useEffect(() => {
     const handler = (e: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
         setOpenAction(null);
+        setDropdownPos(null);
       }
     };
+    const scrollHandler = () => { setOpenAction(null); setDropdownPos(null); };
     document.addEventListener('mousedown', handler);
-    return () => document.removeEventListener('mousedown', handler);
+    window.addEventListener('scroll', scrollHandler, true);
+    return () => {
+      document.removeEventListener('mousedown', handler);
+      window.removeEventListener('scroll', scrollHandler, true);
+    };
   }, []);
 
   const filtered = users.filter((u) => {
@@ -183,7 +190,7 @@ export default function AdminUsersPage() {
         </div>
       </div>
 
-      <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+      <div className="bg-white rounded-2xl border border-gray-100">
         {/* Tabs */}
         <div className="px-5 pt-4 border-b border-gray-100">
           <div className="flex gap-1">
@@ -254,7 +261,7 @@ export default function AdminUsersPage() {
         </div>
 
         {/* Table */}
-        <div className="overflow-x-auto" ref={dropdownRef}>
+        <div className="overflow-x-auto">
           {loading ? (
             <div className="flex items-center justify-center h-40 text-gray-400 text-sm">Loading…</div>
           ) : pageData.length === 0 ? (
@@ -367,65 +374,22 @@ export default function AdminUsersPage() {
                     <td className="px-5 py-3.5 relative">
                       <button
                         id={`action-btn-${u.id}`}
-                        onClick={() => setOpenAction(openAction === u.id ? null : u.id)}
+                        onClick={(e) => {
+                          if (openAction === u.id) {
+                            setOpenAction(null);
+                            setDropdownPos(null);
+                          } else {
+                            const rect = (e.currentTarget as HTMLButtonElement).getBoundingClientRect();
+                            setDropdownPos({ top: rect.bottom + 6, right: window.innerWidth - rect.right });
+                            setOpenAction(u.id);
+                          }
+                        }}
                         className="text-gray-400 hover:text-gray-700 transition px-2 py-1 rounded-lg hover:bg-gray-100"
                       >
                         <span className="text-base tracking-widest font-bold">···</span>
                       </button>
 
-                      {openAction === u.id && (
-                        <div className="absolute right-4 z-50 mt-1 w-48 bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden"
-                          style={{ top: '100%' }}>
-                          {/* View Account */}
-                          <button
-                            onClick={() => handleViewAccount(u)}
-                            className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition"
-                          >
-                            <svg className="w-4 h-4 text-blue-500" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
-                              <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
-                              <circle cx="12" cy="12" r="3" />
-                            </svg>
-                            View Account
-                          </button>
-                          {/* Edit Account */}
-                          <button
-                            onClick={() => handleEditAccount(u)}
-                            className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition"
-                          >
-                            <svg className="w-4 h-4 text-green-500" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
-                              <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
-                              <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
-                            </svg>
-                            Edit Account
-                          </button>
-                          {/* Change Password */}
-                          <button
-                            onClick={() => handleChangePassword(u)}
-                            className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition"
-                          >
-                            <svg className="w-4 h-4 text-amber-500" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
-                              <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
-                              <path d="M7 11V7a5 5 0 0 1 10 0v4" />
-                            </svg>
-                            Change Password
-                          </button>
-                          {/* Divider */}
-                          <div className="border-t border-gray-100 my-1" />
-                          {/* Delete Account */}
-                          <button
-                            onClick={() => handleDeleteAccount(u)}
-                            className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 transition"
-                          >
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
-                              <polyline points="3 6 5 6 21 6" />
-                              <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
-                              <path d="M10 11v6M14 11v6" />
-                              <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" />
-                            </svg>
-                            Delete Account
-                          </button>
-                        </div>
-                      )}
+                      {/* dropdown rendered via fixed portal below — see after table */}
                     </td>
                   </tr>
                 ))}
@@ -433,6 +397,50 @@ export default function AdminUsersPage() {
             </table>
           )}
         </div>
+
+        {/* ── Fixed-position dropdown portal — escapes all overflow containers ── */}
+        {openAction && dropdownPos && (() => {
+          const u = pageData.find(x => x.id === openAction);
+          if (!u) return null;
+          return (
+            <div
+              ref={dropdownRef}
+              className="w-48 bg-white rounded-xl shadow-2xl border border-gray-100"
+              style={{ position: 'fixed', top: dropdownPos.top, right: dropdownPos.right, zIndex: 9999 }}
+            >
+              <button onClick={() => handleViewAccount(u)} className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition rounded-t-xl">
+                <svg className="w-4 h-4 text-blue-500" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                  <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
+                </svg>
+                View Account
+              </button>
+              <button onClick={() => handleEditAccount(u)} className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition">
+                <svg className="w-4 h-4 text-green-500" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                  <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                  <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                </svg>
+                Edit Account
+              </button>
+              <button onClick={() => handleChangePassword(u)} className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition">
+                <svg className="w-4 h-4 text-amber-500" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                  <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+                  <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                </svg>
+                Change Password
+              </button>
+              <div className="border-t border-gray-100 my-1"/>
+              <button onClick={() => handleDeleteAccount(u)} className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 transition rounded-b-xl">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                  <polyline points="3 6 5 6 21 6"/>
+                  <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
+                  <path d="M10 11v6M14 11v6"/>
+                  <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>
+                </svg>
+                Delete Account
+              </button>
+            </div>
+          );
+        })()}
 
         {/* Footer / Pagination */}
         {!loading && sorted.length > 0 && (

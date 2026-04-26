@@ -1,7 +1,6 @@
 import React from "react";
 import Image from "next/image";
-import Link from "next/link";
-import MainButton from "@/components/ui/mainbtn";
+import AuthCTA from "@/components/ui/AuthCTA";
 
 const PlanSection = () => {
   return (
@@ -49,25 +48,11 @@ const PlanSection = () => {
           finding a meaningful and blessed life partner.
         </p>
 
-        <div className="flex items-center justify-center gap-4 flex-wrap pt-2">
-          <Link href="/register">
-            <MainButton
-              px="px-7"
-              py="py-2.5"
-              className="text-[14px] sm:text-base font-poppins"
-              type="button"
-            >
-              Register Now
-            </MainButton>
-          </Link>
-
-          <Link
-            href="/packages"
-            className="border border-[#397466] text-[#DB9D30] font-semibold px-7 py-2.5 rounded-full text-[14px] sm:text-base font-poppins hover:bg-[#397466]/10 transition-all duration-200"
-          >
-            View All Plans
-          </Link>
-        </div>
+        <AuthCTA
+          variant="light"
+          className="flex items-center justify-center gap-4 flex-wrap pt-2"
+          primaryBtnClassName="px-7 py-2.5 text-[14px] sm:text-base"
+        />
       </div>
     </section>
   );

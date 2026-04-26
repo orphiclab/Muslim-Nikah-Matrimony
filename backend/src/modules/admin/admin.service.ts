@@ -349,6 +349,94 @@ export class AdminService {
     return { success: true, data: profile };
   }
 
+  async updateProfileStatus(adminId: string, id: string, status: string, reason?: string) {
+    const profile = await this.prisma.childProfile.findUnique({ where: { id } });
+    if (!profile) throw new NotFoundException('Profile not found');
+    const allowed = ['ACTIVE', 'INACTIVE', 'PAUSED', 'SUSPENDED', 'DRAFT'];
+    if (!allowed.includes(status)) throw new Error(`Invalid status: ${status}`);
+    await this.prisma.childProfile.update({
+      where: { id },
+      data: { status: status as ProfileStatus, ...(reason !== undefined ? { rejectionReason: reason || null } : {}) },
+    });
+    this.activityLog.log({
+      actorId: adminId, actorRole: 'ADMIN',
+      action: 'ADMIN_PROFILE_STATUS_CHANGED', category: 'ADMIN',
+      entityId: id, entityLabel: profile.name ?? id,
+      meta: { fromStatus: profile.status, toStatus: status, reason },
+    });
+
+    // ── SMS notification to the profile owner ──────────────────────────────
+    try {
+      const user = await this.prisma.user.findUnique({
+        where: { id: profile.userId },
+        select: { phone: true, whatsappNumber: true },
+      });
+      const phone = user?.phone || user?.whatsappNumber;
+      if (phone) {
+        const memberName = profile.name ?? profile.memberId;
+        const reasonSuffix = reason ? ` Reason: ${reason}` : '';
+        const siteContact = 'muslimnilah.lk or contact admin.';
+
+        const smsMessages: Record<string, string> = {
+          ACTIVE:    `Muslim Nikah: Dear ${memberName}, your profile (${profile.memberId}) is now ACTIVE and visible to all members. Welcome!`,
+          INACTIVE:  `Muslim Nikah: Dear ${memberName}, your profile (${profile.memberId}) has been set to INACTIVE and is no longer visible.${reasonSuffix} Contact ${siteContact}`,
+          PAUSED:    `Muslim Nikah: Dear ${memberName}, your profile (${profile.memberId}) has been PAUSED by the admin.${reasonSuffix} Contact ${siteContact}`,
+          SUSPENDED: `Muslim Nikah: Dear ${memberName}, your profile (${profile.memberId}) has been SUSPENDED. You cannot be seen by other members.${reasonSuffix} Contact ${siteContact}`,
+          DRAFT:     `Muslim Nikah: Dear ${memberName}, your profile (${profile.memberId}) has been moved back to DRAFT status.${reasonSuffix} Contact ${siteContact}`,
+        };
+
+        const msg = smsMessages[status];
+        if (msg) {
+          await this.sms.sendSms(phone, msg);
+        }
+      }
+    } catch (smsErr: any) {
+      this.logger.warn(`SMS notification failed for profile ${id}: ${smsErr?.message}`);
+    }
+    // ────────────────────────────────────────────────────────────────────────
+
+    return { success: true, message: `Profile status updated to ${status}` };
+  }
+
+
+  async adminUpdateProfile(adminId: string, id: string, dto: Record<string, any>) {
+    const profile = await this.prisma.childProfile.findUnique({ where: { id } });
+    if (!profile) throw new NotFoundException('Profile not found');
+
+    // Build safe update payload — only known fields
+    const ALLOWED_FIELDS = [
+      'dateOfBirth','height','weight','complexion','appearance','dressCode',
+      'ethnicity','civilStatus','familyStatus',
+      'country','city','residentCountry','residentCity','residencyStatus',
+      'education','fieldOfStudy','occupation','profession',
+      'fatherEthnicity','fatherCountry','fatherCity','fatherOccupation',
+      'motherEthnicity','motherCountry','motherCity','motherOccupation',
+      'siblings','aboutUs','expectations','countryPreference',
+      'minAgePreference','maxAgePreference','minHeightPreference','extraQualification',
+    ];
+    const data: any = {};
+    for (const field of ALLOWED_FIELDS) {
+      if (field in dto) {
+        data[field] = dto[field] === '' ? null : dto[field];
+      }
+    }
+    // Handle numeric fields
+    for (const numField of ['height','weight','siblings','minAgePreference','maxAgePreference','minHeightPreference']) {
+      if (numField in data && data[numField] !== null) data[numField] = Number(data[numField]) || null;
+    }
+    // Handle dateOfBirth
+    if ('dateOfBirth' in data && data.dateOfBirth) data.dateOfBirth = new Date(data.dateOfBirth);
+
+    const updated = await this.prisma.childProfile.update({ where: { id }, data });
+    this.activityLog.log({
+      actorId: adminId, actorRole: 'ADMIN',
+      action: 'ADMIN_PROFILE_UPDATED', category: 'ADMIN',
+      entityId: id, entityLabel: profile.name ?? id,
+      meta: { fields: Object.keys(data) },
+    });
+    return { success: true, data: updated };
+  }
+
   // ─── Boosts ─────────────────────────────────────────────────
   async getBoosts() {
     const now = new Date();

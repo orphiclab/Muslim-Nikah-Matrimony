@@ -17,11 +17,11 @@ type FormState = {
   dressCode: string;
   ethnicity: string;
   civilStatus: string;
-  children: string;
   familyStatus: string;
   country: string;
-  state: string;
   city: string;
+  residentCountry: string;
+  residentCity: string;
   residencyStatus: string;
   education: string;
   fieldOfStudy: string;
@@ -29,26 +29,31 @@ type FormState = {
   profession: string;
   fatherEthnicity: string;
   fatherCountry: string;
+  fatherCity: string;
   fatherOccupation: string;
   motherEthnicity: string;
   motherCountry: string;
+  motherCity: string;
   motherOccupation: string;
   siblings: string;
   countryPreference: string;
+  minAgePreference: string;
+  maxAgePreference: string;
   aboutUs: string;
   expectations: string;
+  extraQualification: string;
 };
 
 const EMPTY: FormState = {
   name: '', dateOfBirth: '', height: '', weight: '',
   complexion: '', appearance: '', dressCode: '', ethnicity: '',
-  civilStatus: '', children: '', familyStatus: '',
-  country: '', state: '', city: '', residencyStatus: '',
+  civilStatus: '', familyStatus: '',
+  country: '', city: '', residentCountry: '', residentCity: '', residencyStatus: '',
   education: '', fieldOfStudy: '', occupation: '', profession: '',
-  fatherEthnicity: '', fatherCountry: '', fatherOccupation: '',
-  motherEthnicity: '', motherCountry: '', motherOccupation: '',
-  siblings: '', countryPreference: '',
-  aboutUs: '', expectations: '',
+  fatherEthnicity: '', fatherCountry: '', fatherCity: '', fatherOccupation: '',
+  motherEthnicity: '', motherCountry: '', motherCity: '', motherOccupation: '',
+  siblings: '', countryPreference: '', minAgePreference: '', maxAgePreference: '',
+  aboutUs: '', expectations: '', extraQualification: '',
 };
 
 /* ── Field component ────────────────────────────────────────────── */
@@ -344,11 +349,11 @@ export default function EditProfilePage() {
           dressCode: p.dressCode ?? '',
           ethnicity: p.ethnicity ?? '',
           civilStatus: p.civilStatus ?? '',
-          children: p.children ?? '',
           familyStatus: p.familyStatus ?? '',
           country: p.country ?? '',
-          state: p.state ?? '',
           city: p.city ?? '',
+          residentCountry: p.residentCountry ?? '',
+          residentCity: p.residentCity ?? '',
           residencyStatus: p.residencyStatus ?? '',
           education: p.education ?? '',
           fieldOfStudy: p.fieldOfStudy ?? '',
@@ -356,14 +361,19 @@ export default function EditProfilePage() {
           profession: p.profession ?? '',
           fatherEthnicity: p.fatherEthnicity ?? '',
           fatherCountry: p.fatherCountry ?? '',
+          fatherCity: p.fatherCity ?? '',
           fatherOccupation: p.fatherOccupation ?? '',
           motherEthnicity: p.motherEthnicity ?? '',
           motherCountry: p.motherCountry ?? '',
+          motherCity: p.motherCity ?? '',
           motherOccupation: p.motherOccupation ?? '',
           siblings: p.siblings != null ? String(p.siblings) : '',
           countryPreference: p.countryPreference ?? '',
+          minAgePreference: p.minAgePreference != null ? String(p.minAgePreference) : '',
+          maxAgePreference: p.maxAgePreference != null ? String(p.maxAgePreference) : '',
           aboutUs: p.aboutUs ?? '',
           expectations: p.expectations ?? '',
+          extraQualification: p.extraQualification ?? '',
         });
         // parse comma-separated country preference into array
         const prefStr = p.countryPreference?.trim() ?? '';
@@ -403,7 +413,7 @@ export default function EditProfilePage() {
       // detect clears and apply them correctly.
       // Do NOT strip these to undefined.
       const ALWAYS_SEND = new Set(['name', 'gender', 'countryPreference', 'dateOfBirth',
-        'aboutUs', 'expectations']);
+        'aboutUs', 'expectations', 'extraQualification']);
 
       // Strip empty strings → undefined for truly optional fields only
       Object.keys(payload).forEach(k => {
@@ -508,15 +518,15 @@ export default function EditProfilePage() {
         <Field label="Dress Code" name="dressCode" value={form.dressCode} onChange={set} options={DRESS_CODE_OPTS} />
         <Field label="Ethnicity" name="ethnicity" value={form.ethnicity} onChange={set} />
         <Field label="Civil Status" name="civilStatus" value={form.civilStatus} onChange={set} options={CIVIL_STATUS_OPTS} />
-        <Field label="Children" name="children" value={form.children} onChange={set} />
         <Field label="Family Status" name="familyStatus" value={form.familyStatus} onChange={set} options={FAMILY_STATUS_OPTS} />
       </SectionCard>
 
       {/* ── Location & Education ──────────────────────────────────────── */}
       <SectionCard title="Location & Education">
         <Field label="Country" name="country" value={form.country} onChange={set} />
-        <Field label="State / Province" name="state" value={form.state} onChange={set} />
         <Field label="City" name="city" value={form.city} onChange={set} />
+        <Field label="Resident Country" name="residentCountry" value={form.residentCountry} onChange={set} />
+        <Field label="Resident City" name="residentCity" value={form.residentCity} onChange={set} />
         <Field label="Residency Status" name="residencyStatus" value={form.residencyStatus} onChange={set} options={RESIDENCY_OPTS} />
         <Field label="Education" name="education" value={form.education} onChange={set} options={EDUCATION_OPTS} />
         <Field label="Field of Study" name="fieldOfStudy" value={form.fieldOfStudy} onChange={set} />
@@ -528,9 +538,11 @@ export default function EditProfilePage() {
       <SectionCard title="Family Details">
         <Field label="Father's Ethnicity" name="fatherEthnicity" value={form.fatherEthnicity} onChange={set} />
         <Field label="Father's Country" name="fatherCountry" value={form.fatherCountry} onChange={set} />
+        <Field label="Father's City" name="fatherCity" value={form.fatherCity} onChange={set} />
         <Field label="Father's Occupation" name="fatherOccupation" value={form.fatherOccupation} onChange={set} />
         <Field label="Mother's Ethnicity" name="motherEthnicity" value={form.motherEthnicity} onChange={set} />
         <Field label="Mother's Country" name="motherCountry" value={form.motherCountry} onChange={set} />
+        <Field label="Mother's City" name="motherCity" value={form.motherCity} onChange={set} />
         <Field label="Mother's Occupation" name="motherOccupation" value={form.motherOccupation} onChange={set} />
         <Field label="Total Siblings" name="siblings" value={form.siblings} onChange={set} type="number" />
       </SectionCard>
@@ -544,6 +556,8 @@ export default function EditProfilePage() {
             countries={masterCountries}
           />
         </div>
+        <Field label="Min Age Preference" name="minAgePreference" value={form.minAgePreference} onChange={set} type="number" />
+        <Field label="Max Age Preference" name="maxAgePreference" value={form.maxAgePreference} onChange={set} type="number" />
       </SectionCard>
 
       {/* ── About & Expectations ──────────────────────────────────────── */}
@@ -553,6 +567,9 @@ export default function EditProfilePage() {
         </div>
         <div className="sm:col-span-2">
           <Field label="Expectations" name="expectations" value={form.expectations} onChange={set} rows={4} />
+        </div>
+        <div className="sm:col-span-2">
+          <Field label="Extra Qualification (optional)" name="extraQualification" value={form.extraQualification} onChange={set} rows={3} />
         </div>
       </SectionCard>
 

@@ -32,7 +32,7 @@ const STATUS_COLOR: Record<string, string> = {
 const DIFF_FIELDS = [
   ['name','Name'], ['dateOfBirth','Date of Birth'], ['height','Height (cm)'], ['weight','Weight (kg)'],
   ['complexion','Complexion'], ['appearance','Appearance'], ['dressCode','Dress Code'],
-  ['ethnicity','Ethnicity'], ['civilStatus','Civil Status'], ['children','Children'],
+  ['ethnicity','Ethnicity'], ['civilStatus','Civil Status'],
   ['familyStatus','Family Status'], ['country','Country'], ['city','City'], ['state','State'],
   ['residencyStatus','Residency Status'], ['education','Education'], ['fieldOfStudy','Field of Study'],
   ['occupation','Occupation'], ['profession','Profession'],

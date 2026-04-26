@@ -136,22 +136,25 @@ export default function ProfileDetailPage() {
   }, [id, viewerProfile]);
 
 
-  // ── Eligibility: can the viewer chat/see contact of this profile? ──
+  // ── Eligibility: viewer qualifies if they meet the profile's stated preferences ──
   const canInteract = (): boolean => {
-    if (!viewerProfile || !profile) return true;
+    if (!viewerProfile || !profile) return false;
+
+    // Must be opposite gender
+    const viewerGender = viewerProfile.gender;
+    const profileGender = profile.gender;
+    if (!viewerGender || !profileGender) return false;
+    if (viewerGender === profileGender) return false; // same gender → no match
+
     const vAge = viewerProfile.age;
-    const vHeight = viewerProfile.height > 0 ? viewerProfile.height : null;
-    const tAge = profile.age ?? 0;
-    const tHeight = (profile.height && profile.height > 0) ? profile.height : null;
-    if (viewerProfile.gender === 'MALE') {
-      const ageOk = tAge <= vAge;
-      const heightOk = (vHeight && tHeight) ? tHeight <= vHeight : true;
-      return ageOk && heightOk;
-    } else if (viewerProfile.gender === 'FEMALE') {
-      const ageOk = tAge >= vAge;
-      const heightOk = (vHeight && tHeight) ? tHeight >= vHeight : true;
-      return ageOk && heightOk;
-    }
+
+    // Check if viewer's age satisfies the viewed profile's age preference
+    const minPref = profile.minAgePreference ? Number(profile.minAgePreference) : null;
+    const maxPref = profile.maxAgePreference ? Number(profile.maxAgePreference) : null;
+
+    if (minPref !== null && vAge < minPref) return false;
+    if (maxPref !== null && vAge > maxPref) return false;
+
     return true;
   };
   const eligible = canInteract();
@@ -320,7 +323,6 @@ export default function ProfileDetailPage() {
               <InfoRow label="Height" value={profile.height ? `${profile.height} cm` : '–'} />
               <InfoRow label="Weight" value={profile.weight ? `${profile.weight} kg` : '–'} />
               <InfoRow label="Civil Status" value={fmt(profile.civilStatus)} />
-              <InfoRow label="Children" value={fmt(profile.children)} />
               <InfoRow label="Complexion" value={fmt(profile.complexion)} />
               <InfoRow label="Appearance" value={fmt(profile.appearance)} />
               <InfoRow label="Dress Code" value={fmt(profile.dressCode)} />
@@ -399,7 +401,7 @@ export default function ProfileDetailPage() {
               <InfoRow label="Country Preference" value={fmt(profile.countryPreference)} />
             </SectionCard>
 
-            {/* Contact Information — visible only when owner allows it AND viewer is eligible */}
+            {/* Contact Information — only visible when profiles match */}
             {eligible && ((profile._meta?.phoneVisible && profile.phone) || (profile._meta?.whatsappVisible && profile.whatsappNumber)) ? (
               <SectionCard title="Contact Information" icon="📱">
                 <div className="space-y-1">
@@ -439,6 +441,17 @@ export default function ProfileDetailPage() {
                   )}
                 </div>
               </SectionCard>
+            ) : !eligible ? (
+              /* Not a match — show friendly notice instead of contact */
+              <div className="bg-amber-50 border border-amber-200 rounded-2xl p-5 flex items-start gap-3">
+                <span className="text-2xl flex-shrink-0">🔒</span>
+                <div>
+                  <p className="text-[14px] font-bold text-amber-800 font-poppins">Contact details not available</p>
+                  <p className="text-[12.5px] text-amber-700 font-poppins mt-1 leading-relaxed">
+                    Your profile does not match this member's partner preferences. Contact information and messaging are only available for compatible matches.
+                  </p>
+                </div>
+              </div>
             ) : null}
 
             {/* CTA card */}
@@ -453,7 +466,7 @@ export default function ProfileDetailPage() {
                   </p>
                 ) : (
                   <p className="text-amber-300/80 font-poppins text-[12px] mt-1">
-                    🔒 Age or height criteria not matched. Chat is not available for this profile.
+                    Your profile does not match this member's preferences. Messaging is not available.
                   </p>
                 )}
               </div>
@@ -465,8 +478,8 @@ export default function ProfileDetailPage() {
                   💬 Send Message
                 </button>
               ) : (
-                <div className="flex-shrink-0 bg-white/10 text-white/40 font-bold font-poppins text-[14px] px-7 py-3 rounded-xl cursor-not-allowed select-none">
-                  🔒 Send Message
+                <div className="flex-shrink-0 bg-white/10 text-white/30 font-poppins text-[13px] px-5 py-2.5 rounded-xl select-none border border-white/10">
+                  Not a match
                 </div>
               )}
             </div>

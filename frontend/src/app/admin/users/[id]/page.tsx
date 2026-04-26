@@ -82,7 +82,7 @@ export default function ViewUserPage() {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div className="flex items-center gap-3 sm:gap-4 min-w-0">
           <div className={`h-14 w-14 rounded-2xl flex items-center justify-center text-white text-xl font-bold shrink-0 ${user.role === 'ADMIN' ? 'bg-purple-600' : 'bg-[#1C3B35]'}`}>
-            {user.email[0].toUpperCase()}
+            {(user.email?.[0] ?? 'U').toUpperCase()}
           </div>
           <div className="min-w-0">
             <h1 className="text-xl sm:text-2xl font-semibold text-[#121514] truncate">{user.email.split('@')[0]}</h1>
@@ -185,7 +185,7 @@ export default function ViewUserPage() {
                   <div key={p.id} className="px-4 sm:px-5 py-4 flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 hover:bg-gray-50 transition">
                     {/* Avatar */}
                     <div className={`h-10 w-10 rounded-xl flex items-center justify-center text-white text-sm font-bold shrink-0 ${p.gender === 'MALE' ? 'bg-blue-500' : 'bg-pink-500'}`}>
-                      {p.name[0].toUpperCase()}
+                      {(p.name?.[0] ?? '?').toUpperCase()}
                     </div>
                     {/* Info */}
                     <div className="flex-1 min-w-0">
@@ -197,7 +197,7 @@ export default function ViewUserPage() {
                         {[p.city, p.country].filter(Boolean).join(', ') || 'No location'} · {p.gender}
                       </p>
                     </div>
-                    {/* Status badges */}
+                    {/* Status badges + View button */}
                     <div className="flex flex-col items-start sm:items-end gap-1.5 shrink-0 w-full sm:w-auto">
                       <span className={`text-xs px-2 py-0.5 rounded-full font-semibold border ${statusColor[p.status] ?? 'bg-gray-100 text-gray-500 border-gray-200'}`}>
                         {p.status.replace('_', ' ')}
@@ -208,6 +208,15 @@ export default function ViewUserPage() {
                           {p.subscription.endDate ? ` · expires ${new Date(p.subscription.endDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })}` : ''}
                         </span>
                       )}
+                      <Link
+                        href={`/admin/profiles/${p.id}`}
+                        className="inline-flex items-center gap-1.5 mt-1 px-3 py-1.5 rounded-lg bg-[#1C3B35] text-white text-xs font-semibold hover:bg-[#15302a] transition"
+                      >
+                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                          <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
+                        </svg>
+                        View Profile
+                      </Link>
                     </div>
                   </div>
                 ))}

@@ -1,7 +1,6 @@
 import React from "react";
 import Image from "next/image";
-import Link from "next/link";
-import MainButton from "@/components/ui/mainbtn";
+import AuthCTA from "@/components/ui/AuthCTA";
 
 const MissionSection = () => {
   return (
@@ -22,24 +21,11 @@ const MissionSection = () => {
               sincere intentions towards a meaningful and lasting union.
             </p>
 
-            <div className="flex flex-wrap items-center gap-4">
-              <Link href="/register">
-                <MainButton
-                  
-                  className="text-base px-4 py-3 sm:px-8 sm:py-3  font-medium font-poppins"
-                  type="button"
-                >
-                  Register Now
-                </MainButton>
-              </Link>
-
-              <Link
-                href="/packages"
-                className="border border-[#397466] text-[#DB9D30] font-semibold px-4 py-2.5 sm:px-8 sm:py-3 rounded-full text-base font-poppins hover:bg-[#397466]/10 transition-all duration-200"
-              >
-                View All Plans
-              </Link>
-            </div>
+            <AuthCTA
+              variant="light"
+              className="flex flex-wrap items-center gap-4"
+              primaryBtnClassName="text-base px-4 py-3 sm:px-8 sm:py-3 font-medium"
+            />
           </div>
 
           {/* ── Right: combined image ── */}

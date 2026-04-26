@@ -2,9 +2,8 @@
 
 import React from "react";
 import Image from "next/image";
-import Link from "next/link";
 import { ShieldCheck, Users } from "lucide-react";
-import MainButton from "@/components/ui/mainbtn";
+import AuthCTA from "@/components/ui/AuthCTA";
 
 const Hero = () => {
   return (
@@ -61,23 +60,13 @@ const Hero = () => {
               digital experience.
             </p>
 
-            {/* Buttons */}
-            <div className="flex items-center gap-4 flex-wrap">
-              <Link href="/register">
-                <MainButton
-                 
-                  className="text-base px-4 py-2 sm:px-6 sm:py-3 md:px-8 md:py-3  font-medium font-poppins"
-                >
-                  Register Now
-                </MainButton>
-              </Link>
-              <Link
-                href="/profiles"
-                className="text-[#DB9D30] border font-medium px-4 py-2 sm:px-6 sm:py-3 md:px-8 md:py-3 rounded-full text-base bg-white font-poppins hover:bg-[#FFFFFF]/80 transition-all duration-200"
-              >
-                Match Now
-              </Link>
-            </div>
+            {/* Buttons — dynamic based on auth */}
+            <AuthCTA
+              variant="dark"
+              className="flex items-center gap-4 flex-wrap"
+              primaryBtnClassName="text-base px-4 py-2 sm:px-6 sm:py-3 md:px-8 md:py-3 font-medium"
+              secondaryBtnClassName="text-[#DB9D30] border font-medium px-4 py-2 sm:px-6 sm:py-3 md:px-8 md:py-3 rounded-full text-base bg-white font-poppins hover:bg-[#FFFFFF]/80 transition-all duration-200"
+            />
 
             {/* Trust Badges */}
             <div className="flex flex-wrap items-center gap-x-8 gap-y-5 pt-2 max-w-xl">
