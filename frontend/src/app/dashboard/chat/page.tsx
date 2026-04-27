@@ -398,7 +398,7 @@ export default function ChatPage() {
             <p className="text-gray-400 text-xs">{connected ? 'Connected — real-time' : 'Connecting…'}</p>
           </div>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex w-full sm:w-auto items-center gap-2 min-w-0">
           <span className="text-xs text-gray-400 whitespace-nowrap">Chatting as:</span>
           <select value={selectedMyProfile}
             onChange={(e) => {
@@ -410,11 +410,11 @@ export default function ChatPage() {
               setMobileShowChat(false);
               setSelectedMyProfile(e.target.value);
             }}
-            className="border border-gray-200 rounded-xl px-3 py-2 text-sm text-gray-700 bg-white outline-none focus:border-[#1C3B35] transition">
+            className="min-w-0 flex-1 sm:flex-none border border-gray-200 rounded-xl px-3 py-2 text-sm text-gray-700 bg-white outline-none focus:border-[#1C3B35] transition">
             {myProfiles.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
           </select>
           <a href="/profiles"
-            className="text-xs bg-[#1C3B35] text-white px-4 py-2 rounded-xl hover:bg-[#15302a] transition font-semibold whitespace-nowrap">
+            className="shrink-0 text-xs bg-[#1C3B35] text-white px-3.5 sm:px-4 py-2 rounded-xl hover:bg-[#15302a] transition font-semibold whitespace-nowrap">
             + Browse
           </a>
         </div>

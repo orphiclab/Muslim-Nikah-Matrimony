@@ -116,14 +116,14 @@ function ProfileModal({
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label className="block text-xs font-semibold text-gray-500 mb-1.5">
                 Gender <span className="text-red-400">*</span>
               </label>
               <select
                 value={gender} onChange={e => setGender(e.target.value)}
-                className="w-full border border-gray-200 rounded-xl px-3.5 py-2.5 text-sm text-gray-700 outline-none focus:border-[#1C3B35] transition bg-gray-50"
+                className="w-full min-w-0 border border-gray-200 rounded-xl px-3.5 py-2.5 text-sm text-gray-700 outline-none focus:border-[#1C3B35] transition bg-gray-50"
               >
                 <option value="MALE">Male</option>
                 <option value="FEMALE">Female</option>
@@ -137,7 +137,7 @@ function ProfileModal({
                 type="date"
                 value={dateOfBirth}
                 onChange={e => setDateOfBirth(e.target.value)}
-                className="w-full border border-gray-200 rounded-xl px-3.5 py-2.5 text-sm text-gray-700 outline-none focus:border-[#1C3B35] transition bg-gray-50"
+                className="block w-full min-w-0 border border-gray-200 rounded-xl px-3.5 py-2.5 text-sm text-gray-700 outline-none focus:border-[#1C3B35] transition bg-gray-50"
               />
             </div>
           </div>
@@ -151,15 +151,15 @@ function ProfileModal({
           </p>
         </div>
 
-        <div className="px-6 py-4 border-t border-gray-100 flex gap-3">
+        <div className="px-6 py-4 border-t border-gray-100 flex flex-col sm:flex-row gap-2 sm:gap-3">
           <button onClick={onClose}
-            className="flex-1 border border-gray-200 text-gray-600 text-sm font-semibold py-2.5 rounded-xl hover:bg-gray-50 transition">
+            className="w-full sm:flex-1 border border-gray-200 text-gray-600 text-sm font-semibold py-2.5 rounded-xl hover:bg-gray-50 transition">
             Cancel
           </button>
           <button
             onClick={submit}
             disabled={saving || !name.trim() || !dateOfBirth}
-            className="flex-1 bg-[#1C3B35] text-white text-sm font-semibold py-2.5 rounded-xl hover:bg-[#15302a] transition disabled:opacity-50 flex items-center justify-center gap-2"
+            className="w-full sm:flex-1 bg-[#1C3B35] text-white text-[13px] sm:text-sm font-semibold py-2.5 rounded-xl hover:bg-[#15302a] transition disabled:opacity-50 inline-flex items-center justify-center gap-1.5 sm:gap-2 whitespace-nowrap"
           >
             {saving ? (
               <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">

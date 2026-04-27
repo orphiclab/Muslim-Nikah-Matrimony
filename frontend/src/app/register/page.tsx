@@ -308,9 +308,9 @@ function DateField({
           onChange={onChange}
           max={max}
           min={min}
-          className="w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 pr-10 text-sm text-gray-700 shadow-sm outline-none focus:border-[#1B6B4A] focus:ring-2 focus:ring-[#1B6B4A]/20 transition cursor-pointer [&::-webkit-calendar-picker-indicator]:hidden"
+          className="w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 pr-14 sm:pr-10 text-sm text-gray-700 shadow-sm outline-none focus:border-[#1B6B4A] focus:ring-2 focus:ring-[#1B6B4A]/20 transition cursor-pointer [&::-webkit-calendar-picker-indicator]:hidden"
         />
-        <Calendar className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+        <Calendar className="pointer-events-none absolute right-7 sm:right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
       </div>
     </div>
   );

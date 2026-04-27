@@ -294,7 +294,7 @@ export default function ProfilesPage() {
             <p className="text-[#121514AD]/68 title-sub-top mt-0.5">Manage your family members&apos; matrimonial profiles</p>
           </div>
           <button onClick={() => router.push('/dashboard/create-profile')}
-            className="text-sm bg-[#1C3B35] cursor-pointer text-white px-5 py-2.5 rounded-xl hover:bg-[#15302a]/90 transition font-semibold flex items-center gap-2">
+            className="self-start sm:self-auto text-sm bg-[#1C3B35] cursor-pointer text-white px-5 py-2.5 rounded-xl hover:bg-[#15302a]/90 transition font-semibold inline-flex items-center gap-2">
             <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
               <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
             </svg>
@@ -684,7 +684,7 @@ export default function ProfilesPage() {
                     </div>
                   )}
 
-                  <div className="flex items-center justify-between gap-2">
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
                     <div className="flex gap-2 flex-wrap">
 
                       {/* Subscription expired → Re-Activate only */}
@@ -764,7 +764,7 @@ export default function ProfilesPage() {
 
                     {/* Delete */}
                     <button onClick={() => setDeleteTarget(p)}
-                      className="text-xs text-gray-400 hover:text-red-500 transition flex items-center gap-1 py-2 px-1">
+                      className="self-start sm:self-auto text-xs border border-gray-200 text-gray-500 px-3.5 py-2 rounded-lg hover:bg-red-50 hover:border-red-300 hover:text-red-600 transition font-semibold inline-flex items-center gap-1.5">
                       <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
                         <polyline points="3 6 5 6 21 6" />
                         <path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6" />
