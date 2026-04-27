@@ -31,7 +31,7 @@ const Hero = () => {
       </div>
 
       {/* Hero Content — left side */}
-      <div className="relative z-10 flex items-center h-full  my-[20px] sm:my-[30px] md:my-[30px] lg:my-[50px] xl:my-[70px] 2xl:my-[60px]  ">
+      <div className="relative z-10 flex items-center h-full  my-[20px] sm:my-[30px] md:my-[30px] lg:my-[50px] xl:my-[80px] 2xl:my-[60px]  ">
         <div className="containerpadding container mx-auto  w-full">
           <div className="max-w-3xl flex flex-col gap-4">
             {/* Badge */}

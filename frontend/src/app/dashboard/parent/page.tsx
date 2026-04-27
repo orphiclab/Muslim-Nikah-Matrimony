@@ -234,14 +234,14 @@ export default function ParentDashboard() {
                       <td className="px-6 py-4 font-medium text-gray-800">{p.name}</td>
                       <td className="px-6 py-4 text-gray-500 capitalize">{p.gender?.toLowerCase() ?? '—'}</td>
                       <td className="px-6 py-4">
-                        <span className={`inline-flex items-center whitespace-nowrap text-[11px] sm:text-xs leading-none font-semibold px-2 sm:px-2.5 py-1 rounded-full ${statusBadge(p.status)}`}>
+                        <span className={`inline-flex items-center whitespace-nowrap text-[11px] sm:text-xs leading-none font-semibold px-2 sm:px-2.5 py-1 rounded-full max-[720px]:text-[10px] max-[720px]:px-1.5 ${statusBadge(p.status)}`}>
                           {p.status.replace('_', ' ')}
                         </span>
                       </td>
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-2">
                           <span className="h-2 w-2 rounded-full flex-shrink-0" style={{ background: planDot }} />
-                          <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${planLabelColor}`}>
+                          <span className={`inline-flex items-center whitespace-nowrap text-[11px] sm:text-xs leading-none font-semibold px-2 sm:px-2.5 py-1 rounded-full max-[720px]:text-[10px] max-[720px]:px-1.5 ${planLabelColor}`}>
                             {planLabel}
                           </span>
                         </div>
