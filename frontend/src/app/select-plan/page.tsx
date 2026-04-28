@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { packagesApi, paymentApi, profileApi, settingsApi } from '@/services/api';
 import { useCurrency } from '@/hooks/useCurrency';
 import Link from 'next/link';
+import { Calendar } from 'lucide-react';
 
 type Package = {
   id: string; name: string; description?: string; price: number;
@@ -133,12 +134,19 @@ function ProfileModal({
               <label className="block text-xs font-semibold text-gray-500 mb-1.5">
                 Date of Birth <span className="text-red-400">*</span>
               </label>
-              <input
-                type="date"
-                value={dateOfBirth}
-                onChange={e => setDateOfBirth(e.target.value)}
-                className="block w-full min-w-0 border border-gray-200 rounded-xl px-3.5 py-2.5 text-sm text-gray-700 outline-none focus:border-[#1C3B35] transition bg-gray-50"
-              />
+              <div className="relative">
+                <input
+                  type="date"
+                  value={dateOfBirth}
+                  onChange={e => setDateOfBirth(e.target.value)}
+                  className="block w-full min-w-0 border border-gray-200 rounded-xl px-3.5 py-2.5 pr-10 text-sm text-gray-700 outline-none focus:border-[#1C3B35] transition bg-gray-50 cursor-pointer [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:right-0 [&::-webkit-calendar-picker-indicator]:top-0 [&::-webkit-calendar-picker-indicator]:h-full [&::-webkit-calendar-picker-indicator]:w-10 [&::-webkit-calendar-picker-indicator]:cursor-pointer"
+                />
+                <Calendar
+                  className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400"
+                  strokeWidth={1.8}
+                  aria-hidden
+                />
+              </div>
             </div>
           </div>
 
