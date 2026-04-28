@@ -637,7 +637,7 @@ export default function ProfilesPage() {
                               <button
                                 onClick={() => goToBoostPayment(p.id, p.name ?? '', p.memberId ?? '', plan, boostCurrency)}
                                 disabled={boost[p.id]?.boosting}
-                                className={`mt-auto pt-1.5 sm:pt-2 w-full h-8 sm:h-9 rounded-lg text-[9px] sm:text-[10px] font-bold font-poppins transition-all disabled:opacity-50 ${
+                                className={`mt-auto w-full h-8 sm:h-9 rounded-lg text-[9px] sm:text-[10px] font-bold font-poppins transition-all disabled:opacity-50 inline-flex items-center justify-center gap-1 leading-none ${
                                   popular
                                     ? 'bg-[#DB9D30] text-white hover:bg-[#c98b26] shadow-sm'
                                     : 'bg-[#DB9D30]/15 text-[#8B5E00] hover:bg-[#DB9D30]/30 border border-[#DB9D30]/30'
@@ -650,7 +650,7 @@ export default function ProfilesPage() {
                                       <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"/>
                                     </svg>
                                   </span>
-                                ) : '⚡ Boost'}
+                                ) : <span className="inline-flex items-center justify-center gap-1"><span aria-hidden>⚡</span><span>Boost</span></span>}
                               </button>
                             </div>
                           );
