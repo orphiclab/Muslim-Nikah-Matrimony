@@ -27,23 +27,92 @@ export class ChildProfileService {
       city: dto.city,
     });
 
+    // Calculate siblings from brothers + sisters if provided
+    const brothersCount = dto.brothers != null ? Number(dto.brothers) : undefined;
+    const sistersCount  = dto.sisters  != null ? Number(dto.sisters)  : undefined;
+    const siblingsTotal = dto.siblings  != null ? Number(dto.siblings)
+      : (brothersCount != null || sistersCount != null)
+        ? (brothersCount ?? 0) + (sistersCount ?? 0)
+        : undefined;
+
+    // Build a safe data object with only columns that exist in ChildProfile
+    const profileData: Record<string, any> = {
+      userId,
+      memberId: '', // will be set in loop
+      // Core
+      name:               dto.name,
+      gender:             dto.gender,
+      dateOfBirth:        new Date(dto.dateOfBirth),
+      // Personal
+      height:             dto.height,
+      weight:             dto.weight,
+      complexion:         dto.complexion,
+      appearance:         dto.appearance,
+      dressCode:          dto.dressCode,
+      ethnicity:          dto.ethnicity,
+      civilStatus:        dto.civilStatus,
+      children:           dto.children,
+      // Location
+      country:            dto.country,
+      city:               dto.city,
+      state:              dto.state,
+      residentCountry:    dto.residentCountry,
+      residentCity:       dto.residentCity,
+      residencyStatus:    dto.residencyStatus,
+      // Education & work
+      education:          dto.education,
+      occupation:         dto.occupation,
+      fieldOfStudy:       dto.fieldOfStudy,
+      profession:         dto.profession,
+      annualIncome:       dto.annualIncome,
+      extraQualification: dto.extraQualification,
+      // Family
+      familyStatus:       dto.familyStatus,
+      fatherEthnicity:    dto.fatherEthnicity,
+      fatherCountry:      dto.fatherCountry,
+      fatherOccupation:   dto.fatherOccupation,
+      fatherCity:         dto.fatherCity,
+      motherEthnicity:    dto.motherEthnicity,
+      motherCountry:      dto.motherCountry,
+      motherOccupation:   dto.motherOccupation,
+      motherCity:         dto.motherCity,
+      siblings:           siblingsTotal,
+      brothers:           brothersCount,
+      sisters:            sistersCount,
+      createdBy:          dto.createdBy,
+      // Preferences
+      minAgePreference:   dto.minAgePreference,
+      maxAgePreference:   dto.maxAgePreference,
+      minHeightPreference: dto.minHeightPreference,
+      countryPreference:  dto.countryPreference,
+      // About
+      aboutUs:            dto.aboutUs ?? generated.aboutUs,
+      expectations:       dto.expectations ?? generated.expectations,
+      // Contact
+      phone:              dto.phone,
+      contactEmail:       dto.contactEmail,
+      // Visibility
+      contactVisible:     dto.contactVisible,
+      phoneVisibility:    dto.phoneVisibility,
+      emailVisibility:    dto.emailVisibility,
+      showRealName:       dto.showRealName,
+      nickname:           dto.nickname,
+      status:             'DRAFT' as const,
+    };
+
+    // Strip undefined values so Prisma doesn't complain
+    Object.keys(profileData).forEach(k => profileData[k] === undefined && delete profileData[k]);
+
     // Generate unique memberId with retry to avoid race-condition collisions.
     const maxAttempts = 5;
     let profile: any;
     let memberId = '';
     for (let attempt = 1; attempt <= maxAttempts; attempt++) {
       memberId = await this.generateNextMemberId();
+      profileData.memberId = memberId;
       try {
         profile = await this.prisma.childProfile.create({
-          data: {
-            ...dto,
-            dateOfBirth: new Date(dto.dateOfBirth),
-            userId,
-            memberId,
-            aboutUs: dto.aboutUs ?? generated.aboutUs,
-            expectations: dto.expectations ?? generated.expectations,
-            status: 'DRAFT',
-          },
+          data: profileData as any,
           include: { subscription: true },
         });
         break;

@@ -15,9 +15,11 @@ type ProfileDetail = {
   profession?: string; annualIncome?: string;
   familyStatus?: string; fatherOccupation?: string; motherOccupation?: string;
   fatherEthnicity?: string; motherEthnicity?: string; siblings?: number;
-  fatherCountry?: string; motherCountry?: string;
+  fatherCountry?: string; fatherCity?: string; motherCountry?: string; motherCity?: string;
+  brothers?: number; sisters?: number;
+  residentCountry?: string; residentCity?: string;
   minAgePreference?: number; maxAgePreference?: number; countryPreference?: string;
-  minHeightPreference?: number;
+  minHeightPreference?: number; maxHeightPreference?: number;
   aboutUs?: string; expectations?: string;
   status: string; viewCount: number;
   boostExpiresAt?: string; rejectionReason?: string;
@@ -241,6 +243,8 @@ export default function AdminProfileDetailPage() {
           <div className="grid grid-cols-2 gap-x-6 gap-y-4">
             <Field label="Country" value={profile.country} />
             <Field label="City" value={profile.city} />
+            <Field label="Resident Country" value={profile.residentCountry} />
+            <Field label="Resident City" value={profile.residentCity} />
             <Field label="State" value={profile.state} />
             <Field label="Residency Status" value={profile.residencyStatus} />
             <Field label="Education" value={profile.education} />
@@ -255,12 +259,16 @@ export default function AdminProfileDetailPage() {
           <div className="grid grid-cols-2 gap-x-6 gap-y-4">
             <Field label="Family Status" value={profile.familyStatus} />
             <Field label="Siblings" value={profile.siblings} />
-            <Field label="Father Occupation" value={profile.fatherOccupation} />
+            <Field label="Brothers" value={profile.brothers} />
+            <Field label="Sisters" value={profile.sisters} />
             <Field label="Father Ethnicity" value={profile.fatherEthnicity} />
             <Field label="Father Country" value={profile.fatherCountry} />
-            <Field label="Mother Occupation" value={profile.motherOccupation} />
+            <Field label="Father City" value={profile.fatherCity} />
+            <Field label="Father Occupation" value={profile.fatherOccupation} />
             <Field label="Mother Ethnicity" value={profile.motherEthnicity} />
             <Field label="Mother Country" value={profile.motherCountry} />
+            <Field label="Mother City" value={profile.motherCity} />
+            <Field label="Mother Occupation" value={profile.motherOccupation} />
           </div>
         </Section>
 
@@ -268,6 +276,10 @@ export default function AdminProfileDetailPage() {
         <Section title="Partner Preferences" icon={<svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" /></svg>}>
           <div className="grid grid-cols-2 gap-x-6 gap-y-4">
             <Field label="Country Pref." value={profile.countryPreference} />
+            <Field label="Min Age" value={profile.minAgePreference} />
+            <Field label="Max Age" value={profile.maxAgePreference} />
+            <Field label="Min Height (cm)" value={profile.minHeightPreference} />
+            <Field label="Max Height (cm)" value={profile.maxHeightPreference} />
           </div>
         </Section>
       </div>

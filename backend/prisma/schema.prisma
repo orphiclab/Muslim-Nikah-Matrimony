@@ -121,6 +121,8 @@ model ChildProfile {
   motherOccupation    String?
   motherCity          String?
   siblings            Int?
+  brothers            Int?
+  sisters             Int?
   createdBy           String?
 
   // Preferences
