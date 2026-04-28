@@ -101,7 +101,7 @@ function DateField({
           name={name}
           value={value}
           onChange={onChange}
-          className="w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-700 shadow-sm outline-none focus:border-[#1B6B4A] focus:ring-2 focus:ring-[#1B6B4A]/20 transition"
+          className="w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-700 shadow-sm outline-none focus:border-[#1B6B4A] focus:ring-2 focus:ring-[#1B6B4A]/20 transition [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:cursor-pointer"
         />
         <Calendar className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
       </div>
@@ -118,7 +118,7 @@ function Step1({ data, onChange }: { data: Record<string, string>; onChange: (e:
       <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
         <SelectField label="Created By" name="createdBy" options={["Self", "Parent", "Guardian", "Sibling"]} value={data.createdBy || ""} onChange={onChange} />
         <SelectField label="Gender" name="gender" options={["Male", "Female"]} value={data.gender || ""} onChange={onChange} />
-        <DateField label="Birth Date" name="birthDate" value={data.birthDate || ""} onChange={onChange} />
+        <DateField label="Date Of Birth" name="birthDate" value={data.birthDate || ""} onChange={onChange} />
         <SelectField label="Height" name="height" options={["4'0\"","4'5\"","4'10\"","5'0\"","5'2\"","5'4\"","5'6\"","5'8\"","5'10\"","6'0\"","6'2\"","6'4\"","6'6\""]} value={data.height || ""} onChange={onChange} />
         <SelectField label="Appearance" name="appearance" options={["Very Fair", "Fair", "Wheatish", "Wheatish Brown", "Dark"]} value={data.appearance || ""} onChange={onChange} />
         <SelectField label="Complexion" name="complexion" options={["Very Fair", "Fair", "Medium", "Olive", "Dark"]} value={data.complexion || ""} onChange={onChange} />
