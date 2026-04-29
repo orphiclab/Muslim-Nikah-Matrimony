@@ -63,8 +63,17 @@ function smartJoinedTime(ms: number): string {
 }
 
 function mapApiToCard(p: any): ProfileCardProps {
+    // Detect email-prefix-style names (no spaces, digits or all-lowercase) — never show publicly
+    const looksLikeEmailPrefix = (n: string) => {
+        if (!n) return true;
+        const t = n.trim();
+        const noSpaces = !t.includes(' ');
+        const hasDigits = /\d/.test(t);
+        const allLowerOrUnder = /^[a-z0-9_.-]+$/.test(t);
+        return noSpaces && (hasDigits || allLowerOrUnder);
+    };
     const rawName = p.nickname?.trim() || p.name?.trim() || '';
-    const isPlaceholder = !rawName || rawName === p.memberId || rawName === 'Profile';
+    const isPlaceholder = !rawName || rawName === p.memberId || rawName === 'Profile' || looksLikeEmailPrefix(rawName);
     const displayName = isPlaceholder ? (p.memberId ?? 'Profile') : rawName;
     return {
         name: displayName,

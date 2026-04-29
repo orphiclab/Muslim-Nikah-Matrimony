@@ -79,7 +79,11 @@ export default function ProfileDetailPage() {
   const [profile, setProfile] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [viewerProfile, setViewerProfile] = useState<{ id: string; gender: string; age: number; height: number } | null>(null);
+  const [viewerProfile, setViewerProfile] = useState<{
+    id: string; gender: string; age: number; height: number;
+    country?: string; countryPreference?: string;
+    minAgePreference?: number; maxAgePreference?: number;
+  } | null>(null);
 
   // ── Auth guard — redirect to login if not logged in ──
   useEffect(() => {
@@ -104,6 +108,10 @@ export default function ProfileDetailPage() {
           gender: active.gender ?? '',
           age: active.age ?? computedAge,
           height: active.height ?? 0,
+          country: active.country ?? undefined,
+          countryPreference: active.countryPreference ?? undefined,
+          minAgePreference: active.minAgePreference ?? undefined,
+          maxAgePreference: active.maxAgePreference ?? undefined,
         });
       }
     }).catch(() => {});
@@ -136,7 +144,7 @@ export default function ProfileDetailPage() {
   }, [id, viewerProfile]);
 
 
-  // ── Eligibility: viewer qualifies if they meet the profile's stated preferences ──
+  // ── Eligibility: mirrors the backend RuleEngine canViewProfile logic exactly ──
   const canInteract = (): boolean => {
     if (!viewerProfile || !profile) return false;
 
@@ -144,16 +152,44 @@ export default function ProfileDetailPage() {
     const viewerGender = viewerProfile.gender;
     const profileGender = profile.gender;
     if (!viewerGender || !profileGender) return false;
-    if (viewerGender === profileGender) return false; // same gender → no match
+    if (viewerGender === profileGender) return false;
 
     const vAge = viewerProfile.age;
+    const tAge = profile.age ?? 0;
 
-    // Check if viewer's age satisfies the viewed profile's age preference
-    const minPref = profile.minAgePreference ? Number(profile.minAgePreference) : null;
-    const maxPref = profile.maxAgePreference ? Number(profile.maxAgePreference) : null;
+    // Age direction rule (mirrors backend Gate 3)
+    if (viewerGender === 'MALE') {
+      // Male cannot see females older than him
+      if (tAge > vAge) return false;
+    } else {
+      // Female cannot see males younger than her
+      if (tAge < vAge) return false;
+    }
 
-    if (minPref !== null && vAge < minPref) return false;
-    if (maxPref !== null && vAge > maxPref) return false;
+    // Viewer's preference: target age must be within viewer's preferred range
+    const vMinPref = viewerProfile.minAgePreference ? Number(viewerProfile.minAgePreference) : null;
+    const vMaxPref = viewerProfile.maxAgePreference ? Number(viewerProfile.maxAgePreference) : null;
+    if (vMinPref !== null && tAge < vMinPref) return false;
+    if (vMaxPref !== null && tAge > vMaxPref) return false;
+
+    // Target's preference: viewer age must be within target's preferred range
+    const tMinPref = profile.minAgePreference ? Number(profile.minAgePreference) : null;
+    const tMaxPref = profile.maxAgePreference ? Number(profile.maxAgePreference) : null;
+    if (tMinPref !== null && vAge < tMinPref) return false;
+    if (tMaxPref !== null && vAge > tMaxPref) return false;
+
+    // Bidirectional country preference (mirrors backend Gate 4)
+    const parsePrefs = (pref: string) =>
+      pref.split(',').map((s: string) => s.trim().toLowerCase()).filter(Boolean);
+
+    if (viewerProfile.country && profile.countryPreference) {
+      const prefs = parsePrefs(profile.countryPreference);
+      if (!prefs.includes(viewerProfile.country.toLowerCase())) return false;
+    }
+    if (profile.country && viewerProfile.countryPreference) {
+      const prefs = parsePrefs(viewerProfile.countryPreference);
+      if (!prefs.includes(profile.country.toLowerCase())) return false;
+    }
 
     return true;
   };
@@ -198,6 +234,20 @@ export default function ProfileDetailPage() {
 
   if (!profile) return null;
 
+  // Never show email-prefix-style names publicly (e.g. "pmihindu7" from email prefix)
+  const looksLikeEmailPrefix = (n: string) => {
+    if (!n) return true;
+    const t = n.trim();
+    const noSpaces = !t.includes(' ');
+    const hasDigits = /\d/.test(t);
+    const allLowerOrUnder = /^[a-z0-9_.-]+$/.test(t);
+    return noSpaces && (hasDigits || allLowerOrUnder);
+  };
+  // Nicknames are intentional. Real names with spaces/capitals are safe. Email-prefix → memberId.
+  const safeDisplayName: string = profile._meta?.nameIsNickname
+    ? profile.name
+    : (looksLikeEmailPrefix(profile.name ?? '') ? (profile.memberId ?? 'Member') : (profile.name ?? 'Member'));
+
   const isVip = profile.isVip;
   const joinedDays = Math.floor(
     (Date.now() - new Date(profile.createdAt).getTime()) / 86400000
@@ -206,7 +256,7 @@ export default function ProfileDetailPage() {
   return (
     <>
       {/* ── SEO head title ─────────────────────────────── */}
-      <title>{`${profile.name ?? 'Profile'} | Muslim Nikah`}</title>
+      <title>{`${safeDisplayName} | Muslim Nikah`}</title>
 
       <main className="min-h-screen bg-[#F8F9FA] pt-24 pb-20">
 
@@ -262,7 +312,7 @@ export default function ProfileDetailPage() {
               </div>
 
               <h1 className="text-2xl sm:text-3xl font-bold text-white font-poppins leading-tight">
-                {profile.name}
+                {safeDisplayName}
                 {profile._meta?.nameIsNickname && (
                   <span className="ml-2 text-[12px] text-white/50 font-normal">(nickname)</span>
                 )}
@@ -458,7 +508,7 @@ export default function ProfileDetailPage() {
             <div className="bg-gradient-to-br from-[#1C3B35] to-[#2a5247] rounded-2xl p-6 flex flex-col sm:flex-row items-center gap-4 text-center sm:text-left">
               <div className="flex-1">
                 <p className="text-white font-bold font-poppins text-[16px]">
-                  Interested in {profile.name}?
+                  Interested in {safeDisplayName}?
                 </p>
                 {eligible ? (
                   <p className="text-white/60 font-poppins text-[13px] mt-1">

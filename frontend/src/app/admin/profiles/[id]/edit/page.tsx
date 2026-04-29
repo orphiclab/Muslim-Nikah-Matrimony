@@ -18,6 +18,18 @@ function loadCountryNames(): string[] {
 }
 const FALLBACK_COUNTRIES = ['Sri Lanka','United Kingdom','Australia','Canada','UAE','Saudi Arabia','Qatar','USA','Malaysia','Other'];
 
+// ── Load occupations from masterfile ──────────────────────────────────────
+const DEFAULT_OCCUPATIONS = ['Employed','Self Employed','Business Owner','Student','Not Employed'];
+function loadOccupations(): string[] {
+  try {
+    const raw = typeof window !== 'undefined' ? localStorage.getItem('mn_master_data') : null;
+    if (!raw) return DEFAULT_OCCUPATIONS;
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed.occupation) || parsed.occupation.length === 0) return DEFAULT_OCCUPATIONS;
+    return parsed.occupation.map((o: any) => o.value as string);
+  } catch { return DEFAULT_OCCUPATIONS; }
+}
+
 // ── Multi-country select ──────────────────────────────────────────────────
 function MultiCountrySelect({ selected, onChange }: { selected: string[]; onChange: (v: string[]) => void }) {
   const [open, setOpen] = useState(false);
@@ -91,26 +103,38 @@ const sel = (opts: string[], val: string, set: (v: string) => void, label: strin
     <label className="text-[11px] font-bold text-gray-500 uppercase tracking-wide">
       {label}{required && <span className="text-red-400 ml-0.5">*</span>}
     </label>
-    <select value={val} onChange={e => set(e.target.value)}
-      className="w-full border border-gray-200 rounded-xl px-3.5 py-2.5 text-sm text-gray-800 outline-none focus:border-[#1C3B35] focus:ring-2 focus:ring-[#1C3B35]/15 transition bg-white">
-      <option value="">— Select —</option>
-      {opts.map(o => <option key={o} value={o}>{o}</option>)}
-    </select>
+    <div className="relative">
+      <select value={val} onChange={e => set(e.target.value)}
+        className="w-full border border-gray-200 rounded-xl px-3.5 py-2.5 text-sm text-gray-800 outline-none focus:border-[#1C3B35] focus:ring-2 focus:ring-[#1C3B35]/15 transition bg-white appearance-none pr-9">
+        <option value="">— Select —</option>
+        {opts.map(o => <option key={o} value={o}>{o}</option>)}
+      </select>
+      <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-gray-400">
+        <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>
+      </span>
+    </div>
   </div>
 );
 
-const inp = (val: string | number, set: (v: string) => void, label: string, type = 'text', placeholder = '', required = false) => (
+const inp = (val: string | number, set: (v: string) => void, label: string, type = 'text', placeholder = '', required = false, maxLength?: number) => (
   <div className="flex flex-col gap-1.5">
     <label className="text-[11px] font-bold text-gray-500 uppercase tracking-wide">
       {label}{required && <span className="text-red-400 ml-0.5">*</span>}
     </label>
     <input type={type} value={val} onChange={e => set(e.target.value)} placeholder={placeholder}
+      maxLength={maxLength}
+      onKeyDown={type === 'number' && maxLength
+        ? (e: React.KeyboardEvent<HTMLInputElement>) => { if (!/[0-9]/.test(e.key) && !['Backspace','Delete','Tab','ArrowLeft','ArrowRight'].includes(e.key)) e.preventDefault(); }
+        : undefined}
       className="w-full border border-gray-200 rounded-xl px-3.5 py-2.5 text-sm text-gray-800 outline-none focus:border-[#1C3B35] focus:ring-2 focus:ring-[#1C3B35]/15 transition bg-white"
     />
   </div>
 );
 
 const ETHNICITIES = ['Muslim','Sri Lankan Moors','Indian Moors','Malays','Indian Malays','Arab (Middle Eastern)','Tamil','Indian','Memons','Turkish','European','Other'];
+const OCCUPATIONS_GENERAL = DEFAULT_OCCUPATIONS; // fallback alias
+const FATHER_OCCUPATIONS = ['Business','Government Employee','Private Sector','Retired','Not Employed','Deceased'];
+const MOTHER_OCCUPATIONS = ['Business','Government Employee','Private Sector','Homemaker','Retired','Not Employed'];
 
 const STATUS_OPTIONS = [
   { value: 'ACTIVE',    label: 'Active',    color: 'bg-green-100 text-green-700 border-green-200' },
@@ -132,7 +156,7 @@ type FormState = {
   residencyStatus: string;
   education: string; fieldOfStudy: string; occupation: string; profession: string;
   // Family
-  siblings: string;
+  brothers: string; sisters: string;
   fatherEthnicity: string; fatherCountry: string; fatherCity: string; fatherOccupation: string;
   motherEthnicity: string; motherCountry: string; motherCity: string; motherOccupation: string;
   // Preferences
@@ -145,7 +169,7 @@ const EMPTY: FormState = {
   complexion: '', appearance: '', dressCode: '', ethnicity: '', civilStatus: '', familyStatus: '',
   country: '', city: '', residentCountry: '', residentCity: '', residencyStatus: '',
   education: '', fieldOfStudy: '', occupation: '', profession: '',
-  siblings: '',
+  brothers: '', sisters: '',
   fatherEthnicity: '', fatherCountry: '', fatherCity: '', fatherOccupation: '',
   motherEthnicity: '', motherCountry: '', motherCity: '', motherOccupation: '',
   minAgePreference: '', maxAgePreference: '', countryPreference: '',
@@ -168,7 +192,7 @@ function mapToForm(p: any): FormState {
     residencyStatus: fmt(p.residencyStatus),
     education: fmt(p.education), fieldOfStudy: fmt(p.fieldOfStudy),
     occupation: fmt(p.occupation), profession: fmt(p.profession),
-    siblings: fmt(p.siblings),
+    brothers: fmt(p.brothers), sisters: fmt(p.sisters),
     fatherEthnicity: fmt(p.fatherEthnicity), fatherCountry: fmt(p.fatherCountry),
     fatherCity: fmt(p.fatherCity), fatherOccupation: fmt(p.fatherOccupation),
     motherEthnicity: fmt(p.motherEthnicity), motherCountry: fmt(p.motherCountry),
@@ -213,6 +237,7 @@ export default function AdminProfileEditPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState<{ text: string; ok: boolean } | null>(null);
+  const [masterOccupations, setMasterOccupations] = useState<string[]>(OCCUPATIONS_GENERAL);
 
   // Status management
   const [newStatus, setNewStatus] = useState('');
@@ -220,6 +245,9 @@ export default function AdminProfileEditPage() {
   const [statusSaving, setStatusSaving] = useState(false);
 
   const setF = (k: keyof FormState) => (v: string) => setForm(prev => ({ ...prev, [k]: v }));
+
+  // Load master occupations on client
+  useEffect(() => { setMasterOccupations(loadOccupations()); }, []);
 
   useEffect(() => {
     if (!id) return;
@@ -367,7 +395,7 @@ export default function AdminProfileEditPage() {
         {sel(['Very Fair','Fair','Decent','Good Looking','Handsome','Beautiful'], form.appearance, setF('appearance'), 'Appearance')}
         {sel(['Hijab','Niqab','Casual Modest','Islamic Formal','Traditional'], form.dressCode, setF('dressCode'), 'Dress Code')}
         {sel(ETHNICITIES, form.ethnicity, setF('ethnicity'), 'Ethnicity')}
-        {sel(['Single','Divorced','Widowed'], form.civilStatus, setF('civilStatus'), 'Civil Status')}
+        {sel(['Never Married','Widowed','Divorced','Separated','Other'], form.civilStatus, setF('civilStatus'), 'Civil Status')}
         {sel(['Upper Class','Upper Middle Class','Middle Class','Lower Middle Class'], form.familyStatus, setF('familyStatus'), 'Family Status')}
       </Card>
 
@@ -425,14 +453,17 @@ export default function AdminProfileEditPage() {
       <Card title="Education &amp; Career" icon="🎓">
         {sel(['School','O/L','A/L','Diploma','HND',"Bachelor's Degree","Master's Degree",'PhD','Professional Qualification'], form.education, setF('education'), 'Education')}
         {inp(form.fieldOfStudy, setF('fieldOfStudy'), 'Field of Study')}
-        {inp(form.occupation, setF('occupation'), 'Occupation')}
+        {sel(masterOccupations, form.occupation, setF('occupation'), 'Occupation')}
         {inp(form.profession, setF('profession'), 'Profession / Job Title')}
         <div className="flex flex-col gap-1.5 sm:col-span-2">
           <label className="text-[11px] font-bold text-gray-500 uppercase tracking-wide">Extra Qualification</label>
-          <textarea value={form.extraQualification} onChange={e => setF('extraQualification')(e.target.value)}
+          <textarea value={form.extraQualification} onChange={e => { if (!/[0-9]/.test(e.nativeEvent instanceof InputEvent ? e.nativeEvent.data ?? '' : '')) setF('extraQualification')(e.target.value.slice(0, 300)); }}
             rows={3} placeholder="Additional qualifications, certifications, skills…"
+            maxLength={300}
+            onKeyDown={(e: React.KeyboardEvent<HTMLTextAreaElement>) => { if (e.key >= '0' && e.key <= '9') e.preventDefault(); }}
             className="w-full border border-gray-200 rounded-xl px-3.5 py-2.5 text-sm text-gray-800 outline-none focus:border-[#1C3B35] focus:ring-2 focus:ring-[#1C3B35]/15 transition resize-none"
           />
+          <p className={`text-[10px] text-right -mt-1 ${form.extraQualification.length >= 300 ? 'text-red-400 font-semibold' : 'text-gray-400'}`}>{form.extraQualification.length}/300</p>
         </div>
       </Card>
 
@@ -443,15 +474,14 @@ export default function AdminProfileEditPage() {
           <h2 className="text-sm font-bold text-gray-700">Family Details</h2>
         </div>
         <div className="px-5 py-5 grid grid-cols-1 sm:grid-cols-2 gap-4">
-          {/* Siblings — full row */}
-          <div className="sm:col-span-2">
-            {inp(form.siblings, setF('siblings'), 'Total Siblings', 'number', 'e.g. 3')}
-          </div>
+          {/* Brothers & Sisters */}
+          {inp(form.brothers, setF('brothers'), 'Brothers', 'number', 'e.g. 2', false, 2)}
+          {inp(form.sisters, setF('sisters'), 'Sisters', 'number', 'e.g. 1', false, 2)}
 
           {/* Father section */}
           <SubLabel label="Father" />
           {sel(ETHNICITIES, form.fatherEthnicity, setF('fatherEthnicity'), "Father's Ethnicity")}
-          {inp(form.fatherOccupation, setF('fatherOccupation'), "Father's Occupation")}
+          {sel(FATHER_OCCUPATIONS, form.fatherOccupation, setF('fatherOccupation'), "Father's Occupation")}
           <div className="sm:col-span-2">
             <CascadeLocation
               country={form.fatherCountry} city={form.fatherCity}
@@ -463,7 +493,7 @@ export default function AdminProfileEditPage() {
           {/* Mother section */}
           <SubLabel label="Mother" />
           {sel(ETHNICITIES, form.motherEthnicity, setF('motherEthnicity'), "Mother's Ethnicity")}
-          {inp(form.motherOccupation, setF('motherOccupation'), "Mother's Occupation")}
+          {sel(MOTHER_OCCUPATIONS, form.motherOccupation, setF('motherOccupation'), "Mother's Occupation")}
           <div className="sm:col-span-2">
             <CascadeLocation
               country={form.motherCountry} city={form.motherCity}
@@ -476,8 +506,8 @@ export default function AdminProfileEditPage() {
 
       {/* ── Partner Preferences ── */}
       <Card title="Partner Preferences" icon="💑" overflow="overflow-visible">
-        {inp(form.minAgePreference, setF('minAgePreference'), 'Min Age', 'number', 'e.g. 22')}
-        {inp(form.maxAgePreference, setF('maxAgePreference'), 'Max Age', 'number', 'e.g. 35')}
+        {inp(form.minAgePreference, setF('minAgePreference'), 'Min Age', 'number', 'e.g. 22', false, 2)}
+        {inp(form.maxAgePreference, setF('maxAgePreference'), 'Max Age', 'number', 'e.g. 35', false, 2)}
         <MultiCountrySelect
           selected={form.countryPreference ? form.countryPreference.split(',').map(s => s.trim()).filter(Boolean) : []}
           onChange={vals => setF('countryPreference')(vals.join(','))}
@@ -493,15 +523,21 @@ export default function AdminProfileEditPage() {
         <div className="px-5 py-5 space-y-4">
           <div className="flex flex-col gap-1.5">
             <label className="text-[11px] font-bold text-gray-500 uppercase tracking-wide">About Me</label>
-            <textarea value={form.aboutUs} onChange={e => setF('aboutUs')(e.target.value)} rows={4} placeholder="About this person…"
+            <textarea value={form.aboutUs} onChange={e => setF('aboutUs')(e.target.value.slice(0, 300))} rows={4} placeholder="About this person…"
+              maxLength={300}
+              onKeyDown={(e: React.KeyboardEvent<HTMLTextAreaElement>) => { if (e.key >= '0' && e.key <= '9') e.preventDefault(); }}
               className="w-full border border-gray-200 rounded-xl px-3.5 py-2.5 text-sm text-gray-800 outline-none focus:border-[#1C3B35] focus:ring-2 focus:ring-[#1C3B35]/15 transition resize-none"
             />
+            <p className={`text-[10px] text-right -mt-1 ${form.aboutUs.length >= 300 ? 'text-red-400 font-semibold' : 'text-gray-400'}`}>{form.aboutUs.length}/300</p>
           </div>
           <div className="flex flex-col gap-1.5">
             <label className="text-[11px] font-bold text-gray-500 uppercase tracking-wide">Expectations</label>
-            <textarea value={form.expectations} onChange={e => setF('expectations')(e.target.value)} rows={4} placeholder="What they're looking for…"
+            <textarea value={form.expectations} onChange={e => setF('expectations')(e.target.value.slice(0, 300))} rows={4} placeholder="What they're looking for…"
+              maxLength={300}
+              onKeyDown={(e: React.KeyboardEvent<HTMLTextAreaElement>) => { if (e.key >= '0' && e.key <= '9') e.preventDefault(); }}
               className="w-full border border-gray-200 rounded-xl px-3.5 py-2.5 text-sm text-gray-800 outline-none focus:border-[#1C3B35] focus:ring-2 focus:ring-[#1C3B35]/15 transition resize-none"
             />
+            <p className={`text-[10px] text-right -mt-1 ${form.expectations.length >= 300 ? 'text-red-400 font-semibold' : 'text-gray-400'}`}>{form.expectations.length}/300</p>
           </div>
         </div>
       </div>

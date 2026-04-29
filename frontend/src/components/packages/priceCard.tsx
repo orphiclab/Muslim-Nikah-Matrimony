@@ -120,12 +120,15 @@ export default function PricingCards() {
             const { disc, orig, final } = getEffective(plan, siteDiscount);
             const hasDiscount = disc > 0;
 
-            const badge =
-              idx === Math.floor(plans.length / 2) && plans.length > 1
-                ? "Most Popular"
-                : idx === plans.length - 1 && plans.length > 2
-                ? "Best Value"
-                : null;
+            // Use admin-set isPopular field; fall back to positional only if NO plan has isPopular set
+            const anyHasPopular = plans.some((p: any) => p.isPopular);
+            const badge = anyHasPopular
+              ? ((plan as any).isPopular ? 'Most Popular' : null)
+              : (idx === Math.floor(plans.length / 2) && plans.length > 1
+                  ? 'Most Popular'
+                  : idx === plans.length - 1 && plans.length > 2
+                  ? 'Best Value'
+                  : null);
 
             return (
               <div

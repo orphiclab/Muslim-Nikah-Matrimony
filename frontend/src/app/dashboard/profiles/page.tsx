@@ -604,7 +604,8 @@ export default function ProfilesPage() {
                         </div>
 
                         {boostPlans.map((plan, idx) => {
-                          const popular = plan.isPopular ?? idx === 1;
+                          const anyPopular = boostPlans.some((p: any) => p.isPopular);
+                          const popular = anyPopular ? !!plan.isPopular : idx === 1;
                           // Pick price based on currency
                           const hasUsd = boostCurrency === 'USD' && plan.usdPrice != null;
                           const displayPrice = hasUsd ? plan.usdPrice : plan.price;

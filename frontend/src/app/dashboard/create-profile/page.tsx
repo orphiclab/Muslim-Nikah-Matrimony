@@ -46,7 +46,13 @@ const WEIGHT_OPTS = Array.from({ length: 101 }, (_, i) => `${i + 40} kg`);
 const inputCls = (err?: string) =>
   `w-full border rounded-xl px-3.5 py-2.5 text-sm text-gray-700 outline-none focus:border-[#1C3B35] transition bg-gray-50 focus:bg-white ${err ? 'border-red-400 bg-red-50/30' : 'border-gray-200'}`;
 
-function Field({ label, name, value, onChange, type = 'text', placeholder = '', required = false, error, optional = false }: any) {
+function Field({ label, name, value, onChange, type = 'text', placeholder = '', required = false, error, optional = false, maxLength }: any) {
+  // Block non-numeric input for number fields when maxLength is set
+  const handleKeyDown = type === 'number' && maxLength
+    ? (e: React.KeyboardEvent<HTMLInputElement>) => {
+        if (!/[0-9]/.test(e.key) && !['Backspace','Delete','Tab','ArrowLeft','ArrowRight'].includes(e.key)) e.preventDefault();
+      }
+    : undefined;
   return (
     <div>
       <label className="block text-xs font-semibold text-gray-500 mb-1.5">
@@ -54,6 +60,8 @@ function Field({ label, name, value, onChange, type = 'text', placeholder = '', 
         {optional && <span className="text-gray-400 font-normal"> (optional)</span>}
       </label>
       <input type={type} name={name} value={value ?? ''} onChange={onChange} placeholder={placeholder}
+        maxLength={maxLength}
+        onKeyDown={handleKeyDown}
         className={inputCls(error)} />
       {error && <p className="text-xs text-red-500 mt-1.5 flex items-center gap-1"><span>⚠</span>{error}</p>}
     </div>
@@ -70,6 +78,8 @@ const stripDigitsOnPaste = (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
 };
 
 function Textarea({ label, name, value, onChange, placeholder = '', rows = 4, optional = false }: any) {
+  const MAX = 300;
+  const len = (value ?? '').length;
   return (
     <div>
       <label className="block text-xs font-semibold text-gray-500 mb-1.5">
@@ -81,10 +91,12 @@ function Textarea({ label, name, value, onChange, placeholder = '', rows = 4, op
         onChange={onChange}
         rows={rows}
         placeholder={placeholder}
+        maxLength={MAX}
         onKeyDown={blockDigits}
         onPaste={stripDigitsOnPaste}
         className={`${inputCls()} resize-none`}
       />
+      <p className={`text-[10px] mt-1 text-right ${len >= MAX ? 'text-red-400 font-semibold' : 'text-gray-400'}`}>{len}/{MAX}</p>
     </div>
   );
 }
@@ -717,8 +729,8 @@ export default function CreateProfilePage() {
                 <div className="border-t border-gray-100 pt-3">
                   <p className="text-xs font-semibold text-gray-500 mb-3">Sibling's Details <span className="text-gray-400 font-normal">(optional)</span></p>
                   <div className={g2}>
-                    <Field label="Number of Brothers" name="brothers" value={form.brothers} onChange={handleField} type="number" placeholder="e.g. 2" optional />
-                    <Field label="Number of Sisters" name="sisters" value={form.sisters} onChange={handleField} type="number" placeholder="e.g. 1" optional />
+                    <Field label="Number of Brothers" name="brothers" value={form.brothers} onChange={handleField} type="number" placeholder="e.g. 2" optional maxLength={2} />
+                    <Field label="Number of Sisters" name="sisters" value={form.sisters} onChange={handleField} type="number" placeholder="e.g. 1" optional maxLength={2} />
                   </div>
                 </div>
               </>
@@ -753,10 +765,12 @@ export default function CreateProfilePage() {
                       <label className="block text-[11px] text-gray-400 mb-0.5">Min Age</label>
                       <input
                         type="number" name="minAgePref"
-                        min={18} max={80}
+                        min={18} max={99}
+                        maxLength={2}
                         placeholder="e.g. 22"
                         value={form.minAgePref}
                         onChange={handleField}
+                        onKeyDown={(e) => { if (!/[0-9]/.test(e.key) && !['Backspace','Delete','Tab','ArrowLeft','ArrowRight'].includes(e.key)) e.preventDefault(); }}
                         className="w-full rounded-xl border border-gray-200 px-3 py-2 text-[13px] outline-none focus:border-[#1C3B35] focus:ring-2 focus:ring-[#1C3B35]/15 transition"
                       />
                     </div>
@@ -765,10 +779,12 @@ export default function CreateProfilePage() {
                       <label className="block text-[11px] text-gray-400 mb-0.5">Max Age</label>
                       <input
                         type="number" name="maxAgePref"
-                        min={18} max={80}
+                        min={18} max={99}
+                        maxLength={2}
                         placeholder="e.g. 35"
                         value={form.maxAgePref}
                         onChange={handleField}
+                        onKeyDown={(e) => { if (!/[0-9]/.test(e.key) && !['Backspace','Delete','Tab','ArrowLeft','ArrowRight'].includes(e.key)) e.preventDefault(); }}
                         className="w-full rounded-xl border border-gray-200 px-3 py-2 text-[13px] outline-none focus:border-[#1C3B35] focus:ring-2 focus:ring-[#1C3B35]/15 transition"
                       />
                     </div>

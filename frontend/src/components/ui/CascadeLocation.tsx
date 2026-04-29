@@ -78,10 +78,15 @@ export function CascadeLocation({ country, city, onChange, errors = {}, required
         <label className="block text-xs font-semibold text-gray-500 mb-1.5">
           {countryLabel} {required && <span className="text-red-400">*</span>}
         </label>
-        <select value={country} onChange={e => handleCountry(e.target.value)} className={selectCls(errors.country)}>
-          <option value="">Select Country</option>
-          {countries.map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
-        </select>
+        <div className="relative">
+          <select value={country} onChange={e => handleCountry(e.target.value)} className={selectCls(errors.country)}>
+            <option value="">Select Country</option>
+            {countries.map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
+          </select>
+          <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-gray-400">
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>
+          </span>
+        </div>
         {errors.country && <p className="text-xs text-red-500 mt-1.5 flex items-center gap-1"><span>⚠</span>{errors.country}</p>}
       </div>
 
@@ -90,15 +95,20 @@ export function CascadeLocation({ country, city, onChange, errors = {}, required
         <label className="block text-xs font-semibold text-gray-500 mb-1.5">
           {cityLabel} {required && <span className="text-red-400">*</span>}
         </label>
-        <select
-          value={city}
-          onChange={e => onChange('city', e.target.value)}
-          disabled={!country || cities.length === 0}
-          className={selectCls(errors.city) + ((!country || cities.length === 0) ? ' opacity-50 cursor-not-allowed' : '')}
-        >
-          <option value="">{!country ? 'Select country first' : cities.length === 0 ? 'No cities available' : 'Select City'}</option>
-          {cities.map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
-        </select>
+        <div className="relative">
+          <select
+            value={city}
+            onChange={e => onChange('city', e.target.value)}
+            disabled={!country || cities.length === 0}
+            className={selectCls(errors.city) + ((!country || cities.length === 0) ? ' opacity-50 cursor-not-allowed' : '')}
+          >
+            <option value="">{!country ? 'Select country first' : cities.length === 0 ? 'No cities available' : 'Select City'}</option>
+            {cities.map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
+          </select>
+          <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-gray-400">
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>
+          </span>
+        </div>
         {errors.city && <p className="text-xs text-red-500 mt-1.5 flex items-center gap-1"><span>⚠</span>{errors.city}</p>}
       </div>
     </>

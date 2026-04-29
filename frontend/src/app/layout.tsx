@@ -6,6 +6,7 @@ import Nav from "@/components/ui/navbar/Nav";
 import Footer from "@/components/ui/footer/FooterWrapper";
 import TrafficBeacon from "@/components/ui/TrafficBeacon";
 import AosInit from "@/components/ui/AosInit";
+import WhatsAppBubble from "@/components/ui/WhatsAppBubble";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -55,6 +56,7 @@ export default function RootLayout({
         <Nav />
         {children}
         <Footer />
+        <WhatsAppBubble />
       </body>
     </html>
   );

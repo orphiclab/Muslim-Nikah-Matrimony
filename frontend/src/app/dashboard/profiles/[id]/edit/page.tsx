@@ -65,7 +65,7 @@ const ChevronDown = () => (
 );
 
 function Field({
-  label, name, value, onChange, type = 'text', options, disabled, rows,
+  label, name, value, onChange, type = 'text', options, disabled, rows, maxLength,
 }: {
   label: string;
   name: keyof FormState;
@@ -75,9 +75,25 @@ function Field({
   options?: { value: string; label: string }[];
   disabled?: boolean;
   rows?: number;
+  maxLength?: number;
 }) {
   const base =
     'w-full rounded-xl border border-gray-200 px-3 py-2.5 text-sm text-gray-800 font-medium focus:outline-none focus:ring-2 focus:ring-[#1C3B35]/20 focus:border-[#1C3B35] transition bg-white placeholder-gray-300 disabled:bg-gray-50 disabled:text-gray-400 disabled:cursor-not-allowed';
+
+  const blockDigitsKb = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key >= '0' && e.key <= '9') e.preventDefault();
+  };
+  const blockDigitsPaste = (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
+    e.preventDefault();
+    const text = e.clipboardData.getData('text').replace(/[0-9]/g, '');
+    document.execCommand('insertText', false, text);
+  };
+  const blockNonNumeric = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (!/[0-9]/.test(e.key) && !['Backspace','Delete','Tab','ArrowLeft','ArrowRight'].includes(e.key)) e.preventDefault();
+  };
+
+  const MAX_TEXT = 300;
+  const len = rows ? (value ?? '').length : 0;
 
   return (
     <div className="flex flex-col gap-1.5">
@@ -99,21 +115,29 @@ function Field({
           <ChevronDown />
         </div>
       ) : rows ? (
-        <textarea
-          name={name}
-          value={value}
-          rows={rows}
-          disabled={disabled}
-          onChange={e => onChange(name, e.target.value)}
-          className={`${base} resize-none`}
-          placeholder={`Enter ${label.toLowerCase()}`}
-        />
+        <>
+          <textarea
+            name={name}
+            value={value}
+            rows={rows}
+            disabled={disabled}
+            onChange={e => onChange(name, e.target.value)}
+            maxLength={MAX_TEXT}
+            onKeyDown={blockDigitsKb}
+            onPaste={blockDigitsPaste}
+            className={`${base} resize-none`}
+            placeholder={`Enter ${label.toLowerCase()}`}
+          />
+          <p className={`text-[10px] text-right -mt-1 ${len >= MAX_TEXT ? 'text-red-400 font-semibold' : 'text-gray-400'}`}>{len}/{MAX_TEXT}</p>
+        </>
       ) : (
         <input
           type={type}
           name={name}
           value={value}
           disabled={disabled}
+          maxLength={maxLength}
+          onKeyDown={type === 'number' && maxLength ? blockNonNumeric : undefined}
           onChange={e => onChange(name, e.target.value)}
           className={base}
           placeholder={`Enter ${label.toLowerCase()}`}
@@ -589,8 +613,8 @@ export default function EditProfilePage() {
         <Field label="Mother's City" name="motherCity" value={form.motherCity} onChange={set}
           options={citiesFor(form.motherCountry).length ? citiesFor(form.motherCountry) : undefined} />
         <Field label="Mother's Occupation" name="motherOccupation" value={form.motherOccupation} onChange={set} />
-        <Field label="No. of Brothers" name="brothers" value={form.brothers} onChange={set} type="number" />
-        <Field label="No. of Sisters" name="sisters" value={form.sisters} onChange={set} type="number" />
+        <Field label="No. of Brothers" name="brothers" value={form.brothers} onChange={set} type="number" maxLength={2} />
+        <Field label="No. of Sisters" name="sisters" value={form.sisters} onChange={set} type="number" maxLength={2} />
       </SectionCard>
 
       {/* ── Preferences ───────────────────────────────────────────────── */}
@@ -602,8 +626,8 @@ export default function EditProfilePage() {
             countries={masterCountries}
           />
         </div>
-        <Field label="Min Age Preference" name="minAgePreference" value={form.minAgePreference} onChange={set} type="number" />
-        <Field label="Max Age Preference" name="maxAgePreference" value={form.maxAgePreference} onChange={set} type="number" />
+        <Field label="Min Age Preference" name="minAgePreference" value={form.minAgePreference} onChange={set} type="number" maxLength={2} />
+        <Field label="Max Age Preference" name="maxAgePreference" value={form.maxAgePreference} onChange={set} type="number" maxLength={2} />
       </SectionCard>
 
       {/* ── About & Expectations ──────────────────────────────────────── */}

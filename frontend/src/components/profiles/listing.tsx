@@ -399,10 +399,20 @@ export default function ProfilesListing() {
   const ageHint = null;
 
   const toCardProps = (p: Profile) => {
-    // Priority: nickname (any name set by the user) → memberId → fallback
-    // A name that equals the memberId itself means no real name was entered
+    // Detect email-prefix-style names: no spaces, contains digits, all lowercase
+    // e.g. "pmihindu7", "user123", "test_user" — not a real display name
+    const looksLikeEmailPrefix = (n: string) => {
+      if (!n) return true;
+      const trimmed = n.trim();
+      // Has no spaces AND (contains digits OR is all lowercase without capitals)
+      const noSpaces = !trimmed.includes(' ');
+      const hasDigits = /\d/.test(trimmed);
+      const allLowerOrUnder = /^[a-z0-9_.-]+$/.test(trimmed);
+      return noSpaces && (hasDigits || allLowerOrUnder);
+    };
+
     const rawName = (p as any).nickname?.trim() || p.name?.trim() || '';
-    const isPlaceholder = !rawName || rawName === p.memberId || rawName === 'Profile';
+    const isPlaceholder = !rawName || rawName === p.memberId || rawName === 'Profile' || looksLikeEmailPrefix(rawName);
     const displayName = isPlaceholder ? (p.memberId ?? 'Profile') : rawName;
     return {
       name: displayName,
@@ -847,14 +857,7 @@ export default function ProfilesListing() {
               </div>
             )}
 
-            {/* More Profiles CTA */}
-            {page === totalPages && totalPages > 0 && (
-              <div className="flex justify-center mt-6">
-                <button className="bg-[#DB9D30] hover:bg-[#c98b26] text-white font-poppins font-semibold text-[14px] px-8 py-3 rounded-full transition shadow-sm">
-                  More Profiles
-                </button>
-              </div>
-            )}
+
           </div>
         </div>
       </div>

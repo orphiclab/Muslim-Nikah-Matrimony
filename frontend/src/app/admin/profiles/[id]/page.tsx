@@ -11,7 +11,7 @@ type ProfileDetail = {
   complexion?: string; appearance?: string; dressCode?: string;
   ethnicity?: string; civilStatus?: string; children?: string;
   country?: string; city?: string; state?: string; residencyStatus?: string;
-  education?: string; occupation?: string; fieldOfStudy?: string;
+  education?: string; occupation?: string; fieldOfStudy?: string; extraQualification?: string;
   profession?: string; annualIncome?: string;
   familyStatus?: string; fatherOccupation?: string; motherOccupation?: string;
   fatherEthnicity?: string; motherEthnicity?: string; siblings?: number;
@@ -245,7 +245,6 @@ export default function AdminProfileDetailPage() {
             <Field label="City" value={profile.city} />
             <Field label="Resident Country" value={profile.residentCountry} />
             <Field label="Resident City" value={profile.residentCity} />
-            <Field label="State" value={profile.state} />
             <Field label="Residency Status" value={profile.residencyStatus} />
             <Field label="Education" value={profile.education} />
             <Field label="Field of Study" value={profile.fieldOfStudy} />
@@ -278,14 +277,12 @@ export default function AdminProfileDetailPage() {
             <Field label="Country Pref." value={profile.countryPreference} />
             <Field label="Min Age" value={profile.minAgePreference} />
             <Field label="Max Age" value={profile.maxAgePreference} />
-            <Field label="Min Height (cm)" value={profile.minHeightPreference} />
-            <Field label="Max Height (cm)" value={profile.maxHeightPreference} />
           </div>
         </Section>
       </div>
 
       {/* About & Expectations */}
-      {(profile.aboutUs || profile.expectations) && (
+      {(profile.aboutUs || profile.expectations || profile.extraQualification) && (
         <Section title="About & Expectations" icon={<svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" /></svg>}>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {profile.aboutUs && (
@@ -298,6 +295,12 @@ export default function AdminProfileDetailPage() {
               <div>
                 <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-2">Expectations</p>
                 <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">{profile.expectations}</p>
+              </div>
+            )}
+            {profile.extraQualification && (
+              <div className="md:col-span-2">
+                <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-2">Extra Qualification</p>
+                <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">{profile.extraQualification}</p>
               </div>
             )}
           </div>

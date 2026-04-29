@@ -394,7 +394,9 @@ export default function ContactFormSection() {
                 <InstagramIcon />
               </a>
               <a
-                href="#"
+                href="https://www.facebook.com/muslimnikah.lk/"
+                target="_blank"
+                rel="noopener noreferrer"
                 aria-label="Facebook"
                 className="text-[#010806] transition-colors hover:text-[#1877F2]"
               >

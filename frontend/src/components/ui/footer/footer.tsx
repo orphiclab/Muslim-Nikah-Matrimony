@@ -53,7 +53,9 @@ const Footer = () => {
               </a>
               {/* Facebook */}
               <a
-                href="#"
+                href="https://www.facebook.com/muslimnikah.lk/"
+                target="_blank"
+                rel="noopener noreferrer"
                 aria-label="Facebook"
                 className="w-10 h-10 rounded-full border border-white/40 flex items-center justify-center text-white hover:bg-white/10 transition-colors"
               >
@@ -101,7 +103,7 @@ const Footer = () => {
           <p>@ 2026 MuslimNikah. All right reserved.</p>
           <div className="flex items-center footer-sub  gap-6">
             <Link href="#" className="hover:text-white transition-colors">Privacy</Link>
-            <Link href="#" className="hover:text-white transition-colors">Terms</Link>
+            <Link href="/terms" className="hover:text-white transition-colors">Terms</Link>
             <Link href="#" className="hover:text-white transition-colors">Cookies</Link>
           </div>
         </div>
