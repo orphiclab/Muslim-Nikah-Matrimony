@@ -3,7 +3,7 @@
 import { ReactNode, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { subscriptionApi, profileApi } from '@/services/api';
+import { profileApi } from '@/services/api';
 import NotificationBell from '@/components/ui/NotificationBell';
 
 const MEMBER_LOGO_SRC = '/images/muslimLogo1.png';
@@ -111,27 +111,30 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
     // Fetch profiles to decide whether the user needs to select a plan
     profileApi.getMyProfiles()
       .then((profRes) => {
-        const profiles: any[] = profRes.data ?? [];
-        setProfiles(profiles);
-        // If user has ANY profile (in any status), let them into the dashboard
-        if (profiles.length > 0) {
-          setChecking(false);
+        const fetchedProfiles: any[] = profRes.data ?? [];
+        setProfiles(fetchedProfiles);
+
+        if (fetchedProfiles.length === 0) {
+          // No profiles at all — redirect to select a plan
+          router.replace('/select-plan');
           return;
         }
-        // No profiles at all — check subscriptions as a fallback
-        return subscriptionApi.mySubscriptions()
-          .then((subRes) => {
-            const hasAny = (subRes.data ?? []).length > 0;
-            if (hasAny) {
-              setChecking(false);
-            } else {
-              router.replace('/select-plan');
-            }
-          })
-          .catch(() => {
-            // Can't verify subscription — redirect to be safe
-            router.replace('/select-plan');
-          });
+
+        // If the user has exactly one profile and it has NO active subscription,
+        // always redirect them to the purchase page for that profile.
+        // Exception: PAYMENT_PENDING means payment was submitted — let them in.
+        if (fetchedProfiles.length === 1) {
+          const solo = fetchedProfiles[0];
+          const hasActiveSub = solo.subscription?.status === 'ACTIVE';
+          const hasPendingPayment = solo.status === 'PAYMENT_PENDING';
+          if (!hasActiveSub && !hasPendingPayment) {
+            router.replace(`/select-plan?profileId=${encodeURIComponent(solo.id)}`);
+            return;
+          }
+        }
+
+        // Multiple profiles, or the single profile already has an active subscription
+        setChecking(false);
       })
       .catch((err: any) => {
         // If the token is invalid/expired, profileApi will throw 401

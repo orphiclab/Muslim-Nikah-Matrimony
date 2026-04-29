@@ -10,19 +10,20 @@ import { loadMasterData, MasterData } from '@/app/admin/master-file/data';
 const STEPS = ['Personal Details', 'Location & Education', 'Family Details', 'Additional Details', 'Review'];
 
 const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
-const ETHNICITIES = ['Muslim','Sri Lankan Moors','Indian Moors','Malays','Indian Malays','Arab (Middle Eastern)','Tamil','Indian','Memons','Turkish','European','Other'];
-const OCCUPATIONS_GENERAL = ['Employed','Self Employed','Business Owner','Student','Not Employed'];
 const FATHER_OCCUPATIONS = ['Business','Government Employee','Private Sector','Retired','Not Employed','Deceased'];
 const MOTHER_OCCUPATIONS = ['Business','Government Employee','Private Sector','Homemaker','Retired','Not Employed'];
-const EDUCATIONS = ["High School","Diploma","Bachelor's Degree","Master's Degree","Doctorate (PhD)","Other"];
 const RESIDENCY_STATUSES = ['Citizen','Permanent Resident','Work Visa','Student Visa','Other'];
 const STATES = ['Western Province','Central Province','Southern Province','Northern Province','Eastern Province','Other'];
 const APPEARANCES = ['Very Fair','Fair','Wheatish','Wheatish Brown','Dark'];
 const COMPLEXIONS = ['Very Fair','Fair','Medium','Olive','Dark'];
-const DRESS_CODES = ['Hijab','Niqab','Casual Modest','Islamic Formal','Traditional'];
 const FAMILY_STATUSES = ['Upper Class','Upper Middle Class','Middle Class','Lower Middle Class'];
 const CIVIL_STATUSES = ['Never Married','Widowed','Divorced','Separated','Other'];
 const CREATED_BY_OPTS = ['Self','Parent','Guardian','Sibling'];
+// Fallback options used when masterData has not loaded yet
+const DEFAULT_ETHNICITIES = ['Muslim','Sri Lankan Moors','Indian Moors','Malays','Indian Malays','Arab (Middle Eastern)','Tamil','Indian','Memons','Turkish','European','Other'];
+const DEFAULT_OCCUPATIONS = ['Employed','Self Employed','Business Owner','Student','Not Employed'];
+const DEFAULT_EDUCATIONS = ["High School","Diploma","Bachelor's Degree","Master's Degree","Doctorate (PhD)","Other"];
+const DEFAULT_DRESS_CODES = ['Hijab','Niqab','Casual Modest','Islamic Formal','Traditional'];
 // Generate every-inch heights from 4'0" to 8'0" with cm equivalents
 function buildHeights() {
   const opts: string[] = [];
@@ -39,7 +40,7 @@ function buildHeights() {
   return { opts, map };
 }
 const { opts: HEIGHT_OPTS, map: HEIGHT_TO_CM } = buildHeights();
-const WEIGHT_OPTS = Array.from({ length: 101 }, (_, i) => `${i + 20} kg`);
+const WEIGHT_OPTS = Array.from({ length: 101 }, (_, i) => `${i + 40} kg`);
 
 // ── Shared field components ───────────────────────────────────────────────────
 const inputCls = (err?: string) =>
@@ -313,6 +314,12 @@ export default function CreateProfilePage() {
   const [masterData, setMasterData] = useState<MasterData | null>(null);
 
   useEffect(() => { setMasterData(loadMasterData()); }, []);
+
+  // Dynamic dropdown options from admin master data (with fallbacks)
+  const ETHNICITIES     = masterData?.ethnicity?.map(e => e.value)  ?? DEFAULT_ETHNICITIES;
+  const DRESS_CODES     = masterData?.dressCode?.map(d => d.value)  ?? DEFAULT_DRESS_CODES;
+  const EDUCATIONS      = masterData?.education?.map(e => e.value)  ?? DEFAULT_EDUCATIONS;
+  const OCCUPATIONS_GENERAL = masterData?.occupation?.map(o => o.value) ?? DEFAULT_OCCUPATIONS;
   const [form, setForm] = useState<any>({
     // Personal
     createdBy: '', gender: 'MALE',
@@ -495,6 +502,8 @@ export default function CreateProfilePage() {
         motherCountry:      form.motherCountry  || undefined,
         motherOccupation:   form.motherOccupation|| undefined,
         motherCity:         form.motherCity     || undefined,
+        brothers:           form.brothers ? parseInt(form.brothers) : undefined,
+        sisters:            form.sisters  ? parseInt(form.sisters)  : undefined,
         siblings:           (parseInt(form.brothers||'0') + parseInt(form.sisters||'0')) || undefined,
         countryPreference:  (form.countryPreference && form.countryPreference !== 'Any Country') ? form.countryPreference : undefined,
         minAgePreference:   form.minAgePref ? parseInt(form.minAgePref) : undefined,

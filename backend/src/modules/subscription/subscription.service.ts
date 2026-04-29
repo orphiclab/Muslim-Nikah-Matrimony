@@ -24,7 +24,7 @@ export class SubscriptionService {
       where: { userId },
       include: { subscription: true },
     });
-    const data = profiles.map((p) => ({ id: p.id, name: p.name, subscription: p.subscription }));
+    const data = profiles.map((p) => ({ id: p.id, name: p.name, memberId: p.memberId, subscription: p.subscription }));
     return { success: true, data };
   }
 }

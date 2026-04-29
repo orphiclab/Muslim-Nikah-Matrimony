@@ -25,7 +25,7 @@ function buildHeights() {
   return { opts, map };
 }
 const { opts: HEIGHT_OPTIONS, map: HEIGHT_TO_CM } = buildHeights();
-const WEIGHT_OPTIONS = Array.from({ length: 101 }, (_, i) => `${i + 20} kg`);
+const WEIGHT_OPTIONS = Array.from({ length: 101 }, (_, i) => `${i + 40} kg`);
 
 const STEPS = [
   { id: 1, label: "Account Details" },
@@ -337,15 +337,18 @@ function isAtLeastMinAge(dateStr: string, minAge: number): boolean {
 }
 
 function Step1({
-  data, onChange, fieldErrors, minAge = 18,
+  data, onChange, fieldErrors, minAge = 18, masterData,
 }: {
   data: Record<string, string>;
   onChange: (e: React.ChangeEvent<HTMLSelectElement | HTMLInputElement>) => void;
   fieldErrors?: Record<string, string>;
   minAge?: number;
+  masterData?: MasterData | null;
 }) {
   const maxBirth = getMaxBirthDate(minAge);
   const minBirth = getMinBirthDate();
+  const ethnicityOpts = masterData?.ethnicity?.map(e => e.value) ?? ["Muslim", "Sri Lankan Moors", "Indian Moors", "Malays", "Indian Malays", "Arab (Middle Eastern)", "Tamil", "Indian", "Memons", "Turkish", "European", "Other"];
+  const dressCodeOpts = masterData?.dressCode?.map(d => d.value) ?? ["Hijab", "Niqab", "Casual Modest", "Islamic Formal", "Traditional"];
   return (
     <div>
       <h2 className="text-xl font-semibold text-gray-800">Your Personal Details</h2>
@@ -365,8 +368,8 @@ function Step1({
         <SelectField label="Weight" name="weight" options={WEIGHT_OPTIONS} value={data.weight || ""} onChange={onChange} optional />
         <SelectField label="Appearance" name="appearance" options={["Very Fair", "Fair", "Wheatish", "Wheatish Brown", "Dark"]} value={data.appearance || ""} onChange={onChange} error={fieldErrors?.appearance} />
         <SelectField label="Complexion" name="complexion" options={["Very Fair", "Fair", "Medium", "Olive", "Dark"]} value={data.complexion || ""} onChange={onChange} error={fieldErrors?.complexion} />
-        <SelectField label="Ethnicity" name="ethnicity" options={["Muslim", "Sri Lankan Moors", "Indian Moors", "Malays", "Indian Malays", "Arab (Middle Eastern)", "Tamil", "Indian", "Memons", "Turkish", "European", "Other"]} value={data.ethnicity || ""} onChange={onChange} error={fieldErrors?.ethnicity} />
-        <SelectField label="Dress Code" name="dressCode" options={["Hijab", "Niqab", "Casual Modest", "Islamic Formal", "Traditional"]} value={data.dressCode || ""} onChange={onChange} error={fieldErrors?.dressCode} />
+        <SelectField label="Ethnicity" name="ethnicity" options={ethnicityOpts} value={data.ethnicity || ""} onChange={onChange} error={fieldErrors?.ethnicity} />
+        <SelectField label="Dress Code" name="dressCode" options={dressCodeOpts} value={data.dressCode || ""} onChange={onChange} error={fieldErrors?.dressCode} />
         <SelectField label="Family Status" name="familyStatus" options={["Upper Class", "Upper Middle Class", "Middle Class", "Lower Middle Class"]} value={data.familyStatus || ""} onChange={onChange} error={fieldErrors?.familyStatus} />
         <SelectField label="Civil Status" name="civilStatus" options={["Never Married", "Widowed", "Divorced", "Separated", "Other"]} value={data.civilStatus || ""} onChange={onChange} error={fieldErrors?.civilStatus} />
       </div>
@@ -398,14 +401,17 @@ function Step2({
 }
 
 function Step3({
-  data, onChange, onLocationChange, onResidentLocationChange, fieldErrors,
+  data, onChange, onLocationChange, onResidentLocationChange, fieldErrors, masterData,
 }: {
   data: Record<string, string>;
   onChange: (e: React.ChangeEvent<HTMLSelectElement | HTMLInputElement>) => void;
   onLocationChange: (field: 'country' | 'city', value: string) => void;
   onResidentLocationChange: (field: 'residentCountry' | 'residentCity', value: string) => void;
   fieldErrors?: Record<string, string>;
+  masterData?: MasterData | null;
 }) {
+  const educationOpts = masterData?.education?.map(e => e.value) ?? ["High School","Diploma","Bachelor's Degree","Master's Degree","Doctorate (PhD)","Other"];
+  const occupationOpts = masterData?.occupation?.map(o => o.value) ?? ["Employed","Self Employed","Business Owner","Student","Not Employed"];
   return (
     <div>
       <h2 className="text-xl font-semibold text-gray-800">Location &amp; Education</h2>
@@ -439,9 +445,9 @@ function Step3({
         <SelectField label="Residency Status" name="residencyStatus" options={["Citizen", "Permanent Resident", "Work Visa", "Student Visa", "Other"]} value={data.residencyStatus || ""} onChange={onChange} error={fieldErrors?.residencyStatus} />
         <div className="hidden sm:block" />
 
-        <SelectField label="Education" name="education" options={["High School","Diploma","Bachelor's Degree","Master's Degree","Doctorate (PhD)","Other"]} value={data.education || ""} onChange={onChange} error={fieldErrors?.education} />
+        <SelectField label="Education" name="education" options={educationOpts} value={data.education || ""} onChange={onChange} error={fieldErrors?.education} />
         <TextField label="Field of Study" name="fieldOfStudy" placeholder="e.g. Computer Science" value={data.fieldOfStudy || ""} onChange={onChange} optional />
-        <SelectField label="Occupation" name="occupation" options={["Employed","Self Employed","Business Owner","Student","Not Employed"]} value={data.occupation || ""} onChange={onChange} error={fieldErrors?.occupation} />
+        <SelectField label="Occupation" name="occupation" options={occupationOpts} value={data.occupation || ""} onChange={onChange} error={fieldErrors?.occupation} />
         <TextField label="Profession / Job Title" name="profession" placeholder="e.g. Software Engineer" value={data.profession || ""} onChange={onChange} optional />
       </div>
     </div>
@@ -1123,6 +1129,8 @@ export default function RegisterPage() {
         // Location & education (DTO-supported keys only)
         ...(formData.country && { country: formData.country }),
         ...(formData.city && { city: formData.city }),
+        ...(formData.residentCountry && { residentCountry: formData.residentCountry }),
+        ...(formData.residentCity && { residentCity: formData.residentCity }),
         ...(formData.residencyStatus && { residencyStatus: formData.residencyStatus }),
         ...(formData.education && { education: formData.education }),
         ...(formData.fieldOfStudy && { fieldOfStudy: formData.fieldOfStudy }),
@@ -1130,8 +1138,16 @@ export default function RegisterPage() {
         ...(formData.profession && { profession: formData.profession }),
 
         // Family details
+        ...(formData.fatherEthnicity && { fatherEthnicity: formData.fatherEthnicity }),
+        ...(formData.fatherCountry && { fatherCountry: formData.fatherCountry }),
+        ...(formData.fatherCity && { fatherCity: formData.fatherCity }),
         ...(formData.fatherOccupation && { fatherOccupation: formData.fatherOccupation }),
+        ...(formData.motherEthnicity && { motherEthnicity: formData.motherEthnicity }),
+        ...(formData.motherCountry && { motherCountry: formData.motherCountry }),
+        ...(formData.motherCity && { motherCity: formData.motherCity }),
         ...(formData.motherOccupation && { motherOccupation: formData.motherOccupation }),
+        ...(formData.brothers && { brothers: parseInt(formData.brothers, 10) }),
+        ...(formData.sisters && { sisters: parseInt(formData.sisters, 10) }),
         ...((formData.brothers || formData.sisters) && {
           siblings: parseInt(formData.brothers || '0', 10) + parseInt(formData.sisters || '0', 10),
         }),
@@ -1139,6 +1155,7 @@ export default function RegisterPage() {
         // Additional details
         ...(formData.about && { aboutUs: formData.about }),
         ...(formData.expectations && { expectations: formData.expectations }),
+        ...(formData.extraQualification && { extraQualification: formData.extraQualification }),
         ...(countryPrefSelected.length > 0 && { countryPreference: countryPrefSelected.join(',') }),
         ...(minAgePref && { minAgePreference: parseInt(minAgePref, 10) }),
         ...(maxAgePref && { maxAgePreference: parseInt(maxAgePref, 10) }),
@@ -1262,8 +1279,8 @@ export default function RegisterPage() {
           <div className="flex-1 px-5 py-6 md:px-8 md:py-8">
             <div className="flex-1">
               {currentStep === 1 && <Step2 data={formData} onChange={handleChange} onPhoneChange={handlePhoneChange} fieldErrors={fieldErrors} />}
-              {currentStep === 2 && <Step1 data={formData} onChange={handleChange} fieldErrors={fieldErrors} minAge={minAge} />}
-              {currentStep === 3 && <Step3 data={formData} onChange={handleChange} onLocationChange={handleLocationChange} onResidentLocationChange={handleResidentLocationChange} fieldErrors={fieldErrors} />}
+              {currentStep === 2 && <Step1 data={formData} onChange={handleChange} fieldErrors={fieldErrors} minAge={minAge} masterData={masterData} />}
+              {currentStep === 3 && <Step3 data={formData} onChange={handleChange} onLocationChange={handleLocationChange} onResidentLocationChange={handleResidentLocationChange} fieldErrors={fieldErrors} masterData={masterData} />}
               {currentStep === 4 && <Step4 data={formData} onChange={handleChange} onFamilyLocationChange={handleFamilyLocationChange} fieldErrors={fieldErrors} />}
               {currentStep === 5 && <Step5 data={formData} onChange={handleChange} lookingFor={lookingFor} setLookingFor={setLookingFor} agreedTerms={agreedTerms} setAgreedTerms={setAgreedTerms} countryPrefSelected={countryPrefSelected} setCountryPrefSelected={setCountryPrefSelected} minAgePref={minAgePref} setMinAgePref={setMinAgePref} maxAgePref={maxAgePref} setMaxAgePref={setMaxAgePref} />}
             </div>

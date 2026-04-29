@@ -46,6 +46,12 @@ export class CreateChildProfileDto {
   state?: string;
 
   @IsOptional() @IsString()
+  residentCountry?: string;
+
+  @IsOptional() @IsString()
+  residentCity?: string;
+
+  @IsOptional() @IsString()
   residencyStatus?: string;
 
   @IsOptional() @IsString()
@@ -62,6 +68,9 @@ export class CreateChildProfileDto {
 
   @IsOptional() @IsString()
   annualIncome?: string;
+
+  @IsOptional() @IsString()
+  extraQualification?: string;
 
   @IsOptional() @IsString()
   familyStatus?: string;
@@ -92,6 +101,12 @@ export class CreateChildProfileDto {
 
   @IsOptional() @IsInt() @Min(0)
   siblings?: number;
+
+  @IsOptional() @IsInt() @Min(0)
+  brothers?: number;
+
+  @IsOptional() @IsInt() @Min(0)
+  sisters?: number;
 
   @IsOptional() @IsString()
   createdBy?: string;

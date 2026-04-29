@@ -280,8 +280,11 @@ export default function SelectPlanPage() {
         packageId: (selected as any).id,
         packageDurationDays: selected.durationDays,
       });
-      // ✅ Redirect to parent dashboard after successful submission
-      router.push('/dashboard/parent');
+      // Reload profiles so the UI flips to the "Payment Already Submitted" success state.
+      // We do NOT push to /dashboard/parent immediately because the layout guard
+      // would redirect straight back here (no active subscription yet).
+      reloadProfiles(false);
+      setMessage('');
     } catch (e: any) {
       const errMsg = e.message ?? 'Payment submission failed.';
       // Surface backend one-plan-per-profile error clearly
