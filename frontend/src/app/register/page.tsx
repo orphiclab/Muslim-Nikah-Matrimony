@@ -354,7 +354,7 @@ function Step1({
         <SelectField label="Created By" name="createdBy" options={["Self", "Parent", "Guardian", "Sibling"]} value={data.createdBy || ""} onChange={onChange} error={fieldErrors?.createdBy} />
         <SelectField label="Gender" name="gender" options={["Male", "Female"]} value={data.gender || ""} onChange={onChange} error={fieldErrors?.gender} />
         <div className="flex flex-col gap-1">
-          <DateField label="Birth Date" name="birthDate" value={data.birthDate || ""} onChange={onChange} max={maxBirth} min={minBirth} />
+          <DateField label="Date of Birth" name="birthDate" value={data.birthDate || ""} onChange={onChange} max={maxBirth} min={minBirth} />
           {fieldErrors?.birthDate && <p className="text-xs text-red-500 flex items-center gap-1"><span>⚠</span>{fieldErrors.birthDate}</p>}
           {data.birthDate && !isAtLeastMinAge(data.birthDate, minAge) && (
             <p className="text-xs text-red-500 mt-1">⚠ You must be at least {minAge} years old to register.</p>
