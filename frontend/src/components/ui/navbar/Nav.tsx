@@ -144,7 +144,7 @@ const Nav = () => {
                     </Link>
                     <Link href="/register">
                       <button type="button"
-                        className="bg-white text-[#010806] font-poppins font-medium px-6 py-1.5 rounded-full hover:bg-white/90 transition-colors duration-200"
+                        className="bg-white text-[#010806] font-poppins font-medium px-6 py-1.5 rounded-full hover:bg-white/90 hover:text-[#DB9D30] transition-colors duration-200"
                         style={{ fontSize: '18px' }}>
                         Register
                       </button>
