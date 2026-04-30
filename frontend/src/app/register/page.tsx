@@ -787,10 +787,12 @@ function Step5({ data, onChange, lookingFor, setLookingFor, agreedTerms, setAgre
           onChange={onChange as React.ChangeEventHandler<HTMLTextAreaElement>}
           rows={4}
           placeholder="Tell us more about yourself....."
+          maxLength={500}
           onKeyDown={blockDigits}
           onPaste={stripDigitsOnPaste}
           className="w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-700 shadow-sm outline-none focus:border-[#1B6B4A] focus:ring-2 focus:ring-[#1B6B4A]/20 transition resize-none"
         />
+        <p className="text-[10px] text-right mt-0.5 text-gray-400">{(data.about || '').length}/500</p>
       </div>
 
       <div className="mt-4 flex flex-col gap-1">
@@ -801,10 +803,12 @@ function Step5({ data, onChange, lookingFor, setLookingFor, agreedTerms, setAgre
           onChange={onChange as React.ChangeEventHandler<HTMLTextAreaElement>}
           rows={4}
           placeholder="What are you looking for in partner......"
+          maxLength={500}
           onKeyDown={blockDigits}
           onPaste={stripDigitsOnPaste}
           className="w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-700 shadow-sm outline-none focus:border-[#1B6B4A] focus:ring-2 focus:ring-[#1B6B4A]/20 transition resize-none"
         />
+        <p className="text-[10px] text-right mt-0.5 text-gray-400">{(data.expectations || '').length}/500</p>
       </div>
 
       <div className="mt-4 flex flex-col gap-1">
@@ -817,8 +821,10 @@ function Step5({ data, onChange, lookingFor, setLookingFor, agreedTerms, setAgre
           onChange={onChange as React.ChangeEventHandler<HTMLTextAreaElement>}
           rows={3}
           placeholder="Any additional qualifications, certifications or skills..."
+          maxLength={500}
           className="w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-700 shadow-sm outline-none focus:border-[#1B6B4A] focus:ring-2 focus:ring-[#1B6B4A]/20 transition resize-none"
         />
+        <p className="text-[10px] text-right mt-0.5 text-gray-400">{(data.extraQualification || '').length}/500</p>
       </div>
 
       <label className="mt-5 flex items-center gap-2 cursor-pointer">
@@ -1005,7 +1011,11 @@ export default function RegisterPage() {
       if (!formData.motherCountry) errs.motherCountry = 'Please select mother\'s country.';
       if (!formData.motherOccupation) errs.motherOccupation = 'Please select mother\'s occupation.';
       if (!formData.motherCity?.trim()) errs.motherCity = 'Mother\'s city is required.';
-      // brothers / sisters are optional — not validated
+      // brothers / sisters — validated
+      if (formData.brothers && (isNaN(Number(formData.brothers)) || Number(formData.brothers) < 0 || Number(formData.brothers) > 20))
+        errs.brothers = 'Must be a number between 0 and 20.';
+      if (formData.sisters && (isNaN(Number(formData.sisters)) || Number(formData.sisters) < 0 || Number(formData.sisters) > 20))
+        errs.sisters = 'Must be a number between 0 and 20.';
       if (Object.keys(errs).length > 0) {
         setFieldErrors(errs);
         return;

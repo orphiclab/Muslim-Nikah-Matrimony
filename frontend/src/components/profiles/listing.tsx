@@ -342,7 +342,7 @@ export default function ProfilesListing() {
   const handleMemberIdChange = (val: string) => {
     const up = val.toUpperCase();
     setFilters(f => ({ ...f, memberId: up }));
-    if (/^MN-\d{6}$/.test(up)) { setApplied(f => ({ ...f, memberId: up })); setPage(1); }
+    if (/^USR-\d+$/.test(up)) { setApplied(f => ({ ...f, memberId: up })); setPage(1); }
   };
 
   /* ── Auth-guarded button handlers ── */
@@ -516,7 +516,7 @@ export default function ProfilesListing() {
           Search by Member ID
         </label>
         <div className="relative">
-          <input type="text" placeholder="e.g. MN-000001" value={filters.memberId}
+          <input type="text" placeholder="e.g. USR-1" value={filters.memberId}
             onChange={e => handleMemberIdChange(e.target.value)}
             className="w-full border border-gray-200 rounded-xl pl-8 pr-3 py-2 text-[12px] outline-none focus:border-[#1C3B35] font-poppins uppercase tracking-widest placeholder:normal-case placeholder:tracking-normal"
           />
@@ -530,7 +530,7 @@ export default function ProfilesListing() {
             </button>
           )}
         </div>
-        <p className="text-[10px] text-gray-400 font-poppins mt-1">Format: MN-000001</p>
+        <p className="text-[10px] text-gray-400 font-poppins mt-1">Format: USR-1</p>
       </div>
 
       <div className="border-t border-gray-100 pt-3">
@@ -747,7 +747,7 @@ export default function ProfilesListing() {
               )}
 
               <div className="relative">
-                <input type="text" placeholder="Search by Member ID (e.g. MN-000001)"
+                <input type="text" placeholder="Search by Member ID (e.g. USR-1)"
                   value={filters.memberId}
                   onChange={e => handleMemberIdChange(e.target.value)}
                   className="w-full border border-gray-200 rounded-xl pl-9 pr-4 py-2.5 text-[13px] outline-none focus:border-[#1C3B35] font-poppins uppercase tracking-widest placeholder:normal-case placeholder:tracking-normal bg-white shadow-sm"
