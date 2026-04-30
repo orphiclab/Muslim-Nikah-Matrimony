@@ -145,6 +145,9 @@ const STATUS_OPTIONS = [
 ];
 
 type FormState = {
+  // Admin-only
+  memberId: string;
+  joiningDate: string;
   dateOfBirth: string;
   height: string; weight: string;
   complexion: string; appearance: string; dressCode: string;
@@ -165,6 +168,7 @@ type FormState = {
 };
 
 const EMPTY: FormState = {
+  memberId: '', joiningDate: '',
   dateOfBirth: '', height: '', weight: '',
   complexion: '', appearance: '', dressCode: '', ethnicity: '', civilStatus: '', familyStatus: '',
   country: '', city: '', residentCountry: '', residentCity: '', residencyStatus: '',
@@ -182,7 +186,13 @@ function mapToForm(p: any): FormState {
     if (!v) return '';
     try { return new Date(v).toISOString().slice(0, 10); } catch { return ''; }
   };
+  const fmtDateTime = (v: any) => {
+    if (!v) return '';
+    try { return new Date(v).toISOString().slice(0, 16); } catch { return ''; }
+  };
   return {
+    memberId: fmt(p.memberId),
+    joiningDate: fmtDateTime(p.createdAt),
     dateOfBirth: fmtDate(p.dateOfBirth),
     height: fmt(p.height), weight: fmt(p.weight),
     complexion: fmt(p.complexion), appearance: fmt(p.appearance), dressCode: fmt(p.dressCode),
@@ -244,6 +254,36 @@ export default function AdminProfileEditPage() {
   const [statusReason, setStatusReason] = useState('');
   const [statusSaving, setStatusSaving] = useState(false);
 
+  // Member ID live validation
+  const [memberIdError, setMemberIdError] = useState('');
+  const [memberIdChecking, setMemberIdChecking] = useState(false);
+  const memberIdTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Inline field errors
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+  const setFieldError = (key: string, msg: string) =>
+    setFieldErrors(prev => ({ ...prev, [key]: msg }));
+  const clearFieldError = (key: string) =>
+    setFieldErrors(prev => { const n = { ...prev }; delete n[key]; return n; });
+  const hasFieldErrors = Object.keys(fieldErrors).length > 0;
+
+  const checkMemberId = (value: string) => {
+    if (!value || value === profile?.memberId) { setMemberIdError(''); return; }
+    setMemberIdChecking(true);
+    setMemberIdError('');
+    if (memberIdTimer.current) clearTimeout(memberIdTimer.current);
+    memberIdTimer.current = setTimeout(async () => {
+      try {
+        const res = await adminApi.profiles();
+        const exists = (res.data ?? []).some(
+          (p: any) => p.memberId === value && p.id !== id
+        );
+        setMemberIdError(exists ? `❌ "${value}" is already assigned to another profile.` : '');
+      } catch { setMemberIdError(''); }
+      finally { setMemberIdChecking(false); }
+    }, 500);
+  };
+
   const setF = (k: keyof FormState) => (v: string) => setForm(prev => ({ ...prev, [k]: v }));
 
   // Load master occupations on client
@@ -265,7 +305,10 @@ export default function AdminProfileEditPage() {
     setSaving(true);
     setMsg(null);
     try {
-      await adminApi.adminUpdateProfile(id, { ...form });
+      await adminApi.adminUpdateProfile(id, {
+        ...form,
+        createdAt: form.joiningDate || undefined,
+      });
       setMsg({ text: '✅ Profile updated successfully.', ok: true });
       window.scrollTo({ top: 0, behavior: 'smooth' });
     } catch (e: any) {
@@ -386,6 +429,73 @@ export default function AdminProfileEditPage() {
         </div>
       </div>
 
+      {/* ── Admin Controls ── */}
+      <div className="bg-amber-50 rounded-2xl border border-amber-200 overflow-hidden">
+        <div className="px-5 py-3.5 border-b border-amber-200 flex items-center gap-2 bg-amber-100">
+          <span className="text-base">🔑</span>
+          <h2 className="text-sm font-bold text-amber-800">Admin Controls</h2>
+          <span className="ml-auto text-[10px] font-bold text-amber-600 uppercase tracking-wide bg-amber-200 px-2 py-0.5 rounded-full">Admin Only</span>
+        </div>
+        <div className="px-5 py-4">
+          <p className="text-xs text-amber-700 mb-4 flex items-start gap-1.5">
+            <svg className="w-3.5 h-3.5 shrink-0 mt-0.5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+            These fields are privileged. Changing them affects how the profile is identified across the system.
+          </p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {/* Member ID */}
+            <div className="flex flex-col gap-1.5">
+              <label className="text-[11px] font-bold text-amber-700 uppercase tracking-wide">Member ID</label>
+              <div className="relative">
+                <input
+                  type="text"
+                  value={form.memberId}
+                  onChange={e => {
+                    const val = e.target.value.toUpperCase();
+                    setF('memberId')(val);
+                    checkMemberId(val);
+                  }}
+                  placeholder="e.g. USR-1"
+                  className={`w-full border rounded-xl px-3.5 py-2.5 text-sm font-mono font-semibold outline-none focus:ring-2 transition bg-white uppercase tracking-widest pr-9 ${
+                    memberIdError
+                      ? 'border-red-400 focus:border-red-500 focus:ring-red-400/20 text-red-800'
+                      : 'border-amber-300 focus:border-amber-500 focus:ring-amber-400/20 text-amber-900'
+                  }`}
+                />
+                <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                  {memberIdChecking && (
+                    <svg className="w-4 h-4 animate-spin text-amber-500" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"/>
+                    </svg>
+                  )}
+                  {!memberIdChecking && !memberIdError && form.memberId && form.memberId !== profile.memberId && (
+                    <svg className="w-4 h-4 text-green-500" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+                  )}
+                  {!memberIdChecking && memberIdError && (
+                    <svg className="w-4 h-4 text-red-500" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+                  )}
+                </div>
+              </div>
+              {memberIdError
+                ? <p className="text-[10px] text-red-600 font-semibold">{memberIdError}</p>
+                : <p className="text-[10px] text-amber-600">Current: <strong>{profile.memberId}</strong></p>
+              }
+            </div>
+            {/* Joining Date & Time */}
+            <div className="flex flex-col gap-1.5">
+              <label className="text-[11px] font-bold text-amber-700 uppercase tracking-wide">Joining Date &amp; Time</label>
+              <input
+                type="datetime-local"
+                value={form.joiningDate}
+                onChange={e => setF('joiningDate')(e.target.value)}
+                className="w-full border border-amber-300 rounded-xl px-3.5 py-2.5 text-sm text-amber-900 outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-400/20 transition bg-white"
+              />
+              <p className="text-[10px] text-amber-600">Current: <strong>{new Date(profile.createdAt).toLocaleString()}</strong></p>
+            </div>
+          </div>
+        </div>
+      </div>
+
       {/* ── Personal Information ── */}
       <Card title="Personal Information" icon="👤">
         {inp(form.dateOfBirth, setF('dateOfBirth'), 'Date of Birth', 'date', '', true)}
@@ -457,13 +567,13 @@ export default function AdminProfileEditPage() {
         {inp(form.profession, setF('profession'), 'Profession / Job Title')}
         <div className="flex flex-col gap-1.5 sm:col-span-2">
           <label className="text-[11px] font-bold text-gray-500 uppercase tracking-wide">Extra Qualification</label>
-          <textarea value={form.extraQualification} onChange={e => { if (!/[0-9]/.test(e.nativeEvent instanceof InputEvent ? e.nativeEvent.data ?? '' : '')) setF('extraQualification')(e.target.value.slice(0, 300)); }}
+          <textarea value={form.extraQualification} onChange={e => { if (!/[0-9]/.test(e.nativeEvent instanceof InputEvent ? e.nativeEvent.data ?? '' : '')) setF('extraQualification')(e.target.value.slice(0, 500)); }}
             rows={3} placeholder="Additional qualifications, certifications, skills…"
-            maxLength={300}
+            maxLength={500}
             onKeyDown={(e: React.KeyboardEvent<HTMLTextAreaElement>) => { if (e.key >= '0' && e.key <= '9') e.preventDefault(); }}
             className="w-full border border-gray-200 rounded-xl px-3.5 py-2.5 text-sm text-gray-800 outline-none focus:border-[#1C3B35] focus:ring-2 focus:ring-[#1C3B35]/15 transition resize-none"
           />
-          <p className={`text-[10px] text-right -mt-1 ${form.extraQualification.length >= 300 ? 'text-red-400 font-semibold' : 'text-gray-400'}`}>{form.extraQualification.length}/300</p>
+          <p className={`text-[10px] text-right -mt-1 ${form.extraQualification.length >= 500 ? 'text-red-400 font-semibold' : 'text-gray-400'}`}>{form.extraQualification.length}/500</p>
         </div>
       </Card>
 
@@ -475,8 +585,42 @@ export default function AdminProfileEditPage() {
         </div>
         <div className="px-5 py-5 grid grid-cols-1 sm:grid-cols-2 gap-4">
           {/* Brothers & Sisters */}
-          {inp(form.brothers, setF('brothers'), 'Brothers', 'number', 'e.g. 2', false, 2)}
-          {inp(form.sisters, setF('sisters'), 'Sisters', 'number', 'e.g. 1', false, 2)}
+          {/* Brothers */}
+          <div className="flex flex-col gap-1.5">
+            <label className="text-[11px] font-bold text-gray-500 uppercase tracking-wide">Brothers</label>
+            <input type="number" min={0} max={20} value={form.brothers} placeholder="e.g. 2"
+              onChange={e => {
+                const v = e.target.value;
+                setF('brothers')(v);
+                const n = Number(v);
+                if (v !== '' && (isNaN(n) || n < 0 || n > 20))
+                  setFieldError('brothers', 'Must be a number between 0 and 20');
+                else clearFieldError('brothers');
+              }}
+              className={`w-full border rounded-xl px-3.5 py-2.5 text-sm text-gray-800 outline-none focus:ring-2 transition bg-white ${
+                fieldErrors.brothers ? 'border-red-400 focus:border-red-500 focus:ring-red-400/20' : 'border-gray-200 focus:border-[#1C3B35] focus:ring-[#1C3B35]/15'
+              }`}
+            />
+            {fieldErrors.brothers && <p className="text-[10px] text-red-500 font-semibold">{fieldErrors.brothers}</p>}
+          </div>
+          {/* Sisters */}
+          <div className="flex flex-col gap-1.5">
+            <label className="text-[11px] font-bold text-gray-500 uppercase tracking-wide">Sisters</label>
+            <input type="number" min={0} max={20} value={form.sisters} placeholder="e.g. 1"
+              onChange={e => {
+                const v = e.target.value;
+                setF('sisters')(v);
+                const n = Number(v);
+                if (v !== '' && (isNaN(n) || n < 0 || n > 20))
+                  setFieldError('sisters', 'Must be a number between 0 and 20');
+                else clearFieldError('sisters');
+              }}
+              className={`w-full border rounded-xl px-3.5 py-2.5 text-sm text-gray-800 outline-none focus:ring-2 transition bg-white ${
+                fieldErrors.sisters ? 'border-red-400 focus:border-red-500 focus:ring-red-400/20' : 'border-gray-200 focus:border-[#1C3B35] focus:ring-[#1C3B35]/15'
+              }`}
+            />
+            {fieldErrors.sisters && <p className="text-[10px] text-red-500 font-semibold">{fieldErrors.sisters}</p>}
+          </div>
 
           {/* Father section */}
           <SubLabel label="Father" />
@@ -506,8 +650,42 @@ export default function AdminProfileEditPage() {
 
       {/* ── Partner Preferences ── */}
       <Card title="Partner Preferences" icon="💑" overflow="overflow-visible">
-        {inp(form.minAgePreference, setF('minAgePreference'), 'Min Age', 'number', 'e.g. 22', false, 2)}
-        {inp(form.maxAgePreference, setF('maxAgePreference'), 'Max Age', 'number', 'e.g. 35', false, 2)}
+        {/* Min Age */}
+        <div className="flex flex-col gap-1.5">
+          <label className="text-[11px] font-bold text-gray-500 uppercase tracking-wide">Min Age</label>
+          <input type="number" min={18} max={80} value={form.minAgePreference} placeholder="e.g. 22"
+            onChange={e => {
+              const v = e.target.value;
+              setF('minAgePreference')(v);
+              const n = Number(v);
+              if (v !== '' && (isNaN(n) || n < 18 || n > 80))
+                setFieldError('minAge', 'Age must be between 18 and 80');
+              else clearFieldError('minAge');
+            }}
+            className={`w-full border rounded-xl px-3.5 py-2.5 text-sm text-gray-800 outline-none focus:ring-2 transition bg-white ${
+              fieldErrors.minAge ? 'border-red-400 focus:border-red-500 focus:ring-red-400/20' : 'border-gray-200 focus:border-[#1C3B35] focus:ring-[#1C3B35]/15'
+            }`}
+          />
+          {fieldErrors.minAge && <p className="text-[10px] text-red-500 font-semibold">{fieldErrors.minAge}</p>}
+        </div>
+        {/* Max Age */}
+        <div className="flex flex-col gap-1.5">
+          <label className="text-[11px] font-bold text-gray-500 uppercase tracking-wide">Max Age</label>
+          <input type="number" min={18} max={80} value={form.maxAgePreference} placeholder="e.g. 35"
+            onChange={e => {
+              const v = e.target.value;
+              setF('maxAgePreference')(v);
+              const n = Number(v);
+              if (v !== '' && (isNaN(n) || n < 18 || n > 80))
+                setFieldError('maxAge', 'Age must be between 18 and 80');
+              else clearFieldError('maxAge');
+            }}
+            className={`w-full border rounded-xl px-3.5 py-2.5 text-sm text-gray-800 outline-none focus:ring-2 transition bg-white ${
+              fieldErrors.maxAge ? 'border-red-400 focus:border-red-500 focus:ring-red-400/20' : 'border-gray-200 focus:border-[#1C3B35] focus:ring-[#1C3B35]/15'
+            }`}
+          />
+          {fieldErrors.maxAge && <p className="text-[10px] text-red-500 font-semibold">{fieldErrors.maxAge}</p>}
+        </div>
         <MultiCountrySelect
           selected={form.countryPreference ? form.countryPreference.split(',').map(s => s.trim()).filter(Boolean) : []}
           onChange={vals => setF('countryPreference')(vals.join(','))}
@@ -523,21 +701,21 @@ export default function AdminProfileEditPage() {
         <div className="px-5 py-5 space-y-4">
           <div className="flex flex-col gap-1.5">
             <label className="text-[11px] font-bold text-gray-500 uppercase tracking-wide">About Me</label>
-            <textarea value={form.aboutUs} onChange={e => setF('aboutUs')(e.target.value.slice(0, 300))} rows={4} placeholder="About this person…"
-              maxLength={300}
+            <textarea value={form.aboutUs} onChange={e => setF('aboutUs')(e.target.value.slice(0, 500))} rows={4} placeholder="About this person…"
+              maxLength={500}
               onKeyDown={(e: React.KeyboardEvent<HTMLTextAreaElement>) => { if (e.key >= '0' && e.key <= '9') e.preventDefault(); }}
               className="w-full border border-gray-200 rounded-xl px-3.5 py-2.5 text-sm text-gray-800 outline-none focus:border-[#1C3B35] focus:ring-2 focus:ring-[#1C3B35]/15 transition resize-none"
             />
-            <p className={`text-[10px] text-right -mt-1 ${form.aboutUs.length >= 300 ? 'text-red-400 font-semibold' : 'text-gray-400'}`}>{form.aboutUs.length}/300</p>
+            <p className={`text-[10px] text-right -mt-1 ${form.aboutUs.length >= 500 ? 'text-red-400 font-semibold' : 'text-gray-400'}`}>{form.aboutUs.length}/500</p>
           </div>
           <div className="flex flex-col gap-1.5">
             <label className="text-[11px] font-bold text-gray-500 uppercase tracking-wide">Expectations</label>
-            <textarea value={form.expectations} onChange={e => setF('expectations')(e.target.value.slice(0, 300))} rows={4} placeholder="What they're looking for…"
-              maxLength={300}
+            <textarea value={form.expectations} onChange={e => setF('expectations')(e.target.value.slice(0, 500))} rows={4} placeholder="What they're looking for…"
+              maxLength={500}
               onKeyDown={(e: React.KeyboardEvent<HTMLTextAreaElement>) => { if (e.key >= '0' && e.key <= '9') e.preventDefault(); }}
               className="w-full border border-gray-200 rounded-xl px-3.5 py-2.5 text-sm text-gray-800 outline-none focus:border-[#1C3B35] focus:ring-2 focus:ring-[#1C3B35]/15 transition resize-none"
             />
-            <p className={`text-[10px] text-right -mt-1 ${form.expectations.length >= 300 ? 'text-red-400 font-semibold' : 'text-gray-400'}`}>{form.expectations.length}/300</p>
+            <p className={`text-[10px] text-right -mt-1 ${form.expectations.length >= 500 ? 'text-red-400 font-semibold' : 'text-gray-400'}`}>{form.expectations.length}/500</p>
           </div>
         </div>
       </div>
@@ -546,7 +724,7 @@ export default function AdminProfileEditPage() {
       <div className="flex items-center gap-3 pb-8">
         <button
           onClick={handleSave}
-          disabled={saving}
+          disabled={saving || !!memberIdError || memberIdChecking || hasFieldErrors}
           className="flex items-center gap-2 bg-[#1C3B35] hover:bg-[#15302a] text-white font-bold text-sm px-8 py-3 rounded-xl transition shadow-sm disabled:opacity-50"
         >
           {saving && <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"/></svg>}

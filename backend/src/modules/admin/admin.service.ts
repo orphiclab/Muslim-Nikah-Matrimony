@@ -417,6 +417,7 @@ export class AdminService {
 
     // Build safe update payload — only known fields
     const ALLOWED_FIELDS = [
+      'memberId', 'createdAt',
       'dateOfBirth','height','weight','complexion','appearance','dressCode',
       'ethnicity','civilStatus','familyStatus',
       'country','city','residentCountry','residentCity','residencyStatus',
@@ -436,8 +437,14 @@ export class AdminService {
     for (const numField of ['height','weight','siblings','minAgePreference','maxAgePreference','minHeightPreference']) {
       if (numField in data && data[numField] !== null) data[numField] = Number(data[numField]) || null;
     }
-    // Handle dateOfBirth
+    // Handle date fields
     if ('dateOfBirth' in data && data.dateOfBirth) data.dateOfBirth = new Date(data.dateOfBirth);
+    if ('createdAt' in data && data.createdAt) data.createdAt = new Date(data.createdAt);
+    // Validate memberId uniqueness if changed
+    if ('memberId' in data && data.memberId && data.memberId !== profile.memberId) {
+      const existing = await this.prisma.childProfile.findFirst({ where: { memberId: data.memberId } });
+      if (existing) throw new ConflictException(`Member ID "${data.memberId}" is already taken.`);
+    }
 
     const updated = await this.prisma.childProfile.update({ where: { id }, data });
     this.activityLog.log({

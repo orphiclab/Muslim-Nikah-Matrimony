@@ -78,7 +78,7 @@ const stripDigitsOnPaste = (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
 };
 
 function Textarea({ label, name, value, onChange, placeholder = '', rows = 4, optional = false }: any) {
-  const MAX = 300;
+  const MAX = 500;
   const len = (value ?? '').length;
   return (
     <div>
@@ -444,6 +444,20 @@ export default function CreateProfilePage() {
       if (!form.motherCountry) errs.motherCountry = "Please select mother's country.";
       if (!form.motherOccupation) errs.motherOccupation = "Please select mother's occupation.";
       if (!form.motherCity?.trim()) errs.motherCity = "Mother's city is required.";
+      // Siblings validation
+      if (form.brothers !== '' && (isNaN(Number(form.brothers)) || Number(form.brothers) < 0 || Number(form.brothers) > 20))
+        errs.brothers = 'Must be a number between 0 and 20.';
+      if (form.sisters !== '' && (isNaN(Number(form.sisters)) || Number(form.sisters) < 0 || Number(form.sisters) > 20))
+        errs.sisters = 'Must be a number between 0 and 20.';
+    }
+    if (s === 3) {
+      // Age preference validation
+      if (form.minAgePref !== '' && (isNaN(Number(form.minAgePref)) || Number(form.minAgePref) < 18 || Number(form.minAgePref) > 80))
+        errs.minAgePref = 'Age must be between 18 and 80.';
+      if (form.maxAgePref !== '' && (isNaN(Number(form.maxAgePref)) || Number(form.maxAgePref) < 18 || Number(form.maxAgePref) > 80))
+        errs.maxAgePref = 'Age must be between 18 and 80.';
+      if (form.minAgePref && form.maxAgePref && Number(form.minAgePref) > Number(form.maxAgePref))
+        errs.maxAgePref = 'Max age must be greater than min age.';
     }
     return errs;
   };
@@ -729,8 +743,38 @@ export default function CreateProfilePage() {
                 <div className="border-t border-gray-100 pt-3">
                   <p className="text-xs font-semibold text-gray-500 mb-3">Sibling's Details <span className="text-gray-400 font-normal">(optional)</span></p>
                   <div className={g2}>
-                    <Field label="Number of Brothers" name="brothers" value={form.brothers} onChange={handleField} type="number" placeholder="e.g. 2" optional maxLength={2} />
-                    <Field label="Number of Sisters" name="sisters" value={form.sisters} onChange={handleField} type="number" placeholder="e.g. 1" optional maxLength={2} />
+                    <div>
+                      <label className="block text-xs font-semibold text-gray-500 mb-1.5">Number of Brothers <span className="text-gray-400 font-normal">(optional)</span></label>
+                      <input type="number" name="brothers" min={0} max={20} placeholder="e.g. 2"
+                        value={form.brothers} onChange={e => {
+                          handleField(e);
+                          const n = Number(e.target.value);
+                          if (e.target.value !== '' && (isNaN(n) || n < 0 || n > 20))
+                            setFieldErrors(prev => ({ ...prev, brothers: 'Must be a number between 0 and 20.' }));
+                          else setFieldErrors(prev => { const x = { ...prev }; delete x.brothers; return x; });
+                        }}
+                        className={`w-full rounded-xl border px-3.5 py-2.5 text-sm outline-none focus:ring-2 transition bg-white ${
+                          fieldErrors.brothers ? 'border-red-400 focus:border-red-500 focus:ring-red-400/20 text-red-800' : 'border-gray-200 focus:border-[#1C3B35] focus:ring-[#1C3B35]/15 text-gray-800'
+                        }`}
+                      />
+                      {fieldErrors.brothers && <p className="text-xs text-red-500 mt-1.5 flex items-center gap-1"><span>⚠</span>{fieldErrors.brothers}</p>}
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-gray-500 mb-1.5">Number of Sisters <span className="text-gray-400 font-normal">(optional)</span></label>
+                      <input type="number" name="sisters" min={0} max={20} placeholder="e.g. 1"
+                        value={form.sisters} onChange={e => {
+                          handleField(e);
+                          const n = Number(e.target.value);
+                          if (e.target.value !== '' && (isNaN(n) || n < 0 || n > 20))
+                            setFieldErrors(prev => ({ ...prev, sisters: 'Must be a number between 0 and 20.' }));
+                          else setFieldErrors(prev => { const x = { ...prev }; delete x.sisters; return x; });
+                        }}
+                        className={`w-full rounded-xl border px-3.5 py-2.5 text-sm outline-none focus:ring-2 transition bg-white ${
+                          fieldErrors.sisters ? 'border-red-400 focus:border-red-500 focus:ring-red-400/20 text-red-800' : 'border-gray-200 focus:border-[#1C3B35] focus:ring-[#1C3B35]/15 text-gray-800'
+                        }`}
+                      />
+                      {fieldErrors.sisters && <p className="text-xs text-red-500 mt-1.5 flex items-center gap-1"><span>⚠</span>{fieldErrors.sisters}</p>}
+                    </div>
                   </div>
                 </div>
               </>
@@ -765,7 +809,7 @@ export default function CreateProfilePage() {
                       <label className="block text-[11px] text-gray-400 mb-0.5">Min Age</label>
                       <input
                         type="number" name="minAgePref"
-                        min={18} max={99}
+                        min={18} max={80}  // PATCHED
                         maxLength={2}
                         placeholder="e.g. 22"
                         value={form.minAgePref}
@@ -779,7 +823,7 @@ export default function CreateProfilePage() {
                       <label className="block text-[11px] text-gray-400 mb-0.5">Max Age</label>
                       <input
                         type="number" name="maxAgePref"
-                        min={18} max={99}
+                        min={18} max={80}  // PATCHED
                         maxLength={2}
                         placeholder="e.g. 35"
                         value={form.maxAgePref}

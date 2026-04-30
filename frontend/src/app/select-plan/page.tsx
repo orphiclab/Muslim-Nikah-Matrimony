@@ -559,7 +559,16 @@ export default function SelectPlanPage() {
                         <svg className="w-3.5 h-3.5 text-green-400 flex-shrink-0" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
                           <polyline points="20 6 9 17 4 12" />
                         </svg>
-                        <span className="text-white/80">Profile: <strong className="text-white">{activeProfile?.name ?? 'Your Profile'}</strong>
+                        <span className="text-white/80">Profile:
+                          {activeProfile?.name && activeProfile.name.trim().length > 1 && (
+                            <strong className="text-white ml-1">{activeProfile.name}</strong>
+                          )}
+                          {(() => {
+                            try {
+                              const u = JSON.parse(localStorage.getItem('mn_user') ?? '{}');
+                              return u.email ? <span className="ml-1 text-white/60 font-mono text-[10px]">{u.email}</span> : null;
+                            } catch { return null; }
+                          })()}
                           {isPending && (
                             <span className="ml-1 text-amber-300">(awaiting approval)</span>
                           )}

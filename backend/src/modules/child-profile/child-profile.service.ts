@@ -144,12 +144,12 @@ export class ChildProfileService {
 
   private async generateNextMemberId() {
     const lastProfile = await this.prisma.childProfile.findFirst({
-      where: { memberId: { startsWith: 'MN-' } },
+      where: { memberId: { startsWith: 'USR-' } },
       orderBy: { memberId: 'desc' },
       select: { memberId: true },
     });
-    const lastNum = Number(lastProfile?.memberId?.replace('MN-', '') ?? '0');
-    return `MN-${String(lastNum + 1).padStart(6, '0')}`;
+    const lastNum = Number(lastProfile?.memberId?.replace('USR-', '') ?? '0');
+    return `USR-${lastNum + 1}`;
   }
 
   async update(userId: string, profileId: string, dto: UpdateChildProfileDto) {
