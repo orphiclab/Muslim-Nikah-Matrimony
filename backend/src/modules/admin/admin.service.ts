@@ -514,6 +514,55 @@ export class AdminService {
   }
 
 
+  async adminGrantSubscription(adminId: string, profileId: string, durationDays: number, planName: string) {
+    if (!profileId) throw new BadRequestException('Profile ID is required');
+    if (!durationDays || durationDays < 1 || durationDays > 1825)
+      throw new BadRequestException('Duration must be between 1 and 1825 days');
+
+    const profile = await this.prisma.childProfile.findUnique({
+      where: { id: profileId },
+      select: { id: true, name: true, memberId: true, userId: true, status: true },
+    });
+    if (!profile) throw new NotFoundException('Profile not found');
+
+    const label = planName?.trim() || 'Admin Grant';
+
+    // Activate subscription directly (no payment required)
+    await this.prisma.$transaction(async (tx) => {
+      await this.paymentService.activateSubscription(tx, profileId, durationDays, label);
+    });
+
+    // In-app notification
+    await this.notifications.create({
+      userId: profile.userId,
+      type: 'PAYMENT_APPROVED',
+      title: 'Subscription Activated ✓',
+      body: `Your ${label} subscription (${durationDays} days) has been granted by an admin.`,
+      meta: { profileId, durationDays, planName: label },
+    });
+
+    // SMS notification (fire and forget)
+    const user = await this.prisma.user.findUnique({
+      where: { id: profile.userId },
+      select: { phone: true, whatsappNumber: true },
+    });
+    const smsPhone = user?.phone || user?.whatsappNumber;
+    if (smsPhone) {
+      const now = new Date();
+      const end = new Date(now.getTime() + durationDays * 86400000);
+      const expiryStr = end.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+      this.sms.sendSms(smsPhone,
+        `Your ${label} is now ACTIVE for ${durationDays} days. Valid till: ${expiryStr}.`
+      ).catch(() => {});
+    }
+
+    this.logger.log(`Admin ${adminId} GRANTED subscription: ${profileId} for ${durationDays} days (${label})`);
+    return {
+      success: true,
+      message: `Subscription granted to ${profile.name} (${profile.memberId}) for ${durationDays} days`,
+    };
+  }
+
   // ─── Analytics ───────────────────────────────────────────────
   async getAnalytics() {
     const now = new Date();

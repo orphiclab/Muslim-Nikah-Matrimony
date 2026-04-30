@@ -191,6 +191,12 @@ export const adminApi = {
   adminUpdateProfile: (id: string, body: Record<string, any>) =>
     request<any>(`/admin/profiles/${id}`, { method: 'PUT', body: JSON.stringify(body) }),
 
+  grantSubscription: (profileId: string, durationDays: number, planName?: string) =>
+    request<any>(`/admin/profiles/${profileId}/grant-subscription`, {
+      method: 'POST',
+      body: JSON.stringify({ durationDays, planName }),
+    }),
+
   // Analytics (both names for compatibility)
   analytics: () => request<any>('/admin/analytics'),
   getAnalytics: () => request<any>('/admin/analytics'),
@@ -211,7 +217,7 @@ export const adminApi = {
     request<any>(`/admin/profiles?search=${encodeURIComponent(query)}`),
 
   // Packages
-  getPackages: () => request<any>('/admin/packages'),
+  getPackages: (type?: string) => request<any>(`/admin/packages${type ? `?type=${type}` : ''}`),
   createPackage: (body: {
     name: string; description?: string; price: number; currency?: string;
     durationDays: number; features?: string[]; isActive?: boolean; sortOrder?: number;

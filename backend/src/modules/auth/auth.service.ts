@@ -28,7 +28,7 @@ export class AuthService {
     private readonly notifications: NotificationService,
   ) {}
 
-  async register(dto: RegisterDto) {
+  async register(dto: RegisterDto, ipAddress?: string, userAgent?: string) {
     const existing = await this.prisma.user.findUnique({ where: { email: dto.email } });
     if (existing) throw new ConflictException({ success: false, message: 'Email already registered', error_code: 'EMAIL_EXISTS' });
 
@@ -42,6 +42,7 @@ export class AuthService {
       actorId: user.id, actorEmail: user.email, actorRole: user.role,
       action: 'USER_REGISTERED', category: 'AUTH',
       entityId: user.id, entityLabel: user.email,
+      ipAddress, userAgent,
     });
 
     // Welcome email (fire and forget)
@@ -68,18 +69,35 @@ export class AuthService {
     return { success: true, token, user: { id: user.id, email: user.email, role: user.role } };
   }
 
-  async login(dto: LoginDto) {
+  async login(dto: LoginDto, ipAddress?: string, userAgent?: string) {
     const user = await this.prisma.user.findUnique({ where: { email: dto.email } });
-    if (!user) throw new UnauthorizedException({ success: false, message: 'Invalid credentials', error_code: 'INVALID_CREDENTIALS' });
+    if (!user) {
+      // Log failed login attempt
+      this.activityLog.log({
+        action: 'LOGIN_FAILED', category: 'AUTH', level: 'WARNING',
+        entityLabel: dto.email, ipAddress, userAgent,
+        meta: { reason: 'User not found' },
+      });
+      throw new UnauthorizedException({ success: false, message: 'Invalid credentials', error_code: 'INVALID_CREDENTIALS' });
+    }
 
     const valid = await bcrypt.compare(dto.password, user.password);
-    if (!valid) throw new UnauthorizedException({ success: false, message: 'Invalid credentials', error_code: 'INVALID_CREDENTIALS' });
+    if (!valid) {
+      this.activityLog.log({
+        actorId: user.id, actorEmail: user.email, actorRole: user.role,
+        action: 'LOGIN_FAILED', category: 'AUTH', level: 'WARNING',
+        entityId: user.id, entityLabel: user.email, ipAddress, userAgent,
+        meta: { reason: 'Wrong password' },
+      });
+      throw new UnauthorizedException({ success: false, message: 'Invalid credentials', error_code: 'INVALID_CREDENTIALS' });
+    }
 
     this.logger.log(`User logged in: ${user.email}`);
     this.activityLog.log({
       actorId: user.id, actorEmail: user.email, actorRole: user.role,
       action: 'USER_LOGIN', category: 'AUTH',
       entityId: user.id, entityLabel: user.email,
+      ipAddress, userAgent,
     });
 
     // ── Login SMS notification (fire and forget) ──────────────────────────────

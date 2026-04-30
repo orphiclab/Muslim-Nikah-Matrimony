@@ -114,6 +114,15 @@ export class AdminController {
     return this.service.adminUpdateProfile(user.userId, id, dto);
   }
 
+  @Post('profiles/:id/grant-subscription')
+  grantSubscription(
+    @CurrentUser() user: any,
+    @Param('id') id: string,
+    @Body() body: { durationDays: number; planName?: string },
+  ) {
+    return this.service.adminGrantSubscription(user.userId, id, body.durationDays, body.planName ?? 'Admin Grant');
+  }
+
   @Get('analytics')
   analytics() { return this.service.getAnalytics(); }
 
