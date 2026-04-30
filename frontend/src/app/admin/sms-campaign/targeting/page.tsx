@@ -34,7 +34,7 @@ export default function UserTargetingPage() {
   const [loading, setLoading] = useState(false);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
-  const LIMIT = 50;
+  const LIMIT = 20;
 
   // Filters
   const [pkgFilter, setPkgFilter] = useState('ALL');
@@ -257,21 +257,88 @@ export default function UserTargetingPage() {
         </div>
 
         {/* Pagination */}
-        {totalPages > 1 && (
-          <div className="flex items-center justify-between px-5 py-4 border-t border-gray-100">
-            <span className="text-xs text-gray-400">Page {page} of {totalPages}</span>
-            <div className="flex gap-2">
-              <button onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page === 1}
-                className="px-3 py-1.5 text-xs font-medium bg-gray-100 rounded-lg disabled:opacity-40 hover:bg-gray-200 transition-colors">
-                Previous
-              </button>
-              <button onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={page === totalPages}
-                className="px-3 py-1.5 text-xs font-medium bg-gray-100 rounded-lg disabled:opacity-40 hover:bg-gray-200 transition-colors">
-                Next
-              </button>
-            </div>
+        <div className="flex items-center justify-between px-5 py-4 border-t border-gray-100 flex-wrap gap-3">
+          {/* Info */}
+          <span className="text-xs text-gray-400 shrink-0">
+            {total === 0
+              ? 'No results'
+              : `Showing ${(page - 1) * LIMIT + 1}–${Math.min(page * LIMIT, total)} of ${total} users`}
+          </span>
+
+          {/* Controls */}
+          <div className="flex items-center gap-1">
+            {/* First */}
+            <button
+              onClick={() => setPage(1)}
+              disabled={page === 1}
+              title="First page"
+              className="w-8 h-8 flex items-center justify-center rounded-lg text-xs font-medium bg-gray-100 disabled:opacity-30 hover:bg-gray-200 transition-colors"
+            >
+              «
+            </button>
+            {/* Prev */}
+            <button
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+              disabled={page === 1}
+              title="Previous page"
+              className="w-8 h-8 flex items-center justify-center rounded-lg text-xs font-medium bg-gray-100 disabled:opacity-30 hover:bg-gray-200 transition-colors"
+            >
+              ‹
+            </button>
+
+            {/* Page numbers */}
+            {(() => {
+              const pages: (number | '...')[] = [];
+              if (totalPages <= 7) {
+                for (let i = 1; i <= totalPages; i++) pages.push(i);
+              } else {
+                pages.push(1);
+                if (page > 4) pages.push('...');
+                const start = Math.max(2, page - 2);
+                const end = Math.min(totalPages - 1, page + 2);
+                for (let i = start; i <= end; i++) pages.push(i);
+                if (page < totalPages - 3) pages.push('...');
+                pages.push(totalPages);
+              }
+              return pages.map((p, idx) =>
+                p === '...' ? (
+                  <span key={`ellipsis-${idx}`} className="w-8 h-8 flex items-center justify-center text-xs text-gray-400">…</span>
+                ) : (
+                  <button
+                    key={p}
+                    onClick={() => setPage(p as number)}
+                    className={`w-8 h-8 flex items-center justify-center rounded-lg text-xs font-semibold transition-colors ${
+                      page === p
+                        ? 'bg-[#1C3B35] text-white shadow-sm'
+                        : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                    }`}
+                  >
+                    {p}
+                  </button>
+                )
+              );
+            })()}
+
+            {/* Next */}
+            <button
+              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+              disabled={page === totalPages || totalPages === 0}
+              title="Next page"
+              className="w-8 h-8 flex items-center justify-center rounded-lg text-xs font-medium bg-gray-100 disabled:opacity-30 hover:bg-gray-200 transition-colors"
+            >
+              ›
+            </button>
+            {/* Last */}
+            <button
+              onClick={() => setPage(totalPages)}
+              disabled={page === totalPages || totalPages === 0}
+              title="Last page"
+              className="w-8 h-8 flex items-center justify-center rounded-lg text-xs font-medium bg-gray-100 disabled:opacity-30 hover:bg-gray-200 transition-colors"
+            >
+              »
+            </button>
           </div>
-        )}
+        </div>
       </div>
 
       {/* Individual SMS Modal */}

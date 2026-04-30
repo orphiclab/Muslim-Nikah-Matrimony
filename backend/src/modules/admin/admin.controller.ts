@@ -46,6 +46,7 @@ export class PublicPackagesController {
 }
 
 
+// ─── Full Admin Controller ──────────────────────────────────────────────────
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Roles('ADMIN')
 @Controller('admin')
@@ -121,7 +122,6 @@ export class AdminController {
     return this.service.getRecentMessages(limit ? parseInt(limit) : 100);
   }
 
-
   // ─ Boosts ───────────────────────────────────────────────
   @Get('boosts')
   getBoosts() { return this.service.getBoosts(); }
@@ -185,5 +185,59 @@ export class AdminController {
     @Body() body: { adminNote: string },
   ) {
     return this.service.rejectEditRequest(user.userId, id, body.adminNote);
+  }
+}
+
+
+// ─── Staff Controller ───────────────────────────────────────────────────────
+// STAFF can view/edit profiles only — phones masked, cannot change phone numbers
+@UseGuards(JwtAuthGuard, RolesGuard)
+@Roles('ADMIN', 'STAFF')
+@Controller('admin/staff')
+export class StaffController {
+  constructor(private readonly service: AdminService) {}
+
+  /** Profiles list — user phone/whatsapp stripped from response */
+  @Get('profiles')
+  async getProfiles(@Query('status') status?: string) {
+    const result = await this.service.getAllProfiles(status);
+    const data = result.data as any[];
+    if (data) {
+      (result as any).data = data.map((p: any) => ({
+        ...p,
+        user: p.user ? { ...p.user, phone: undefined, whatsappNumber: undefined } : p.user,
+      }));
+    }
+    return result;
+  }
+
+  /** Single profile — phones masked */
+  @Get('profiles/:id')
+  async getProfile(@Param('id') id: string) {
+    const result = await this.service.getProfile(id);
+    const user = (result.data as any)?.user;
+    if (user) {
+      (result as any).data = {
+        ...result.data,
+        user: {
+          ...user,
+          phone: this.service.maskPhone(user.phone),
+          whatsappNumber: this.service.maskPhone(user.whatsappNumber ?? null),
+        },
+      };
+    }
+    return result;
+  }
+
+  /** Profile update — phone fields are silently blocked */
+  @Put('profiles/:id')
+  staffUpdateProfile(
+    @CurrentUser() user: any,
+    @Param('id') id: string,
+    @Body() dto: Record<string, any>,
+  ) {
+    // Strip phone-related fields staff might try to send
+    const { phone, whatsappNumber, ...safeDto } = dto;
+    return this.service.adminUpdateProfile(user.userId, id, safeDto);
   }
 }

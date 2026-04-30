@@ -8,6 +8,12 @@ import { adminApi, userApi } from '@/services/api';
 /* ─────────────────────────────────────────────────────────────────────────── */
 type Tab = 'account' | 'security' | 'platform';
 
+function getAdminRole(): string {
+  if (typeof window === 'undefined') return 'ADMIN';
+  try { return JSON.parse(localStorage.getItem('mn_user') ?? '{}')?.role ?? 'ADMIN'; }
+  catch { return 'ADMIN'; }
+}
+
 /* ─────────────────────────────────────────────────────────────────────────── */
 /*  Toast                                                                       */
 /* ─────────────────────────────────────────────────────────────────────────── */
@@ -290,6 +296,11 @@ export default function AdminSettingsPage() {
   const [tab, setTab] = useState<Tab>('account');
   const [pageLoading, setPageLoading] = useState(true);
   const [toast, setToast] = useState<{ msg: string; ok: boolean } | null>(null);
+  const [adminRole, setAdminRole] = useState<string>('ADMIN');
+
+  useEffect(() => { setAdminRole(getAdminRole()); }, []);
+
+  const canAccessPlatform = adminRole === 'ADMIN';
 
   const showToast = (msg: string, ok = true) => {
     setToast({ msg, ok });
@@ -381,8 +392,8 @@ export default function AdminSettingsPage() {
     finally { setSavingPlatform(false); }
   };
 
-  /* ── Nav config ──────────────────────────────────────────────────────────── */
-  const NAV: { key: Tab; label: string; desc: string; icon: React.ReactNode; accent: string }[] = [
+  /* ── Nav config ─────────────────────────────────────────────────────────── */
+  const ALL_NAV: { key: Tab; label: string; desc: string; icon: React.ReactNode; accent: string }[] = [
     {
       key: 'account', label: 'My Account', desc: 'Profile & contact info',
       accent: '#1C3B35',
@@ -412,6 +423,7 @@ export default function AdminSettingsPage() {
       ),
     },
   ];
+  const NAV = canAccessPlatform ? ALL_NAV : ALL_NAV.filter(n => n.key !== 'platform');
 
   /* Loading */
   if (pageLoading) return (

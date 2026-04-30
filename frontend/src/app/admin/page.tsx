@@ -154,6 +154,15 @@ export default function AdminDashboard() {
     setTimeout(() => setToast(null), 5000);
   };
 
+  // Role-based redirect: non-admin roles should not see the main dashboard
+  useEffect(() => {
+    try {
+      const role = JSON.parse(localStorage.getItem('mn_user') ?? '{}')?.role;
+      if (role === 'MARKETING_MANAGER') { router.replace('/admin/sms-campaign'); return; }
+      if (role === 'STAFF') { router.replace('/admin/profiles'); return; }
+    } catch {}
+  }, [router]);
+
   const load = useCallback(() => {
     setLoading(true);
     Promise.all([

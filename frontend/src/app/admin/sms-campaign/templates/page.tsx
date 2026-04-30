@@ -40,7 +40,9 @@ export default function TemplatesPage() {
   const fetchTemplates = () => {
     setLoading(true);
     fetch(`${API}/admin/sms-campaign/templates/list`, { headers: { Authorization: `Bearer ${getToken()}` } })
-      .then((r) => r.json()).then((d) => { if (d.success) setTemplates(d.data); })
+      .then((r) => r.json())
+      .then((d) => { if (d.success) setTemplates(d.data ?? []); })
+      .catch(() => setTemplates([]))
       .finally(() => setLoading(false));
   };
 
@@ -114,24 +116,29 @@ export default function TemplatesPage() {
         </button>
       </div>
 
-      {/* Starter templates */}
-      {templates.length === 0 && !loading && (
-        <div className="bg-indigo-50 rounded-2xl p-6 mb-6">
-          <p className="text-sm font-semibold text-indigo-700 mb-1">Quick Start</p>
-          <p className="text-xs text-indigo-500 mb-4">Add these pre-built templates to get started quickly</p>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            {STARTER_TEMPLATES.map((tpl) => (
-              <button key={tpl.name} onClick={() => addStarterTemplate(tpl)}
-                className="text-left p-4 bg-white rounded-xl hover:shadow-sm transition-all border border-indigo-100">
-                <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium mb-2 ${CATEGORY_STYLE[tpl.category]}`}>{tpl.category}</span>
-                <p className="text-sm font-semibold text-[#121514]">{tpl.name}</p>
-                <p className="text-xs text-gray-400 mt-1 line-clamp-2">{tpl.message}</p>
-                <p className="text-xs text-indigo-600 mt-2 font-medium">+ Add this template →</p>
-              </button>
-            ))}
+      {/* Quick Start — always visible, filtered to not-yet-added templates */}
+      {(() => {
+        const addedNames = new Set(templates.map((t) => t.name));
+        const remaining = STARTER_TEMPLATES.filter((s) => !addedNames.has(s.name));
+        if (loading || remaining.length === 0) return null;
+        return (
+          <div className="bg-indigo-50 rounded-2xl p-6 mb-6">
+            <p className="text-sm font-semibold text-indigo-700 mb-1">Quick Start</p>
+            <p className="text-xs text-indigo-500 mb-4">Add these pre-built templates to get started quickly</p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {remaining.map((tpl) => (
+                <button key={tpl.name} onClick={() => addStarterTemplate(tpl)}
+                  className="text-left p-4 bg-white rounded-xl hover:shadow-sm transition-all border border-indigo-100">
+                  <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium mb-2 ${CATEGORY_STYLE[tpl.category]}`}>{tpl.category}</span>
+                  <p className="text-sm font-semibold text-[#121514]">{tpl.name}</p>
+                  <p className="text-xs text-gray-400 mt-1 line-clamp-2">{tpl.message}</p>
+                  <p className="text-xs text-indigo-600 mt-2 font-medium">+ Add this template →</p>
+                </button>
+              ))}
+            </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
 
       {/* Templates grid */}
       {loading ? (

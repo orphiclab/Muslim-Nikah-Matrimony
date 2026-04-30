@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { adminApi } from '@/services/api';
 
-type Role = 'ADMIN';
+type Role = 'ADMIN' | 'MARKETING_MANAGER' | 'STAFF';
 
 export default function AdminCreateUserPage() {
   const router = useRouter();
@@ -15,7 +15,7 @@ export default function AdminCreateUserPage() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [phone, setPhone] = useState('');
   const [whatsapp, setWhatsapp] = useState('');
-  const [role] = useState<Role>('ADMIN');
+  const [role, setRole] = useState<Role>('ADMIN');
   const [showPw, setShowPw] = useState(false);
   const [showCpw, setShowCpw] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -104,8 +104,8 @@ export default function AdminCreateUserPage() {
           </svg>
           <span className="text-gray-700 font-medium">Create User</span>
         </div>
-        <h1 className="text-[22px] sm:text-[28px] font-poppins font-medium text-[#121514]">Create New User</h1>
-        <p className="text-gray-400 text-sm mt-0.5">Add a new admin account with full dashboard access.</p>
+        <h1 className="text-[22px] sm:text-[28px] font-poppins font-medium text-[#121514]">Create New Admin User</h1>
+        <p className="text-gray-400 text-sm mt-0.5">Add a new admin account. Choose role to set access level.</p>
       </div>
 
       <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
@@ -174,6 +174,27 @@ export default function AdminCreateUserPage() {
               </div>
               {errors.confirmPassword && <p className="text-xs text-red-500 mt-1.5 flex items-center gap-1"><span>⚠</span>{errors.confirmPassword}</p>}
             </div>
+          </div>
+
+          {/* Role */}
+          <div>
+            <label className="block text-xs font-semibold text-gray-500 mb-1.5">
+              Role <span className="text-red-400">*</span>
+            </label>
+            <select
+              value={role}
+              onChange={e => setRole(e.target.value as Role)}
+              className="w-full border border-gray-200 rounded-xl px-3.5 py-2.5 text-sm outline-none focus:border-[#1C3B35] transition bg-gray-50 focus:bg-white"
+            >
+              <option value="ADMIN">Admin — Full access</option>
+              <option value="MARKETING_MANAGER">Marketing Manager — SMS Campaign access only</option>
+              <option value="STAFF">Staff — Profiles access only</option>
+            </select>
+            <p className="text-xs text-gray-400 mt-1.5">
+              {role === 'MARKETING_MANAGER' && '📣 Can access SMS Campaign, User Targeting, and limited Settings. Phone numbers will be masked.'}
+              {role === 'STAFF' && '👤 Can view and edit profiles. Phone numbers will be masked. Cannot access SMS or Dashboard.'}
+              {role === 'ADMIN' && '🔑 Full admin access to all features and platform settings.'}
+            </p>
           </div>
 
           {/* Phone + WhatsApp */}

@@ -33,7 +33,8 @@ export default function LoginPage() {
           return;
         }
         const parsed = JSON.parse(user ?? '{}');
-        const dest = redirectTo || (parsed.role === 'ADMIN' ? '/admin' : '/dashboard/parent');
+        const isAdminRole = ['ADMIN', 'MARKETING_MANAGER', 'STAFF'].includes(parsed.role);
+        const dest = redirectTo || (isAdminRole ? '/admin' : '/dashboard/parent');
         router.replace(dest);
       } catch {
         // Malformed token — clear and show login
@@ -58,7 +59,8 @@ export default function LoginPage() {
       window.dispatchEvent(new Event('mn_auth_change'));
 
       // If there's a redirect param, go there; otherwise default dashboard
-      const dest = redirectTo || (res.user.role === 'ADMIN' ? '/admin' : '/dashboard/parent');
+      const isAdminRole = ['ADMIN', 'MARKETING_MANAGER', 'STAFF'].includes(res.user.role);
+      const dest = redirectTo || (isAdminRole ? '/admin' : '/dashboard/parent');
       router.push(dest);
     } catch (e: any) {
       setError(e.message ?? "Login failed. Check your credentials.");

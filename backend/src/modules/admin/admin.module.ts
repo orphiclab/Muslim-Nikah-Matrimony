@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common';
 import { AdminService } from './admin.service';
-import { AdminController } from './admin.controller';
+import { AdminController, StaffController } from './admin.controller';
 import { PublicPackagesController } from './admin.controller';
 import { PaymentModule } from '../payment/payment.module';
 import { ActivityLogModule } from '../activity-log/activity-log.module';
@@ -12,7 +12,7 @@ import { ChildProfileModule } from '../child-profile/child-profile.module';
 
 @Module({
   imports: [PaymentModule, ActivityLogModule, NotificationModule, AuthModule, ChildProfileModule],
-  controllers: [AdminController, PublicPackagesController],
+  controllers: [AdminController, PublicPackagesController, StaffController],
   providers: [AdminService, MailService, SmsService],
 })
 export class AdminModule {}

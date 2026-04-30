@@ -4,6 +4,13 @@ import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { adminApi } from '@/services/api';
 
+const API = process.env.NEXT_PUBLIC_API_URL;
+function getToken() { return typeof window !== 'undefined' ? localStorage.getItem('mn_token') : null; }
+function getRole(): string {
+  try { return JSON.parse(localStorage.getItem('mn_user') ?? '{}')?.role ?? 'ADMIN'; }
+  catch { return 'ADMIN'; }
+}
+
 type Profile = {
   id: string; name: string; gender: string; status: string;
   country?: string; city?: string; occupation?: string;
@@ -25,14 +32,28 @@ export default function AdminProfilesPage() {
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
   const [openAction, setOpenAction] = useState<string | null>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const [userRole, setUserRole] = useState('ADMIN');
   const PER_PAGE = 10;
 
   useEffect(() => {
+    const role = getRole();
+    setUserRole(role);
     setLoading(true);
-    adminApi.profiles()
-      .then((r) => setProfiles(r.data ?? []))
-      .catch(() => setProfiles([]))
-      .finally(() => setLoading(false));
+    const url = role === 'STAFF'
+      ? `${API}/admin/staff/profiles`
+      : undefined; // use adminApi below
+    if (url) {
+      fetch(url, { headers: { Authorization: `Bearer ${getToken()}` } })
+        .then(r => r.json())
+        .then(r => setProfiles(r.data ?? []))
+        .catch(() => setProfiles([]))
+        .finally(() => setLoading(false));
+    } else {
+      adminApi.profiles()
+        .then((r) => setProfiles(r.data ?? []))
+        .catch(() => setProfiles([]))
+        .finally(() => setLoading(false));
+    }
   }, []);
 
   // Close dropdown on outside click

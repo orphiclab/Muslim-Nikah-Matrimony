@@ -11,6 +11,8 @@ datasource db {
 enum Role {
   PARENT
   ADMIN
+  MARKETING_MANAGER
+  STAFF
 }
 
 enum Gender {

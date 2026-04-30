@@ -1,12 +1,23 @@
-import { Controller, Get, Post, Put, Delete, Body, Param, Query, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Put, Delete, Body, Param, Query, UseGuards, Request } from '@nestjs/common';
 import { SmsCampaignService } from './sms-campaign.service';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard, Roles } from '../../common/guards/roles.guard';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { CreateCampaignDto, CreateTemplateDto, SendIndividualSmsDto } from './dto/sms-campaign.dto';
 
+/** Mask a phone — show first 4 and last 2 chars: +94 7XXX XXX45 */
+function maskPhone(phone: string | null | undefined): string | null {
+  if (!phone) return null;
+  const cleaned = phone.replace(/\s/g, '');
+  if (cleaned.length < 6) return '•••';
+  const prefix = cleaned.slice(0, 4);
+  const suffix = cleaned.slice(-2);
+  const mid = 'X'.repeat(Math.max(0, cleaned.length - 6));
+  return `${prefix} ${mid.slice(0, 3)} ${mid.slice(3)}${suffix}`.trim();
+}
+
 @UseGuards(JwtAuthGuard, RolesGuard)
-@Roles('ADMIN')
+@Roles('ADMIN', 'MARKETING_MANAGER')
 @Controller('admin/sms-campaign')
 export class SmsCampaignController {
   constructor(private readonly service: SmsCampaignService) {}
@@ -17,7 +28,8 @@ export class SmsCampaignController {
 
   // ─── Targeting ────────────────────────────────────────────────────────────
   @Get('users')
-  getUsers(
+  async getUsers(
+    @CurrentUser() caller: any,
     @Query('packageStatus') packageStatus?: string,
     @Query('gender') gender?: string,
     @Query('country') country?: string,
@@ -25,14 +37,19 @@ export class SmsCampaignController {
     @Query('page') page?: string,
     @Query('limit') limit?: string,
   ) {
-    return this.service.getTargetableUsers({
+    const result = await this.service.getTargetableUsers({
       packageStatus,
       gender,
       country,
       lastActiveDays: lastActiveDays ? parseInt(lastActiveDays) : undefined,
       page: page ? parseInt(page) : 1,
-      limit: limit ? parseInt(limit) : 50,
+      limit: limit ? parseInt(limit) : 20,
     });
+    // Mask phones for non-ADMIN roles (MARKETING_MANAGER sees masked numbers)
+    if (caller?.role !== 'ADMIN' && result.data) {
+      result.data = result.data.map((u: any) => ({ ...u, phone: maskPhone(u.phone) }));
+    }
+    return result;
   }
 
   // ─── Templates — MUST be declared before :id to avoid route shadowing ─────
