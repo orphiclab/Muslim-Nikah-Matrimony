@@ -110,6 +110,12 @@ function Field({
             className={`${base} appearance-none cursor-pointer pr-9`}
           >
             <option value="">— Select —</option>
+            {/* Ensure the currently saved value is always present as an option
+                even if master data hasn't loaded yet or the value is from a
+                legacy/different label set — prevents falling back to blank. */}
+            {value && !options.some(o => o.value === value) && (
+              <option key={`__current__${value}`} value={value}>{value}</option>
+            )}
             {options.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
           </select>
           <ChevronDown />

@@ -12,14 +12,14 @@ function getRole(): string {
 }
 
 type Profile = {
-  id: string; name: string; gender: string; status: string;
+  id: string; memberId?: string; name: string; gender: string; status: string;
   country?: string; city?: string; occupation?: string;
   createdAt: string; user?: { email: string };
 };
 
 const STATUS_OPTIONS = ['ALL', 'ACTIVE', 'DRAFT', 'PAYMENT_PENDING', 'EXPIRED'];
 
-type SortKey = 'name' | 'owner' | 'gender' | 'location' | 'status' | 'joined';
+type SortKey = 'memberId' | 'name' | 'owner' | 'gender' | 'location' | 'status' | 'joined';
 
 export default function AdminProfilesPage() {
   const router = useRouter();
@@ -67,9 +67,24 @@ export default function AdminProfilesPage() {
     return () => document.removeEventListener('mousedown', handler);
   }, []);
 
+  const STATUS_LABELS: Record<string, string> = {
+    ACTIVE: 'Active', DRAFT: 'Draft',
+    PAYMENT_PENDING: 'Pending Payment', EXPIRED: 'Expired',
+  };
+
   const filtered = profiles.filter(p => {
-    const matchSearch = p.name.toLowerCase().includes(search.toLowerCase()) ||
-      (p.user?.email ?? '').toLowerCase().includes(search.toLowerCase());
+    const q = search.toLowerCase();
+    const location = [p.city, p.country].filter(Boolean).join(', ').toLowerCase();
+    const joinedStr = new Date(p.createdAt).toLocaleDateString().toLowerCase();
+    const matchSearch = !q
+      || (p.memberId ?? '').toLowerCase().includes(q)
+      || p.name.toLowerCase().includes(q)
+      || (p.user?.email ?? '').toLowerCase().includes(q)
+      || p.gender.toLowerCase().includes(q)
+      || location.includes(q)
+      || p.status.toLowerCase().includes(q)
+      || (STATUS_LABELS[p.status] ?? '').toLowerCase().includes(q)
+      || joinedStr.includes(q);
     const matchStatus = filter === 'ALL' || p.status === filter;
     return matchSearch && matchStatus;
   });
@@ -83,7 +98,8 @@ export default function AdminProfilesPage() {
 
   const sorted = [...filtered].sort((a, b) => {
     let cmp = 0;
-    if (sortKey === 'name') cmp = a.name.localeCompare(b.name);
+    if (sortKey === 'memberId') cmp = (a.memberId ?? '').localeCompare(b.memberId ?? '');
+    else if (sortKey === 'name') cmp = a.name.localeCompare(b.name);
     else if (sortKey === 'owner') cmp = (a.user?.email ?? '').localeCompare(b.user?.email ?? '');
     else if (sortKey === 'gender') cmp = a.gender.localeCompare(b.gender);
     else if (sortKey === 'location') cmp = ([a.city, a.country].filter(Boolean).join(', ')).localeCompare([b.city, b.country].filter(Boolean).join(', '));
@@ -170,7 +186,7 @@ export default function AdminProfilesPage() {
               <circle cx="11" cy="11" r="8" /><path d="m21 21-4.35-4.35" />
             </svg>
             <input value={search} onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-              placeholder="Search name or email…"
+              placeholder="Search ID, email, location, status…"
               className="flex-1 bg-transparent text-sm outline-none text-gray-700 placeholder:text-gray-400" />
             {search && (
               <button onClick={() => { setSearch(''); setPage(1); }} className="text-gray-400 hover:text-gray-600 transition">
@@ -196,6 +212,7 @@ export default function AdminProfilesPage() {
               <thead className="bg-gray-50 border-b border-gray-100">
                 <tr>
                   <th className="px-5 py-3.5 text-left text-xs font-semibold text-gray-500 tracking-wide w-10">#</th>
+                  <SortTh colKey="memberId" label="Member ID" />
                   <SortTh colKey="owner" label="Owner" />
                   <SortTh colKey="gender" label="Gender" />
                   <SortTh colKey="location" label="Location" />
@@ -208,6 +225,11 @@ export default function AdminProfilesPage() {
                 {pageData.map((p, i) => (
                   <tr key={p.id} className={`hover:bg-gray-50 transition ${i % 2 === 1 ? 'bg-[#FAFAFA]' : ''}`}>
                     <td className="px-5 py-3.5 text-xs text-gray-400 font-mono">{(page - 1) * PER_PAGE + i + 1}</td>
+                    <td className="px-5 py-3.5">
+                      <span className="text-xs font-mono font-semibold text-[#1C3B35] bg-[#1C3B35]/8 px-2 py-0.5 rounded-md tracking-wide">
+                        {p.memberId ?? '—'}
+                      </span>
+                    </td>
                     <td className="px-5 py-3.5 text-xs text-gray-500">{p.user?.email ?? '—'}</td>
                     <td className="px-5 py-3.5">
                       <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${p.gender === 'FEMALE' ? 'bg-pink-50 text-pink-600' : 'bg-blue-50 text-blue-600'}`}>

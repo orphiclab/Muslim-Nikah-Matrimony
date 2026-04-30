@@ -196,7 +196,7 @@ export default function UserTargetingPage() {
                   <input type="checkbox" className="rounded" checked={selected.size === users.length && users.length > 0}
                     onChange={(e) => e.target.checked ? selectAll() : clearSelection()} />
                 </th>
-                {['Member ID', 'Name', 'Phone', 'Gender', 'Country', 'Package', 'Registered', 'Action'].map((h) => (
+                {['Member ID', 'Phone', 'Gender', 'Country', 'Package', 'Registered', 'Action'].map((h) => (
                   <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">{h}</th>
                 ))}
               </tr>
@@ -221,7 +221,6 @@ export default function UserTargetingPage() {
                   </td>
                   <td className="px-4 py-3 font-mono text-xs text-gray-600">{u.memberId}</td>
                   <td className="px-4 py-3">
-                    <div className="font-medium text-[#121514]">{u.name}</div>
                     <div className="text-xs text-gray-400">{u.email}</div>
                   </td>
                   <td className="px-4 py-3">

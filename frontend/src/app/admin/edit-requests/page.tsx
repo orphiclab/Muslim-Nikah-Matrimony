@@ -250,7 +250,9 @@ export default function EditRequestsPage() {
                       {req.profile.gender === 'MALE' ? '♂' : '♀'}
                     </div>
                     <div className="min-w-0">
-                      <p className="font-bold text-gray-800 text-sm truncate">{req.profile.name}</p>
+                      {req.profile.name && req.profile.name.trim().length > 1 && (
+                        <p className="font-bold text-gray-800 text-sm truncate">{req.profile.name}</p>
+                      )}
                       <p className="text-xs text-gray-400">{req.profile.memberId} · {req.profile.user.email}</p>
                     </div>
                   </div>
@@ -282,7 +284,9 @@ export default function EditRequestsPage() {
             {/* Panel header */}
             <div className="bg-gradient-to-r from-[#1C3B35] to-[#2d6352] px-5 py-4 flex items-center justify-between">
               <div>
-                <h2 className="font-bold text-white text-sm">{selected.profile.name}</h2>
+                {selected.profile.name && selected.profile.name.trim().length > 1 && (
+                  <h2 className="font-bold text-white text-sm">{selected.profile.name}</h2>
+                )}
                 <p className="text-xs text-white/60 mt-0.5">{selected.profile.memberId} · {selected.profile.user.email}</p>
               </div>
               <button
