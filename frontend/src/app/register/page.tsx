@@ -1297,8 +1297,7 @@ export default function RegisterPage() {
                 }`}
               >
                 Back
-              </button>
-
+              </button>             
               {currentStep < 5 ? (
                 <button
                   onClick={handleNext}

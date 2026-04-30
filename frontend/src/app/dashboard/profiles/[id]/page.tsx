@@ -277,8 +277,8 @@ export default function ProfileDetailPage() {
             <h3 className="text-xs font-bold text-[#1C3B35] uppercase tracking-wider">Who Viewed My Profile</h3>
           </div>
           <div className="flex items-center gap-2">
-            <span className="inline-flex items-center gap-1.5 bg-[#1C3B35] text-white text-xs font-bold px-3 py-1 rounded-full">
-              <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
+            <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-gray-500">
+              <svg className="w-3.5 h-3.5 text-gray-400" fill="none" stroke="currentColor" strokeWidth={2.2} viewBox="0 0 24 24">
                 <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
               </svg>
               {viewTotal} {viewTotal === 1 ? 'view' : 'views'}
