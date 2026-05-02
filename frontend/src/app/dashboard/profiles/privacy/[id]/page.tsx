@@ -81,8 +81,6 @@ export default function PrivacySettingsPage() {
   const [error, setError] = useState('');
 
   const [settings, setSettings] = useState({
-    showRealName: true,
-    nickname: '',
     showAge: true,          // always true (locked)
     showGender: true,       // always true (locked)
     showCountry: true,
@@ -105,8 +103,6 @@ export default function PrivacySettingsPage() {
       if (!p) { router.push('/dashboard/profiles'); return; }
       setProfile(p);
       setSettings({
-        showRealName:      p.showRealName      ?? true,
-        nickname:          p.nickname          ?? '',
         showAge:           true,
         showGender:        true,
         showCountry:       p.showCountry       ?? true,
@@ -128,7 +124,7 @@ export default function PrivacySettingsPage() {
 
   const toggle = (key: keyof typeof settings) => {
     if (key === 'showAge' || key === 'showGender') return; // locked
-    setSettings(s => ({ ...s, [key]: !s[key] }));
+    setSettings(s => ({ ...s, [key]: !(s as any)[key] }));
   };
 
   const handleSave = async () => {
@@ -205,52 +201,6 @@ export default function PrivacySettingsPage() {
         </div>
       )}
 
-      {/* Name Privacy */}
-      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-        <div className="px-5 py-4 bg-[#F0F4F2] border-b border-gray-100">
-          <SectionHeader
-            icon={<svg className={iconCls} fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><circle cx="12" cy="8" r="4" /><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" /></svg>}
-            title="Name Privacy"
-            description="Control how your name appears to other members"
-          />
-        </div>
-        <div className="px-5">
-          <PrivacyRow
-            icon={<svg className={iconCls} fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><circle cx="12" cy="8" r="4" /><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" /></svg>}
-            title="Show Real Name Publicly"
-            description="When turned off, your nickname is shown instead of your real name"
-            checked={settings.showRealName}
-            onChange={() => toggle('showRealName')}
-          />
-        </div>
-
-        {/* Nickname input — visible when showRealName is OFF */}
-        {!settings.showRealName && (
-          <div className="px-5 pb-5">
-            <div className="bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 mb-3">
-              <p className="text-xs font-semibold text-amber-800 flex items-center gap-1.5">
-                <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" /></svg>
-                Your real name will be hidden from public listings
-              </p>
-            </div>
-            <label className="block text-xs font-semibold text-gray-600 mb-1.5">
-              Display Name / Nickname <span className="text-red-400">*</span>
-            </label>
-            <input
-              type="text"
-              value={settings.nickname}
-              onChange={e => setSettings(s => ({ ...s, nickname: e.target.value }))}
-              placeholder="e.g. Sister Mariam, Brother Ali, Fatima R."
-              className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-700 outline-none focus:border-[#1C3B35] focus:ring-2 focus:ring-[#1C3B35]/10 transition bg-gray-50 focus:bg-white"
-            />
-            {!settings.nickname.trim() && (
-              <p className="text-xs text-red-500 mt-1.5 flex items-center gap-1">
-                <span>⚠</span> Please enter a nickname, otherwise your name will not be shown at all.
-              </p>
-            )}
-          </div>
-        )}
-      </div>
 
       {/* Profile Fields Privacy */}
       <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
@@ -383,7 +333,7 @@ export default function PrivacySettingsPage() {
       <div className="flex items-center gap-3">
         <button
           onClick={handleSave}
-          disabled={saving || (!settings.showRealName && !settings.nickname.trim())}
+          disabled={saving}
           className="flex-1 bg-[#1C3B35] text-white text-sm font-bold py-3.5 rounded-2xl hover:bg-[#15302a] transition shadow-md hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-50 disabled:cursor-not-allowed disabled:translate-y-0 flex items-center justify-center gap-2"
         >
           {saving ? (

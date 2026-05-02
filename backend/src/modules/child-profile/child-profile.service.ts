@@ -165,19 +165,50 @@ export class ChildProfileService {
     return { success: true, data: updated };
   }
 
-  async updatePrivacy(userId: string, profileId: string, data: { showRealName?: boolean; nickname?: string }) {
+  async updatePrivacy(
+    userId: string,
+    profileId: string,
+    data: {
+      showRealName?: boolean;
+      nickname?: string;
+      showCountry?: boolean;
+      showCity?: boolean;
+      showEducation?: boolean;
+      showOccupation?: boolean;
+      showEthnicity?: boolean;
+      showCivilStatus?: boolean;
+      showHeight?: boolean;
+      showWeight?: boolean;
+      showDressCode?: boolean;
+      showFamilyDetails?: boolean;
+      showAbout?: boolean;
+      showExpectations?: boolean;
+    },
+  ) {
     const profile = await this.findOwnedProfile(userId, profileId);
 
     const updated = await this.prisma.childProfile.update({
       where: { id: profile.id },
       data: {
-        showRealName: data.showRealName,
-        nickname: data.nickname,
+        showRealName:      data.showRealName,
+        nickname:          data.nickname,
+        showCountry:       data.showCountry,
+        showCity:          data.showCity,
+        showEducation:     data.showEducation,
+        showOccupation:    data.showOccupation,
+        showEthnicity:     data.showEthnicity,
+        showCivilStatus:   data.showCivilStatus,
+        showHeight:        data.showHeight,
+        showWeight:        data.showWeight,
+        showDressCode:     data.showDressCode,
+        showFamilyDetails: data.showFamilyDetails,
+        showAbout:         data.showAbout,
+        showExpectations:  data.showExpectations,
       } as any,
       include: { subscription: true },
     });
 
-    this.logger.log(`Profile PRIVACY UPDATED: ${profileId} showRealName=${data.showRealName}`);
+    this.logger.log(`Profile PRIVACY UPDATED: ${profileId}`);
     return { success: true, data: updated };
   }
 

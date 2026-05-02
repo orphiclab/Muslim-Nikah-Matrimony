@@ -23,7 +23,13 @@ export class ChildProfileController {
   updatePrivacy(
     @CurrentUser() user: any,
     @Param('id') id: string,
-    @Body() body: { showRealName?: boolean; nickname?: string },
+    @Body() body: {
+      showRealName?: boolean; nickname?: string;
+      showCountry?: boolean; showCity?: boolean; showEducation?: boolean;
+      showOccupation?: boolean; showEthnicity?: boolean; showCivilStatus?: boolean;
+      showHeight?: boolean; showWeight?: boolean; showDressCode?: boolean;
+      showFamilyDetails?: boolean; showAbout?: boolean; showExpectations?: boolean;
+    },
   ) {
     return this.service.updatePrivacy(user.userId, id, body);
   }

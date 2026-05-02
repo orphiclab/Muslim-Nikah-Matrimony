@@ -141,6 +141,18 @@ model ChildProfile {
   contactVisible      Boolean        @default(true)
   showRealName        Boolean        @default(true)   // if false, nickname is shown publicly
   nickname            String?                         // shown instead of real name when showRealName=false
+  showCountry         Boolean        @default(true)
+  showCity            Boolean        @default(true)
+  showEducation       Boolean        @default(true)
+  showOccupation      Boolean        @default(true)
+  showEthnicity       Boolean        @default(true)
+  showCivilStatus     Boolean        @default(true)
+  showHeight          Boolean        @default(true)
+  showWeight          Boolean        @default(true)
+  showDressCode       Boolean        @default(true)
+  showFamilyDetails   Boolean        @default(true)
+  showAbout           Boolean        @default(true)
+  showExpectations    Boolean        @default(true)
   boostExpiresAt      DateTime?                       // if set and in future, profile is boosted (shown at top)
   viewCount           Int            @default(0)     // incremented each time profile detail page is viewed
   status              ProfileStatus  @default(DRAFT)

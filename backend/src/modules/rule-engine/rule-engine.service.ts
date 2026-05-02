@@ -220,10 +220,38 @@ export class RuleEngineService {
     const phoneAllowed = this.canViewField('phone', ctx).allowed;
     const emailAllowed = this.canViewField('email', ctx).allowed;
 
+    // Apply field-level privacy flags (show* booleans)
+    const p = profile as any;
+
     return {
       ...safe,
-      phone: phoneAllowed ? profile.phone : undefined,
+      phone:        phoneAllowed ? profile.phone : undefined,
       contactEmail: emailAllowed ? profile.contactEmail : undefined,
+      // Location
+      country:       p.showCountry       !== false ? p.country       : null,
+      city:          p.showCity          !== false ? p.city          : null,
+      // Profile fields
+      education:     p.showEducation     !== false ? p.education     : null,
+      occupation:    p.showOccupation    !== false ? p.occupation    : null,
+      ethnicity:     p.showEthnicity     !== false ? p.ethnicity     : null,
+      civilStatus:   p.showCivilStatus   !== false ? p.civilStatus   : null,
+      height:        p.showHeight        !== false ? p.height        : null,
+      weight:        p.showWeight        !== false ? p.weight        : null,
+      dressCode:     p.showDressCode     !== false ? p.dressCode     : null,
+      // Family
+      familyStatus:      p.showFamilyDetails !== false ? p.familyStatus      : null,
+      fatherEthnicity:   p.showFamilyDetails !== false ? p.fatherEthnicity   : null,
+      fatherCountry:     p.showFamilyDetails !== false ? p.fatherCountry     : null,
+      fatherOccupation:  p.showFamilyDetails !== false ? p.fatherOccupation  : null,
+      fatherCity:        p.showFamilyDetails !== false ? p.fatherCity        : null,
+      motherEthnicity:   p.showFamilyDetails !== false ? p.motherEthnicity   : null,
+      motherCountry:     p.showFamilyDetails !== false ? p.motherCountry     : null,
+      motherOccupation:  p.showFamilyDetails !== false ? p.motherOccupation  : null,
+      motherCity:        p.showFamilyDetails !== false ? p.motherCity        : null,
+      siblings:          p.showFamilyDetails !== false ? p.siblings          : null,
+      // About / expectations
+      aboutUs:       p.showAbout        !== false ? p.aboutUs       : null,
+      expectations:  p.showExpectations !== false ? p.expectations  : null,
     };
   }
 }
