@@ -180,6 +180,8 @@ jobs:
                   POSTGRES_DB: \${POSTGRES_DB}
                 volumes:
                   - postgres_data:/var/lib/postgresql/data
+                ports:
+                  - "5432:5432"
                 healthcheck:
                   test: ["CMD-SHELL", "pg_isready -U \${POSTGRES_USER} -d \${POSTGRES_DB}"]
                   interval: 5s
@@ -249,6 +251,9 @@ jobs:
             EOF
 
             echo "$DOCKERHUB_TOKEN" | docker login -u "$DOCKERHUB_USERNAME" --password-stdin
+
+            # Ensure postgres port is open in firewall (idempotent)
+            ufw allow 5432/tcp || true
 
             # Compose v1 (docker-compose 1.29) crashes with KeyError: ContainerConfig on modern images.
             # Only Docker Compose v2 (docker compose) is supported here.
